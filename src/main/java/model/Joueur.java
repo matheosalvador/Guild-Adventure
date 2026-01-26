@@ -5,11 +5,13 @@ public class Joueur {
     private String name;
     private Integer health;
     private Integer stamina;
+    private boolean isAlive;
 
     public Joueur(String name) {
         this.name = name;
         health = 100;
         stamina = 100;
+        isAlive = true;
     }
 
     public String getName() {
@@ -34,5 +36,13 @@ public class Joueur {
 
     public void setStamina(Integer stamina) {
         this.stamina = stamina;
+    }
+
+    public boolean isAlive() {
+        return isAlive;
+    }
+
+    public void setAlive(boolean alive) {
+        isAlive = alive;
     }
 }

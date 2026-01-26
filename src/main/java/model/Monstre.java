@@ -4,10 +4,12 @@ public class Monstre {
 
     private String name;
     private Integer health;
+    private boolean isAlive;
 
-    public Monstre(String name, Integer health) {
+    public Monstre(String name) {
         this.name = name;
-        this.health = health;
+        this.health = 100;
+        isAlive = true;
     }
 
     public String getName() {
@@ -24,6 +26,14 @@ public class Monstre {
 
     public void setHealth(Integer health) {
         this.health = health;
+    }
+
+    public boolean isAlive() {
+        return isAlive;
+    }
+
+    public void setAlive(boolean alive) {
+        isAlive = alive;
     }
 }
 
