@@ -1,6 +1,6 @@
 public class Main {
     public static void main(String[] args) {
-        /*Joueur joueur1 = new Joueur("Bobby");
+        /*model.Joueur joueur1 = new model.Joueur("Bobby");
         joueur1.getHealth();
         joueur1.getStamina();
         joueur1.getName();
