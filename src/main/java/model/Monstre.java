@@ -1,29 +1,10 @@
 package model;
 
-public class Monstre {
+public class Monstre extends Entite {
 
-    private String name;
-    private Integer health;
-
-    public Monstre(String name, Integer health) {
-        this.name = name;
-        this.health = health;
+    public Monstre(String name) {
+        super(name, 200);
     }
 
-    public String getName() {
-        return name;
-    }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getHealth() {
-        return health;
-    }
-
-    public void setHealth(Integer health) {
-        this.health = health;
-    }
 }
-
