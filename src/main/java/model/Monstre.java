@@ -28,8 +28,8 @@ public class Monstre {
         this.health = health;
     }
 
-    public boolean isAlive() {
-        return isAlive;
+    public boolean estVivant() {
+        return estVivant();
     }
 
     public void setAlive(boolean alive) {
