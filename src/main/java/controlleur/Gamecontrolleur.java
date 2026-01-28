@@ -8,6 +8,10 @@ public class Gamecontrolleur {
     private Monstre monstre;
     private boolean potionUtilisee = false;
 
+    // Sorts
+    private Sort bouleDeFeu;
+    private Sort flecheMagique;
+
     private Scanner scanner;
     private Attaque attaqueMelee;
     private Attaque attaqueMeleeMonstre;
@@ -28,6 +32,10 @@ public class Gamecontrolleur {
         this.attaqueMelee = new AttaqueMelee("frappe", 10);
         this.attaqueMeleeMonstre = new AttaqueMelee("coup de griffe", 8);
 
+        // Initialisation des sorts
+        this.bouleDeFeu = new BouleDeFeu();
+        this.flecheMagique = new FlecheMagique();
+
         // Initialisation des potions
         this.potionVie = new PotionSoin(joueur);
         this.potionAttaque = new PotionDps(monstre);
@@ -42,7 +50,7 @@ public class Gamecontrolleur {
             System.out.println("\n--- Menu principal ---");
             System.out.println("1. Attaque corps à corps");
             System.out.println("2. Utiliser une potion");
-            System.out.println("3. Défense (pas encore implémenté)");
+            System.out.println("3. Défense (pas encore fait)");
             System.out.println("4. Fuir le combat");
             System.out.println("5. Sorts");
             System.out.print("Choix : ");
@@ -85,12 +93,22 @@ public class Gamecontrolleur {
                     System.out.println("Choix invalide !");
                     break;
             }
+
+
             // Fin du tour : régénération de stamina
             joueur.ajouterStamina(5); // régénère 5 stamina par tour
 
-            // Affichage de la stamina après régénération
-            System.out.println("\nStamina : " + joueur.getName() + " = " + joueur.getStamina() +
-                    "/" + joueur.getMaxStamina());
+            // Décrémenter cooldown des sorts
+            bouleDeFeu.decrementerCooldown();
+            flecheMagique.decrementerCooldown();
+
+            // --- Affichage du statut du joueur et du monstre ---
+            System.out.println("\n--- Statut après ce tour ---");
+            System.out.println(joueur.getName() + " : " + joueur.getHealth() + "/" + joueur.getMaxHealth() + " HP, Stamina : "
+                    + joueur.getStamina() + "/" + joueur.getMaxStamina());
+            System.out.println(monstre.getName() + " : " + monstre.getHealth() + "/" + monstre.getMaxHealth() + " HP");
+            System.out.println("Cooldowns : Boule de feu = " + bouleDeFeu.getCooldownRestant() +
+                    ", Flèche magique = " + flecheMagique.getCooldownRestant());
         }
 
         System.out.println("\n--- Fin du combat ---");
@@ -103,7 +121,7 @@ public class Gamecontrolleur {
         scanner.close();
     }
 
-    // le sous-menu potions
+    // --- Sous-menu potions ---
     private void utiliserPotion() {
         boolean sousMenu = true;
 
@@ -159,20 +177,20 @@ public class Gamecontrolleur {
             }
         }
 
-        // Après utilisation, le monstre riposte si encore vivant a modifier au choix
+        // Monstre riposte après potion
         if (monstre.estVivant()) {
             attaqueMeleeMonstre.executer(monstre, joueur);
         }
     }
 
-    // le sous-menu sorts
+    // --- Sous-menu sorts ---
     private void utiliserSort() {
         boolean sousMenuSort = true;
 
         while (sousMenuSort) {
             System.out.println("\n--- Sous-menu Sorts ---");
-            System.out.println("1. Boule de feu (25 dégâts, portée 3)");
-            System.out.println("2. Flèche magique (15 dégâts, portée 5)");
+            System.out.println("1. Boule de feu (25 dégâts, coût 20, cooldown " + bouleDeFeu.getCooldownRestant() + ")");
+            System.out.println("2. Flèche magique (15 dégâts, coût 15, cooldown " + flecheMagique.getCooldownRestant() + ")");
             System.out.println("3. Retour");
             System.out.print("Choix : ");
 
@@ -180,18 +198,22 @@ public class Gamecontrolleur {
             scanner.nextLine();
 
             switch (choixSort) {
-                case 1 -> {
-                    AttaqueDistance bouleDeFeu = new AttaqueDistance("Boule de feu", 25, 3);
-                    bouleDeFeu.executer(joueur, monstre);
+                case 1:
+                    bouleDeFeu.lancer(joueur, monstre);
                     sousMenuSort = false;
-                }
-                case 2 -> {
-                    AttaqueDistance flecheMagique = new AttaqueDistance("Flèche magique", 15, 5);
-                    flecheMagique.executer(joueur, monstre);
+                    break;
+
+                case 2:
+                    flecheMagique.lancer(joueur, monstre);
                     sousMenuSort = false;
-                }
-                case 3 -> sousMenuSort = false;
-                default -> System.out.println("Choix invalide !");
+                    break;
+
+                case 3:
+                    sousMenuSort = false;
+                    break;
+
+                default:
+                    System.out.println("Choix invalide !");
             }
         }
 
