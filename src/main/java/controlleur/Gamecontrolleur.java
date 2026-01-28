@@ -18,7 +18,7 @@ public class Gamecontrolleur {
     public void demarrerJeu() {
         boolean menuPrincipal = true; // contrôle du menu principal
 
-        while (menuPrincipal && joueur.isAlive() && monstre.isAlive()) {
+        while (menuPrincipal && joueur.isAlive() && monstre.estVivant()) {
             int choix = scanner.nextInt();
             scanner.nextLine();
 
@@ -27,7 +27,7 @@ public class Gamecontrolleur {
                     /*
                     joueur.attaquer(monstre);
                      */
-                    if (monstre.isAlive()) {
+                    if (monstre.estVivant()) {
                         /*
                         monstre.attaquer(joueur);
                          */
