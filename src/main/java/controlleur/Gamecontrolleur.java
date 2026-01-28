@@ -1,5 +1,6 @@
 package controlleur;
 import model.*;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class Gamecontrolleur {
@@ -8,7 +9,6 @@ public class Gamecontrolleur {
     private Monstre monstre;
     private boolean potionUtilisee = false;
 
-    // Sorts
     private Sort bouleDeFeu;
     private Sort flecheMagique;
 
@@ -19,24 +19,18 @@ public class Gamecontrolleur {
     private PotionDps potionAttaque;
     private PotionMix potionMix;
 
-    // Constructeur
     public Gamecontrolleur() {
-        // Initialisation des personnages
         this.joueur = new Joueur("Arthur");
         this.monstre = new Monstre("Gobelin");
 
-        // Initialisation du scanner
         this.scanner = new Scanner(System.in);
 
-        // Initialisation des attaques
         this.attaqueMelee = new AttaqueMelee("frappe", 10);
         this.attaqueMeleeMonstre = new AttaqueMelee("coup de griffe", 8);
 
-        // Initialisation des sorts
         this.bouleDeFeu = new BouleDeFeu();
         this.flecheMagique = new FlecheMagique();
 
-        // Initialisation des potions
         this.potionVie = new PotionSoin(joueur);
         this.potionAttaque = new PotionDps(monstre);
         this.potionMix = new PotionMix(joueur, monstre);
@@ -55,8 +49,15 @@ public class Gamecontrolleur {
             System.out.println("5. Sorts");
             System.out.print("Choix : ");
 
-            int choix = scanner.nextInt();
-            scanner.nextLine();
+            int choix;
+            try {
+                choix = scanner.nextInt();
+                scanner.nextLine();
+            } catch (InputMismatchException e) {
+                scanner.nextLine();
+                System.out.println("Veuillez entrer un nombre valide.");
+                continue;
+            }
 
             switch (choix) {
                 case 1:
@@ -91,18 +92,13 @@ public class Gamecontrolleur {
 
                 default:
                     System.out.println("Choix invalide !");
-                    break;
             }
 
+            joueur.ajouterStamina(5);
 
-            // Fin du tour : régénération de stamina
-            joueur.ajouterStamina(5); // régénère 5 stamina par tour
-
-            // Décrémenter cooldown des sorts
             bouleDeFeu.decrementerCooldown();
             flecheMagique.decrementerCooldown();
 
-            // --- Affichage du statut du joueur et du monstre ---
             System.out.println("\n--- Statut après ce tour ---");
             System.out.println(joueur.getName() + " : " + joueur.getHealth() + "/" + joueur.getMaxHealth() + " HP, Stamina : "
                     + joueur.getStamina() + "/" + joueur.getMaxStamina());
@@ -121,7 +117,6 @@ public class Gamecontrolleur {
         scanner.close();
     }
 
-    // --- Sous-menu potions ---
     private void utiliserPotion() {
         boolean sousMenu = true;
 
@@ -133,8 +128,15 @@ public class Gamecontrolleur {
             System.out.println("4. Retour");
             System.out.print("Choix : ");
 
-            int choixItem = scanner.nextInt();
-            scanner.nextLine();
+            int choixItem;
+            try {
+                choixItem = scanner.nextInt();
+                scanner.nextLine();
+            } catch (InputMismatchException e) {
+                scanner.nextLine();
+                System.out.println("Veuillez entrer un nombre valide.");
+                continue;
+            }
 
             switch (choixItem) {
                 case 1:
@@ -173,17 +175,14 @@ public class Gamecontrolleur {
 
                 default:
                     System.out.println("Choix invalide !");
-                    break;
             }
         }
 
-        // Monstre riposte après potion
         if (monstre.estVivant()) {
             attaqueMeleeMonstre.executer(monstre, joueur);
         }
     }
 
-    // --- Sous-menu sorts ---
     private void utiliserSort() {
         boolean sousMenuSort = true;
 
@@ -194,8 +193,15 @@ public class Gamecontrolleur {
             System.out.println("3. Retour");
             System.out.print("Choix : ");
 
-            int choixSort = scanner.nextInt();
-            scanner.nextLine();
+            int choixSort;
+            try {
+                choixSort = scanner.nextInt();
+                scanner.nextLine();
+            } catch (InputMismatchException e) {
+                scanner.nextLine();
+                System.out.println("Veuillez entrer un nombre valide.");
+                continue;
+            }
 
             switch (choixSort) {
                 case 1:
@@ -217,7 +223,6 @@ public class Gamecontrolleur {
             }
         }
 
-        // Monstre riposte avec 50% de chance
         if (monstre.estVivant()) {
             if (Math.random() < 0.5) {
                 attaqueMeleeMonstre.executer(monstre, joueur);
