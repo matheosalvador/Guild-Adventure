@@ -1,7 +1,7 @@
 package model;
 
-public interface Combatant {
-    void attaquer(Combatant cible);
+public interface Combatable {
+    void attaquer(Combatable cible);
     void subirDegats(int montant);
     boolean estVivant();
 }

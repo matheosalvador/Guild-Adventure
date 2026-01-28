@@ -1,6 +1,6 @@
 package model;
 
-public class Monstre extends Entite implements Combatant{
+public class Monstre extends Entite implements Combatable {
 
     public Monstre(String name) {
         super(name, 200);
@@ -21,7 +21,7 @@ public class Monstre extends Entite implements Combatant{
 
 
     @Override
-    public void attaquer(Combatant cible) {
+    public void attaquer(Combatable cible) {
         if (this.estVivant()) {
             int degats = 10;
             System.out.println(this.getName() + " attaque sa cible !");
