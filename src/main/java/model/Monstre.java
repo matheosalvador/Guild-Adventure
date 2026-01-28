@@ -3,7 +3,7 @@ package model;
 public class Monstre extends Entite implements Combatant{
 
     public Monstre(String name) {
-        super(name, 100);
+        super(name, 200);
     }
 
     public String getName() {

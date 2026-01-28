@@ -27,8 +27,6 @@ public class Main {
         soin.use();  // Arthur gagne 20 PV
 
 
-
-
         System.out.println(monstre.getHealth()); // 200 - 30 = 170
         System.out.println(joueur.getHealth());  // 50 + 20 = 70
 

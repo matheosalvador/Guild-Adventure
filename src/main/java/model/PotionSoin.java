@@ -11,7 +11,7 @@ public class PotionSoin extends Potion {
     }
 
     @Override
-    protected void applyEffect() {
+    public void applyEffect() {
         joueur.ajouterVie(soin);
     }
 }

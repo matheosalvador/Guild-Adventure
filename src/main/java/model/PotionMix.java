@@ -15,7 +15,7 @@ public class PotionMix extends Potion {
     }
 
     @Override
-    protected void applyEffect() {
+    public  void applyEffect() {
         joueur.ajouterVie(soin);         // soigne le joueur
         monstre.perdreVie(degats);       // inflige des dégâts au monstre
     }

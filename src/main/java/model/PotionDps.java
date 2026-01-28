@@ -11,7 +11,7 @@ public class PotionDps extends Potion {
     }
 
     @Override
-    protected void applyEffect() {
+    public void applyEffect() {
         monstre.perdreVie(degats);
     }
 }

@@ -30,14 +30,14 @@ public class Joueur extends Entite implements Combatant{
         if (montant <= 0) return;
         stamina = Math.max(stamina - montant, 0);
     }
+
     @Override
     public void attaquer(Combatant cible) {
-
         int degats = 15;
         System.out.println(this.getName() + " attaque !");
         cible.subirDegats(degats);
-
     }
+
     @Override
     public void subirDegats(int montant) {
         this.perdreVie(montant);
@@ -48,5 +48,4 @@ public class Joueur extends Entite implements Combatant{
     public boolean estVivant() {
         return this.estVivant();
     }
-
 }
