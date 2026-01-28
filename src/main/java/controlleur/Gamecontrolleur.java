@@ -52,9 +52,15 @@ public class Gamecontrolleur {
 
             switch (choix) {
                 case 1:
-                    attaqueMelee.executer(joueur, monstre);
-                    if (monstre.estVivant()) {
-                        attaqueMeleeMonstre.executer(monstre, joueur);
+                    int coutStaminaMelee = 10;
+                    if (joueur.getStamina() >= coutStaminaMelee) {
+                        joueur.perdreStamina(coutStaminaMelee);
+                        attaqueMelee.executer(joueur, monstre);
+                        if (monstre.estVivant()) {
+                            attaqueMeleeMonstre.executer(monstre, joueur);
+                        }
+                    } else {
+                        System.out.println("Pas assez de stamina pour attaquer !");
                     }
                     break;
 
@@ -79,6 +85,12 @@ public class Gamecontrolleur {
                     System.out.println("Choix invalide !");
                     break;
             }
+            // Fin du tour : régénération de stamina
+            joueur.ajouterStamina(5); // régénère 5 stamina par tour
+
+            // Affichage de la stamina après régénération
+            System.out.println("\nStamina : " + joueur.getName() + " = " + joueur.getStamina() +
+                    "/" + joueur.getMaxStamina());
         }
 
         System.out.println("\n--- Fin du combat ---");
