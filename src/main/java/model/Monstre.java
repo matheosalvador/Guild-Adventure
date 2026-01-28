@@ -1,15 +1,9 @@
 package model;
 
-public class Monstre {
-
-    private String name;
-    private Integer health;
-    private boolean isAlive;
+public class Monstre extends Entite implements Combatable {
 
     public Monstre(String name) {
-        this.name = name;
-        this.health = 100;
-        isAlive = true;
+        super(name, 200);
     }
 
     public String getName() {
@@ -20,20 +14,28 @@ public class Monstre {
         this.name = name;
     }
 
-    public Integer getHealth() {
-        return health;
-    }
 
     public void setHealth(Integer health) {
         this.health = health;
     }
 
-    public boolean estVivant() {
-        return estVivant();
+
+    @Override
+    public void attaquer(Combatable cible) {
+        if (this.estVivant()) {
+            int degats = 10;
+            System.out.println(this.getName() + " attaque sa cible !");
+            cible.subirDegats(degats);
+        }
     }
 
-    public void setAlive(boolean alive) {
-        isAlive = alive;
+    @Override
+    public void subirDegats(int montant) {
+        this.perdreVie(montant);
+        System.out.println(this.getName() + " a subi " + montant + " points de dégâts.");
+
+        if (!this.estVivant()) {
+            System.out.println(this.getName() + " a échoué !");
+        }
     }
 }
-
