@@ -1,48 +1,33 @@
 package model;
 
-public class Joueur {
+public class Joueur extends Entite {
 
-    private String name;
-    private Integer health;
-    private Integer stamina;
-    private boolean isAlive;
+    private int stamina;
+    private int maxStamina;
 
     public Joueur(String name) {
-        this.name = name;
-        health = 100;
-        stamina = 100;
-        isAlive = true;
+        super(name, 100);
+        this.maxStamina = 100;
+        this.stamina = maxStamina;
     }
 
-    public String getName() {
-        return name;
-    }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getHealth() {
-        return health;
-    }
-
-    public void setHealth(Integer health) {
-        this.health = health;
-    }
-
-    public Integer getStamina() {
+    public int getStamina() {
         return stamina;
     }
 
-    public void setStamina(Integer stamina) {
-        this.stamina = stamina;
+    public int getMaxStamina() {
+        return maxStamina;
     }
 
-    public boolean isAlive() {
-        return isAlive;
+
+    public void ajouterStamina(int montant) {
+        if (montant <= 0) return;
+        stamina = Math.min(stamina + montant, maxStamina);
     }
 
-    public void setAlive(boolean alive) {
-        isAlive = alive;
+    public void perdreStamina(int montant) {
+        if (montant <= 0) return;
+        stamina = Math.max(stamina - montant, 0);
     }
 }
