@@ -1,6 +1,6 @@
 package model;
 
-public class Joueur extends Entite implements Combatable {
+public class Joueur extends Entite implements Combatant {
 
     private int stamina;
     private int maxStamina;
@@ -32,7 +32,7 @@ public class Joueur extends Entite implements Combatable {
     }
 
     @Override
-    public void attaquer(Combatable cible) {
+    public void attaquer(Combatant cible) {
         int degats = 15;
         System.out.println(this.getName() + " attaque !");
         cible.subirDegats(degats);
