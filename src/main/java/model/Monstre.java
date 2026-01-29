@@ -56,4 +56,19 @@ public class Monstre extends Entite implements Combatant {
             System.out.println(this.getName() + " est mort !");
         }
     }
+
+    @Override
+    public void setHealth(int health) {
+
+    }
+
+    @Override
+    public void setLevel(int level) {
+
+    }
+
+    @Override
+    public int getLevel() {
+        return 0;
+    }
 }

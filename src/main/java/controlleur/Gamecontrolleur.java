@@ -2,284 +2,270 @@ package controlleur;
 
 import model.*;
 import java.util.Scanner;
-import model.GameState;
-import service.SaveManager;
 
-/**
- * Contrôleur principal du jeu.
- * Gère la boucle de jeu, les interactions utilisateur et la logique de combat.
- */
 public class Gamecontrolleur {
 
-    // Joueur et Monstre
+    /* =========================
+       === ATTRIBUTS PRINCIPAUX ===
+       ========================= */
+
+    // Personnages
     private Joueur joueur;
     private GestionMonstres gestionMonstres;
     private Monstre boss;
 
+    // Attaques
+    private Attaque attaqueMeleeJoueur;
+    private Attaque attaqueMeleeMonstre;
+
     // Sorts
     private Sort bouleDeFeu;
     private Sort flecheMagique;
-
-    private Scanner scanner;
-    private Attaque attaqueMelee;
-    private Attaque attaqueMeleeMonstre;
 
     // Potions
     private PotionSoin potionVie;
     private PotionDps potionAttaque;
     private PotionMix potionMix;
 
-    /**
-     * Constructeur du contrôleur de jeu.
-     * Initialise le joueur (chargement ou création), le monstre, les attaques, les sorts et les potions.
-     */
+    // Outils
+    private Scanner scanner;
+
+    /* =========================
+       === CONSTRUCTEUR ===
+       ========================= */
+
     public Gamecontrolleur() {
-        // Initialisation des personnages
-        this.joueur = new Joueur("Arthur");
-
-        this.gestionMonstres = new GestionMonstres();
-        this.boss = new Monstre("Gobelin chef");
-        gestionMonstres.ajouterMonstre(boss);
-
-        this.scanner = new Scanner(System.in);
-
-        // Initialisation des attaques
-        this.attaqueMelee = new AttaqueMelee("frappe", 10);
-        this.attaqueMeleeMonstre = new AttaqueMelee("coup de griffe", 8);
-
-        // Initialisation des sorts
-        this.bouleDeFeu = new BouleDeFeu();
-        this.flecheMagique = new FlecheMagique();
-
-        // Initialisation des potions
-        this.potionVie = new PotionSoin();
-        this.potionAttaque = new PotionDps();
-        this.potionMix = new PotionMix();
+        initialiserPersonnages();
+        initialiserAttaques();
+        initialiserSorts();
+        initialiserPotions();
+        scanner = new Scanner(System.in);
     }
 
-    // jeu
+    /* =========================
+       === INITIALISATIONS ===
+       ========================= */
 
-    /**
-     * Démarre la boucle principale du jeu.
-     */
+    private void initialiserPersonnages() {
+        joueur = new Joueur("Arthur");
+
+        gestionMonstres = new GestionMonstres();
+        boss = new Monstre("Gobelin chef");
+        gestionMonstres.ajouterMonstre(boss);
+    }
+
+    private void initialiserAttaques() {
+        attaqueMeleeJoueur = new AttaqueMelee("Frappe", 10);
+        attaqueMeleeMonstre = new AttaqueMelee("Coup de griffe", 8);
+    }
+
+    private void initialiserSorts() {
+        bouleDeFeu = new BouleDeFeu();
+        flecheMagique = new FlecheMagique();
+    }
+
+    private void initialiserPotions() {
+        potionVie = new PotionSoin();
+        potionAttaque = new PotionDps();
+        potionMix = new PotionMix();
+    }
+
+    /* =========================
+       === JEU PRINCIPAL ===
+       ========================= */
+
     public void demarrerJeu() {
-        System.out.println("Bienvenue dans le jeu !");
-        joueur.ramasserItem(potionMix);
-        joueur.ramasserItem(potionAttaque);
-        joueur.ramasserItem(potionVie);
-        joueur.ramasserItem(potionMix);
-        joueur.ramasserItem(potionAttaque);
-        joueur.ramasserItem(potionVie);
-        System.out.println("--- Inventaire de départ ---");
-        System.out.println(joueur.getInventaire().getItems().toString());
-        boolean menuPrincipal = true;
+        afficherIntroduction();
+        donnerInventaireDepart();
 
-        while (menuPrincipal && joueur.estVivant() && gestionMonstres.resteDesMonstres()) {
+        boolean jeuActif = true;
 
-            System.out.println("\n--- Menu principal ---");
-            System.out.println("1. Attaque corps à corps");
-            System.out.println("2. Utiliser une potion");
-            System.out.println("3. Défense (pas encore fait)");
-            System.out.println("4. Fuir le combat");
-            System.out.println("5. Sorts");
-            System.out.println("6. Inventaire");
-            System.out.println("7. Status");
-            System.out.print("Choix : ");
+        while (jeuActif && joueur.estVivant() && gestionMonstres.resteDesMonstres()) {
 
-            if (scanner.hasNextInt()) {
-                int choix = scanner.nextInt();
-                scanner.nextLine();
+            afficherMenuPrincipal();
+            int choix = lireChoix();
 
-                switch (choix) {
-                    case 1:
-                        int coutStaminaMelee = 10;
-                        if (joueur.getStamina() >= coutStaminaMelee) {
-                            joueur.perdreStamina(coutStaminaMelee);
-                            attaqueMelee.executer(joueur, monstre);
-                            if (monstre.estVivant()) {
-                                attaqueMeleeMonstre.executer(monstre, joueur);
-                            }
-                        } else {
-                            System.out.println("Pas assez de stamina pour attaquer !");
-                        }
-                        break;
-
-                    case 2:
-                        utiliserPotion();
-                        break;
-
-                    case 3:
-                        System.out.println("Défense non implémentée pour le moment.");
-                        break;
-
-                case 4:
-                    joueur.subirDegats(100);
-                    System.out.println(joueur.getName() + " a fui le combat !");
-                    menuPrincipal = false;
-                    break;
-
-                case 5:
-                    utiliserSort();
-                    break;
-
-                case 6:
-                    System.out.println("--- Inventaire Actuel ---");
-                    System.out.println(joueur.getInventaire().getItems().toString());
-                    break;
-
-                case 7:
-                    // --- Affichage du statut du joueur et du monstre ---
-                    System.out.println("\n--- Statut Actuel ---");
-                    System.out.println(joueur.getName() + " : " + joueur.getHealth() + "/" + joueur.getMaxHealth() + " HP, Stamina : "
-                            + joueur.getStamina() + "/" + joueur.getMaxStamina());
-                    System.out.println(monstre.getName() + " : " + monstre.getHealth() + "/" + monstre.getMaxHealth() + " HP");
-                    System.out.println("Cooldowns : Boule de feu = " + bouleDeFeu.getCooldownRestant() +
-                            ", Flèche magique = " + flecheMagique.getCooldownRestant());
-                break;
-
-                    default:
-                        System.out.println("Choix invalide !");
-                        break;
-                }
-            } else {
-                System.out.println("Entrée invalide. Veuillez entrer un nombre.");
-                scanner.nextLine(); // Consommer l'entrée invalide
-                continue;
+            switch (choix) {
+                case 1 -> attaquerCorpsACorps();
+                case 2 -> utiliserPotion();
+                case 3 -> System.out.println("Défense non implémentée.");
+                case 4 -> jeuActif = fuirCombat();
+                case 5 -> utiliserSort();
+                case 6 -> afficherInventaire();
+                case 7 -> afficherStatus();
+                default -> System.out.println("Choix invalide !");
             }
 
-
-            // Fin du tour : régénération de stamina
-            joueur.ajouterStamina(5); // régénère 5 stamina par tour
-            // Décrémenter cooldown des sorts
-            bouleDeFeu.decrementerCooldown();
-            flecheMagique.decrementerCooldown();
+            finDeTour();
         }
 
-        System.out.println("\n--- Fin du combat ---");
-        if (joueur.estVivant() && !monstre.estVivant()) {
-            System.out.println("Vous avez gagné !");
-        } else if (!joueur.estVivant()) {
-            System.out.println("Vous avez été vaincu !");
-        }
-
+        afficherFinCombat();
         scanner.close();
     }
 
-    // --- Sous-menu potions ---
-    private void utiliserPotion() {
+    /* =========================
+       === ACTIONS DU JOUEUR ===
+       ========================= */
 
-        boolean sousMenu = true;
+    private void attaquerCorpsACorps() {
+        int coutStamina = 10;
 
-        while (sousMenu) {
-            System.out.println("\n--- Sous-menu Potions ---");
-            System.out.println("1. Potion de soin");
-            System.out.println("2. Potion de dégâts");
-            System.out.println("3. Potion Mix");
-            System.out.println("4. Retour");
-            System.out.print("Choix : ");
-
-            int choix = scanner.nextInt();
-            scanner.nextLine();
-
-            switch (choix) {
-
-                case 1:
-                    if (joueur.getInventaire().contient(potionVie)) {
-                        joueur.utiliserItem(potionVie, monstre);
-                    } else {
-                        System.out.println("Pas de potion de soin !");
-                    }
-                    sousMenu = false;
-                    break;
-                case 2:
-                    if (joueur.getInventaire().contient(potionAttaque)) {
-                        joueur.utiliserItem(potionAttaque, monstre);
-                    } else {
-                        System.out.println("Pas de potion de attaque !");
-                    }
-                    sousMenu = false;
-                    break;
-                case 3:
-                    if (joueur.getInventaire().contient(potionMix)) {
-                        joueur.utiliserItem(potionMix, monstre);
-                    } else {
-                        System.out.println("Pas de potion de mix !");
-                    }
-                    sousMenu = false;
-                    break;
-
-                    case 4:
-                        sousMenu = false;
-                        break;
-
-                    default:
-                        System.out.println("Choix invalide !");
-                        break;
-                }
-            } else {
-                System.out.println("Entrée invalide. Veuillez entrer un nombre.");
-                scanner.nextLine();
-            }
+        if (joueur.getStamina() < coutStamina) {
+            System.out.println("Pas assez de stamina !");
+            return;
         }
 
-        // Monstre riposte après potion
-        if (monstre.estVivant()) {
-            attaqueMeleeMonstre.executer(monstre, joueur);
+        joueur.perdreStamina(coutStamina);
+        attaqueMeleeJoueur.executer(joueur, boss);
+
+        if (boss.estVivant()) {
+            attaqueMeleeMonstre.executer(boss, joueur);
         }
     }
 
-    // --- Sous-menu sorts ---
+    private boolean fuirCombat() {
+        joueur.subirDegats(100);
+        System.out.println(joueur.getName() + " a fui le combat !");
+        return false;
+    }
+
+    /* =========================
+       === POTIONS ===
+       ========================= */
+
+    private void utiliserPotion() {
+        afficherMenuPotions();
+        int choix = lireChoix();
+
+        switch (choix) {
+            case 1 -> utiliserPotionSiDisponible(potionVie, "Potion de soin");
+            case 2 -> utiliserPotionSiDisponible(potionAttaque, "Potion d'attaque");
+            case 3 -> utiliserPotionSiDisponible(potionMix, "Potion mix");
+            case 4 -> { return; }
+            default -> System.out.println("Choix invalide !");
+        }
+
+        if (boss.estVivant()) {
+            attaqueMeleeMonstre.executer(boss, joueur);
+        }
+    }
+
+    private void utiliserPotionSiDisponible(Item potion, String nom) {
+        if (joueur.getInventaire().contient(potion)) {
+            joueur.utiliserItem(potion, boss);
+        } else {
+            System.out.println("Pas de " + nom + " !");
+        }
+    }
+
+    /* =========================
+       === SORTS ===
+       ========================= */
+
     private void utiliserSort() {
-        boolean sousMenuSort = true;
+        afficherMenuSorts();
+        int choix = lireChoix();
 
-        while (sousMenuSort) {
-            System.out.println("\n--- Sous-menu Sorts ---");
-            System.out.println("1. Boule de feu (25 dégâts, coût 20, cooldown " + bouleDeFeu.getCooldownRestant() + ")");
-            System.out.println("2. Flèche magique (15 dégâts, coût 15, cooldown " + flecheMagique.getCooldownRestant() + ")");
-            System.out.println("3. Retour");
-            System.out.print("Choix : ");
-
-            if (scanner.hasNextInt()) {
-                int choixSort = scanner.nextInt();
-                scanner.nextLine();
-
-                switch (choixSort) {
-                    case 1:
-                        bouleDeFeu.lancer(joueur, monstre);
-                        sousMenuSort = false;
-                        break;
-
-                    case 2:
-                        flecheMagique.lancer(joueur, monstre);
-                        sousMenuSort = false;
-                        break;
-
-                    case 3:
-                        sousMenuSort = false;
-                        break;
-
-                    default:
-                        System.out.println("Choix invalide !");
-                }
-            } else {
-                System.out.println("Entrée invalide. Veuillez entrer un nombre.");
-                scanner.nextLine();
-            }
+        switch (choix) {
+            case 1 -> bouleDeFeu.lancer(joueur, boss);
+            case 2 -> flecheMagique.lancer(joueur, boss);
+            case 3 -> { return; }
+            default -> System.out.println("Choix invalide !");
         }
 
         gestionMonstres.supprimerMonstresMorts();
         boss.decrementerCooldownInvocation();
     }
 
-    // Affichage
+    /* =========================
+       === AFFICHAGES ===
+       ========================= */
 
-    private void afficherEtat() {
+    private void afficherIntroduction() {
+        System.out.println("Bienvenue dans le jeu !");
+    }
 
-        System.out.println("\n--- État du combat ---");
-        System.out.println(joueur.getName() + " : " + joueur.getHealth() + " HP");
+    private void donnerInventaireDepart() {
+        joueur.ramasserItem(potionVie);
+        joueur.ramasserItem(potionAttaque);
+        joueur.ramasserItem(potionMix);
+        joueur.ramasserItem(potionVie);
+        joueur.ramasserItem(potionAttaque);
+        joueur.ramasserItem(potionMix);
 
-        for (Monstre m : gestionMonstres.getMonstres()) {
-            System.out.println(m.getName() + " : " + m.getHealth() + " HP");
-        }
+        System.out.println("--- Inventaire de départ ---");
+        afficherInventaire();
+    }
+
+    private void afficherMenuPrincipal() {
+        System.out.println("""
+                \n--- Menu principal ---
+                1. Attaque corps à corps
+                2. Utiliser une potion
+                3. Défense
+                4. Fuir
+                5. Sorts
+                6. Inventaire
+                7. Status
+                """);
+        System.out.print("Choix : ");
+    }
+
+    private void afficherMenuPotions() {
+        System.out.println("""
+                \n--- Potions ---
+                1. Potion de soin
+                2. Potion de dégâts
+                3. Potion mix
+                4. Retour
+                """);
+        System.out.print("Choix : ");
+    }
+
+    private void afficherMenuSorts() {
+        System.out.println("""
+                \n--- Sorts ---
+                1. Boule de feu (CD : """ + bouleDeFeu.getCooldownRestant() + """
+                )
+                2. Flèche magique (CD : """ + flecheMagique.getCooldownRestant() + """
+                )
+                3. Retour
+                """);
+        System.out.print("Choix : ");
+    }
+
+    private void afficherInventaire() {
+        System.out.println(joueur.getInventaire().getItems());
+    }
+
+    private void afficherStatus() {
+        System.out.println("\n--- Status ---");
+        System.out.println(joueur.getName() + " : " +
+                joueur.getHealth() + "/" + joueur.getMaxHealth() + " HP | Stamina : " +
+                joueur.getStamina() + "/" + joueur.getMaxStamina());
+
+        System.out.println(boss.getName() + " : " +
+                boss.getHealth() + "/" + boss.getMaxHealth() + " HP");
+    }
+
+    private void afficherFinCombat() {
+        System.out.println("\n--- Fin du combat ---");
+        System.out.println(joueur.estVivant() ? "Victoire !" : "Défaite...");
+    }
+
+    /* =========================
+       === UTILITAIRES ===
+       ========================= */
+
+    private int lireChoix() {
+        int choix = scanner.nextInt();
+        scanner.nextLine();
+        return choix;
+    }
+
+    private void finDeTour() {
+        joueur.ajouterStamina(5);
+        bouleDeFeu.decrementerCooldown();
+        flecheMagique.decrementerCooldown();
     }
 }

@@ -73,7 +73,21 @@ public class Joueur extends Entite implements Combatant {
         this.perdreVie(montant);
         System.out.println(this.getName() + " a subi " + montant + " dégâts !");
     }
+
+    @Override
+    public void setHealth(int health) {
+
+    }
+
+    @Override
+    public void setLevel(int level) {
+
+    }
+
+    @Override
+    public int getLevel() {
+        return 0;
+    }
 }
 
 
-}
