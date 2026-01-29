@@ -1,11 +1,19 @@
 package model;
 
+/**
+ * Représente le joueur dans le jeu.
+ * Le joueur possède de la stamina en plus de sa santé.
+ */
 public class Joueur extends Entite implements Combatant {
 
     private int stamina;
     private int maxStamina;
     private int level; // pour getLevel/setLevel
 
+    /**
+     * Constructeur du joueur.
+     * @param name Le nom du joueur.
+     */
     public Joueur(String name) {
         super(name, 100); // santé max = 100 par défaut
         this.stamina = 100;
@@ -30,12 +38,31 @@ public class Joueur extends Entite implements Combatant {
     }
 
     // --- Stamina ---
+    /**
+     * Récupère la stamina actuelle du joueur.
+     * @return La stamina actuelle.
+     */
     public int getStamina() { return stamina; }
+
+    /**
+     * Récupère la stamina maximale du joueur.
+     * @return La stamina maximale.
+     */
     public int getMaxStamina() { return maxStamina; }
+
+    /**
+     * Ajoute de la stamina au joueur.
+     * @param montant Le montant de stamina à ajouter.
+     */
     public void ajouterStamina(int montant) {
         if (montant <= 0) return;
         stamina = Math.min(stamina + montant, maxStamina);
     }
+
+    /**
+     * Retire de la stamina au joueur.
+     * @param montant Le montant de stamina à retirer.
+     */
     public void perdreStamina(int montant) {
         if (montant <= 0) return;
         stamina = Math.max(stamina - montant, 0);

@@ -1,7 +1,14 @@
 package model;
 
+/**
+ * Sort de Boule de feu.
+ * Inflige des dégâts importants mais coûte cher en stamina et a un cooldown.
+ */
 public class BouleDeFeu extends Sort {
 
+    /**
+     * Constructeur de la Boule de feu.
+     */
     public BouleDeFeu() {
         super("Boule de feu", 25, 20, 3); // dégâts, coût stamina, cooldown
     }

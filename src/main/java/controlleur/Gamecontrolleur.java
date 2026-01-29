@@ -5,6 +5,10 @@ import java.util.Scanner;
 import model.GameState;
 import service.SaveManager;
 
+/**
+ * Contrôleur principal du jeu.
+ * Gère la boucle de jeu, les interactions utilisateur et la logique de combat.
+ */
 public class Gamecontrolleur {
 
     private Joueur joueur;
@@ -22,7 +26,10 @@ public class Gamecontrolleur {
     private PotionDps potionAttaque;
     private PotionMix potionMix;
 
-    // Constructeur
+    /**
+     * Constructeur du contrôleur de jeu.
+     * Initialise le joueur (chargement ou création), le monstre, les attaques, les sorts et les potions.
+     */
     public Gamecontrolleur() {
         this.scanner = new Scanner(System.in);
 
@@ -36,6 +43,12 @@ public class Gamecontrolleur {
         } else {
             System.out.print("Entrez le nom du joueur : ");
             String name = "Arthur"; // Par défaut si pas d'entrée dans console
+            if (scanner.hasNextLine()) {
+                String inputName = scanner.nextLine();
+                if (!inputName.trim().isEmpty()) {
+                    name = inputName;
+                }
+            }
             this.joueur = new Joueur(name);
             System.out.println("Nouvelle partie pour " + name);
         }
@@ -57,6 +70,9 @@ public class Gamecontrolleur {
         this.potionMix = new PotionMix(joueur, monstre);
     }
 
+    /**
+     * Démarre la boucle principale du jeu.
+     */
     public void demarrerJeu() {
         System.out.println("Bienvenue dans le jeu !");
         boolean menuPrincipal = true;
@@ -70,43 +86,49 @@ public class Gamecontrolleur {
             System.out.println("5. Sorts");
             System.out.print("Choix : ");
 
-            int choix = scanner.nextInt();
-            scanner.nextLine();
+            if (scanner.hasNextInt()) {
+                int choix = scanner.nextInt();
+                scanner.nextLine();
 
-            switch (choix) {
-                case 1:
-                    int coutStaminaMelee = 10;
-                    if (joueur.getStamina() >= coutStaminaMelee) {
-                        joueur.perdreStamina(coutStaminaMelee);
-                        attaqueMelee.executer(joueur, monstre);
-                        if (monstre.estVivant()) {
-                            attaqueMeleeMonstre.executer(monstre, joueur);
+                switch (choix) {
+                    case 1:
+                        int coutStaminaMelee = 10;
+                        if (joueur.getStamina() >= coutStaminaMelee) {
+                            joueur.perdreStamina(coutStaminaMelee);
+                            attaqueMelee.executer(joueur, monstre);
+                            if (monstre.estVivant()) {
+                                attaqueMeleeMonstre.executer(monstre, joueur);
+                            }
+                        } else {
+                            System.out.println("Pas assez de stamina pour attaquer !");
                         }
-                    } else {
-                        System.out.println("Pas assez de stamina pour attaquer !");
-                    }
-                    break;
+                        break;
 
-                case 2:
-                    utiliserPotion();
-                    break;
+                    case 2:
+                        utiliserPotion();
+                        break;
 
-                case 3:
-                    System.out.println("Défense non implémentée pour le moment.");
-                    break;
+                    case 3:
+                        System.out.println("Défense non implémentée pour le moment.");
+                        break;
 
-                case 4:
-                    System.out.println(joueur.getName() + " a fui le combat !");
-                    menuPrincipal = false;
-                    break;
+                    case 4:
+                        System.out.println(joueur.getName() + " a fui le combat !");
+                        menuPrincipal = false;
+                        break;
 
-                case 5:
-                    utiliserSort();
-                    break;
+                    case 5:
+                        utiliserSort();
+                        break;
 
-                default:
-                    System.out.println("Choix invalide !");
-                    break;
+                    default:
+                        System.out.println("Choix invalide !");
+                        break;
+                }
+            } else {
+                System.out.println("Entrée invalide. Veuillez entrer un nombre.");
+                scanner.nextLine(); // Consommer l'entrée invalide
+                continue;
             }
 
             // Fin du tour : régénération de stamina
@@ -130,9 +152,9 @@ public class Gamecontrolleur {
         }
 
         System.out.println("\n--- Fin du combat ---");
-        if (joueur.estVivant()) {
+        if (joueur.estVivant() && !monstre.estVivant()) {
             System.out.println("Vous avez gagné !");
-        } else {
+        } else if (!joueur.estVivant()) {
             System.out.println("Vous avez été vaincu !");
         }
 
@@ -151,52 +173,58 @@ public class Gamecontrolleur {
             System.out.println("4. Retour");
             System.out.print("Choix : ");
 
-            int choixItem = scanner.nextInt();
-            scanner.nextLine();
+            if (scanner.hasNextInt()) {
+                int choixItem = scanner.nextInt();
+                scanner.nextLine();
 
-            switch (choixItem) {
-                case 1:
-                    if (potionVie.use()) {
-                        System.out.println("Potion de soin utilisée !");
-                        potionUtilisee = true;
-                    } else {
-                        System.out.println("Pas de potion de soin !");
-                    }
-                    sousMenu = false;
-                    break;
+                switch (choixItem) {
+                    case 1:
+                        if (potionVie.use()) {
+                            System.out.println("Potion de soin utilisée !");
+                            potionUtilisee = true;
+                        } else {
+                            System.out.println("Pas de potion de soin !");
+                        }
+                        sousMenu = false;
+                        break;
 
-                case 2:
-                    if (potionAttaque.use()) {
-                        System.out.println("Potion de dégâts utilisée sur le monstre !");
-                        potionUtilisee = true;
-                    } else {
-                        System.out.println("Pas de potion de dégâts !");
-                    }
-                    sousMenu = false;
-                    break;
+                    case 2:
+                        if (potionAttaque.use()) {
+                            System.out.println("Potion de dégâts utilisée sur le monstre !");
+                            potionUtilisee = true;
+                        } else {
+                            System.out.println("Pas de potion de dégâts !");
+                        }
+                        sousMenu = false;
+                        break;
 
-                case 3:
-                    if (potionMix.use()) {
-                        System.out.println("Potion Mix utilisée !");
-                        potionUtilisee = true;
-                    } else {
-                        System.out.println("Pas de potion Mix !");
-                    }
-                    sousMenu = false;
-                    break;
+                    case 3:
+                        if (potionMix.use()) {
+                            System.out.println("Potion Mix utilisée !");
+                            potionUtilisee = true;
+                        } else {
+                            System.out.println("Pas de potion Mix !");
+                        }
+                        sousMenu = false;
+                        break;
 
-                case 4:
-                    sousMenu = false;
-                    break;
+                    case 4:
+                        sousMenu = false;
+                        break;
 
-                default:
-                    System.out.println("Choix invalide !");
-                    break;
+                    default:
+                        System.out.println("Choix invalide !");
+                        break;
+                }
+            } else {
+                System.out.println("Entrée invalide. Veuillez entrer un nombre.");
+                scanner.nextLine();
             }
         }
 
-        if (monstre.estVivant()) {
-            attaqueMeleeMonstre.executer(monstre, joueur);
+        if (monstre.estVivant() && potionUtilisee) { // Le monstre attaque si on a utilisé une potion
+             attaqueMeleeMonstre.executer(monstre, joueur);
+             potionUtilisee = false; // Reset pour le prochain tour
         }
     }
 
@@ -211,30 +239,35 @@ public class Gamecontrolleur {
             System.out.println("3. Retour");
             System.out.print("Choix : ");
 
-            int choixSort = scanner.nextInt();
-            scanner.nextLine();
+            if (scanner.hasNextInt()) {
+                int choixSort = scanner.nextInt();
+                scanner.nextLine();
 
-            switch (choixSort) {
-                case 1:
-                    bouleDeFeu.lancer(joueur, monstre);
-                    sousMenuSort = false;
-                    break;
+                switch (choixSort) {
+                    case 1:
+                        bouleDeFeu.lancer(joueur, monstre);
+                        sousMenuSort = false;
+                        break;
 
-                case 2:
-                    flecheMagique.lancer(joueur, monstre);
-                    sousMenuSort = false;
-                    break;
+                    case 2:
+                        flecheMagique.lancer(joueur, monstre);
+                        sousMenuSort = false;
+                        break;
 
-                case 3:
-                    sousMenuSort = false;
-                    break;
+                    case 3:
+                        sousMenuSort = false;
+                        break;
 
-                default:
-                    System.out.println("Choix invalide !");
+                    default:
+                        System.out.println("Choix invalide !");
+                }
+            } else {
+                System.out.println("Entrée invalide. Veuillez entrer un nombre.");
+                scanner.nextLine();
             }
         }
 
-        if (monstre.estVivant()) {
+        if (monstre.estVivant() && !sousMenuSort) { // Si on a lancé un sort (sousMenuSort est false)
             if (Math.random() < 0.5) {
                 attaqueMeleeMonstre.executer(monstre, joueur);
             } else {

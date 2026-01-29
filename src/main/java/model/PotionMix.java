@@ -1,5 +1,8 @@
 package model;
 
+/**
+ * Potion mixte qui soigne le joueur et inflige des dégâts au monstre.
+ */
 public class PotionMix extends Potion {
 
     private int soin = 20;
@@ -8,6 +11,11 @@ public class PotionMix extends Potion {
     private Joueur joueur;
     private Monstre monstre;
 
+    /**
+     * Constructeur de la potion mixte.
+     * @param joueur Le joueur à soigner.
+     * @param monstre Le monstre à attaquer.
+     */
     public PotionMix(Joueur joueur, Monstre monstre) {
         super("Potion Mix");
         this.joueur = joueur;
