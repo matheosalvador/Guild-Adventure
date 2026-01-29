@@ -2,10 +2,8 @@ import controlleur.Gamecontrolleur;
 
 public class Main {
     public static void main(String[] args) {
-        // Création du contrôleur de jeu
-        Gamecontrolleur gameController = new Gamecontrolleur();
-
-        // Lancer le jeu
-        gameController.demarrerJeu();
+        // Crée le contrôleur et démarre le jeu
+        Gamecontrolleur game = new Gamecontrolleur();
+        game.demarrerJeu();
     }
 }

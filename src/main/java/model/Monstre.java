@@ -14,6 +14,21 @@ public class Monstre extends Entite implements Combatant {
         this.name = name;
     }
 
+    @Override
+    public void setHealth(int health) {
+
+    }
+
+    @Override
+    public void setLevel(int level) {
+
+    }
+
+    @Override
+    public int getLevel() {
+        return 0;
+    }
+
 
     public void setHealth(Integer health) {
         this.health = health;

@@ -1,6 +1,9 @@
 package controlleur;
+
 import model.*;
 import java.util.Scanner;
+import model.GameState;
+import service.SaveManager;
 
 public class Gamecontrolleur {
 
@@ -21,12 +24,24 @@ public class Gamecontrolleur {
 
     // Constructeur
     public Gamecontrolleur() {
-        // Initialisation des personnages
-        this.joueur = new Joueur("Arthur");
-        this.monstre = new Monstre("Gobelin");
-
-        // Initialisation du scanner
         this.scanner = new Scanner(System.in);
+
+        // Charger sauvegarde si disponible
+        GameState loadedState = SaveManager.load();
+        if (loadedState != null) {
+            System.out.println("Partie chargée : " + loadedState.getPlayerName());
+            this.joueur = new Joueur(loadedState.getPlayerName());
+            this.joueur.setHealth(loadedState.getHealth());
+            this.joueur.setLevel(loadedState.getLevel());
+        } else {
+            System.out.print("Entrez le nom du joueur : ");
+            String name = "Arthur"; // Par défaut si pas d'entrée dans console
+            this.joueur = new Joueur(name);
+            System.out.println("Nouvelle partie pour " + name);
+        }
+
+        // Initialisation du monstre (toujours un Gobelin pour le moment)
+        this.monstre = new Monstre("Gobelin");
 
         // Initialisation des attaques
         this.attaqueMelee = new AttaqueMelee("frappe", 10);
@@ -94,21 +109,24 @@ public class Gamecontrolleur {
                     break;
             }
 
-
             // Fin du tour : régénération de stamina
-            joueur.ajouterStamina(5); // régénère 5 stamina par tour
+            joueur.ajouterStamina(5);
 
             // Décrémenter cooldown des sorts
             bouleDeFeu.decrementerCooldown();
             flecheMagique.decrementerCooldown();
 
-            // --- Affichage du statut du joueur et du monstre ---
+            // --- Affichage du statut ---
             System.out.println("\n--- Statut après ce tour ---");
-            System.out.println(joueur.getName() + " : " + joueur.getHealth() + "/" + joueur.getMaxHealth() + " HP, Stamina : "
-                    + joueur.getStamina() + "/" + joueur.getMaxStamina());
+            System.out.println(joueur.getName() + " : " + joueur.getHealth() + "/" + joueur.getMaxHealth() +
+                    " HP, Stamina : " + joueur.getStamina() + "/" + joueur.getMaxStamina());
             System.out.println(monstre.getName() + " : " + monstre.getHealth() + "/" + monstre.getMaxHealth() + " HP");
             System.out.println("Cooldowns : Boule de feu = " + bouleDeFeu.getCooldownRestant() +
                     ", Flèche magique = " + flecheMagique.getCooldownRestant());
+
+            // --- SAUVEGARDE AUTOMATIQUE ---
+            GameState currentState = new GameState(joueur.getName(), joueur.getLevel(), joueur.getHealth());
+            SaveManager.save(currentState);
         }
 
         System.out.println("\n--- Fin du combat ---");
@@ -177,7 +195,6 @@ public class Gamecontrolleur {
             }
         }
 
-        // Monstre riposte après potion
         if (monstre.estVivant()) {
             attaqueMeleeMonstre.executer(monstre, joueur);
         }
@@ -217,7 +234,6 @@ public class Gamecontrolleur {
             }
         }
 
-        // Monstre riposte avec 50% de chance
         if (monstre.estVivant()) {
             if (Math.random() < 0.5) {
                 attaqueMeleeMonstre.executer(monstre, joueur);

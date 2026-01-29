@@ -44,4 +44,10 @@ public abstract class Entite {
     public boolean estVivant() {
         return health > 0;
     }
+
+    public abstract void setHealth(int health);
+
+    public abstract void setLevel(int level);
+
+    public abstract int getLevel();
 }
