@@ -2,16 +2,15 @@ package model;
 
 public class PotionDps extends Potion {
 
-    private int degats = 30;
-    private Monstre monstre; // référence directe au monstre
+    private final int degats = 30;
 
-    public PotionDps(Monstre monstre) {
+    public PotionDps() {
         super("Potion de dégâts");
-        this.monstre = monstre;
     }
 
     @Override
-    protected void applyEffect() {
+    public void utiliser(Joueur joueur, Monstre monstre) {
         monstre.perdreVie(degats);
+        System.out.println(monstre.getName() + " subit " + degats + " dégâts !");
     }
 }

@@ -2,21 +2,18 @@ package model;
 
 public class PotionMix extends Potion {
 
-    private int soin = 20;
-    private int degats = 30;
+    private final int soin = 20;
+    private final int degats = 30;
 
-    private Joueur joueur;
-    private Monstre monstre;
-
-    public PotionMix(Joueur joueur, Monstre monstre) {
+    public PotionMix() {
         super("Potion Mix");
-        this.joueur = joueur;
-        this.monstre = monstre;
     }
 
     @Override
-    protected void applyEffect() {
-        joueur.ajouterVie(soin);         // soigne le joueur
-        monstre.perdreVie(degats);       // inflige des dégâts au monstre
+    public void utiliser(Joueur joueur, Monstre monstre) {
+        joueur.ajouterVie(soin);
+        monstre.perdreVie(degats);
+        System.out.println(joueur.getName() + " récupère " + soin + " PV !");
+        System.out.println(monstre.getName() + " subit " + degats + " dégâts !");
     }
 }

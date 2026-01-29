@@ -4,9 +4,9 @@ import java.util.Scanner;
 
 public class Gamecontrolleur {
 
+    // Joueur et Monstre
     private Joueur joueur;
     private Monstre monstre;
-    private boolean potionUtilisee = false;
 
     // Sorts
     private Sort bouleDeFeu;
@@ -37,13 +37,21 @@ public class Gamecontrolleur {
         this.flecheMagique = new FlecheMagique();
 
         // Initialisation des potions
-        this.potionVie = new PotionSoin(joueur);
-        this.potionAttaque = new PotionDps(monstre);
-        this.potionMix = new PotionMix(joueur, monstre);
+        this.potionVie = new PotionSoin();
+        this.potionAttaque = new PotionDps();
+        this.potionMix = new PotionMix();
     }
 
     public void demarrerJeu() {
         System.out.println("Bienvenue dans le jeu !");
+        joueur.ramasserItem(potionMix);
+        joueur.ramasserItem(potionAttaque);
+        joueur.ramasserItem(potionVie);
+        joueur.ramasserItem(potionMix);
+        joueur.ramasserItem(potionAttaque);
+        joueur.ramasserItem(potionVie);
+        System.out.println("--- Inventaire de départ ---");
+        System.out.println(joueur.getInventaire().getItems().toString());
         boolean menuPrincipal = true;
 
         while (menuPrincipal && joueur.estVivant() && monstre.estVivant()) {
@@ -53,6 +61,8 @@ public class Gamecontrolleur {
             System.out.println("3. Défense (pas encore fait)");
             System.out.println("4. Fuir le combat");
             System.out.println("5. Sorts");
+            System.out.println("6. Inventaire");
+            System.out.println("7. Status");
             System.out.print("Choix : ");
 
             int choix = scanner.nextInt();
@@ -81,6 +91,7 @@ public class Gamecontrolleur {
                     break;
 
                 case 4:
+                    joueur.subirDegats(100);
                     System.out.println(joueur.getName() + " a fui le combat !");
                     menuPrincipal = false;
                     break;
@@ -88,6 +99,21 @@ public class Gamecontrolleur {
                 case 5:
                     utiliserSort();
                     break;
+
+                case 6:
+                    System.out.println("--- Inventaire Actuel ---");
+                    System.out.println(joueur.getInventaire().getItems().toString());
+                    break;
+
+                case 7:
+                    // --- Affichage du statut du joueur et du monstre ---
+                    System.out.println("\n--- Statut Actuel ---");
+                    System.out.println(joueur.getName() + " : " + joueur.getHealth() + "/" + joueur.getMaxHealth() + " HP, Stamina : "
+                            + joueur.getStamina() + "/" + joueur.getMaxStamina());
+                    System.out.println(monstre.getName() + " : " + monstre.getHealth() + "/" + monstre.getMaxHealth() + " HP");
+                    System.out.println("Cooldowns : Boule de feu = " + bouleDeFeu.getCooldownRestant() +
+                            ", Flèche magique = " + flecheMagique.getCooldownRestant());
+                break;
 
                 default:
                     System.out.println("Choix invalide !");
@@ -97,18 +123,9 @@ public class Gamecontrolleur {
 
             // Fin du tour : régénération de stamina
             joueur.ajouterStamina(5); // régénère 5 stamina par tour
-
             // Décrémenter cooldown des sorts
             bouleDeFeu.decrementerCooldown();
             flecheMagique.decrementerCooldown();
-
-            // --- Affichage du statut du joueur et du monstre ---
-            System.out.println("\n--- Statut après ce tour ---");
-            System.out.println(joueur.getName() + " : " + joueur.getHealth() + "/" + joueur.getMaxHealth() + " HP, Stamina : "
-                    + joueur.getStamina() + "/" + joueur.getMaxStamina());
-            System.out.println(monstre.getName() + " : " + monstre.getHealth() + "/" + monstre.getMaxHealth() + " HP");
-            System.out.println("Cooldowns : Boule de feu = " + bouleDeFeu.getCooldownRestant() +
-                    ", Flèche magique = " + flecheMagique.getCooldownRestant());
         }
 
         System.out.println("\n--- Fin du combat ---");
@@ -125,7 +142,7 @@ public class Gamecontrolleur {
     private void utiliserPotion() {
         boolean sousMenu = true;
 
-        while (sousMenu && !potionUtilisee) {
+        while (sousMenu) {
             System.out.println("\n--- Sous-menu Potions ---");
             System.out.println("1. Potion de soin");
             System.out.println("2. Potion de dégâts sur le monstre");
@@ -138,31 +155,26 @@ public class Gamecontrolleur {
 
             switch (choixItem) {
                 case 1:
-                    if (potionVie.use()) {
-                        System.out.println("Potion de soin utilisée !");
-                        potionUtilisee = true;
+                    if (joueur.getInventaire().contient(potionVie)) {
+                        joueur.utiliserItem(potionVie, monstre);
                     } else {
                         System.out.println("Pas de potion de soin !");
                     }
                     sousMenu = false;
                     break;
-
                 case 2:
-                    if (potionAttaque.use()) {
-                        System.out.println("Potion de dégâts utilisée sur le monstre !");
-                        potionUtilisee = true;
+                    if (joueur.getInventaire().contient(potionAttaque)) {
+                        joueur.utiliserItem(potionAttaque, monstre);
                     } else {
-                        System.out.println("Pas de potion de dégâts !");
+                        System.out.println("Pas de potion de attaque !");
                     }
                     sousMenu = false;
                     break;
-
                 case 3:
-                    if (potionMix.use()) {
-                        System.out.println("Potion Mix utilisée !");
-                        potionUtilisee = true;
+                    if (joueur.getInventaire().contient(potionMix)) {
+                        joueur.utiliserItem(potionMix, monstre);
                     } else {
-                        System.out.println("Pas de potion Mix !");
+                        System.out.println("Pas de potion de mix !");
                     }
                     sousMenu = false;
                     break;

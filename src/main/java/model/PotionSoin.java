@@ -2,16 +2,15 @@ package model;
 
 public class PotionSoin extends Potion {
 
-    private int soin = 20;
-    private Joueur joueur;
+    private final int soin = 20;
 
-    public PotionSoin(Joueur joueur) {
+    public PotionSoin() {
         super("Potion de soin");
-        this.joueur = joueur;
     }
 
     @Override
-    protected void applyEffect() {
+    public void utiliser(Joueur joueur, Monstre monstre) {
         joueur.ajouterVie(soin);
+        System.out.println(joueur.getName() + " récupère " + soin + " PV !");
     }
 }

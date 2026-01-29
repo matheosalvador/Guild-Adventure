@@ -4,22 +4,38 @@ public class Joueur extends Entite implements Combatant {
 
     private int stamina;
     private int maxStamina;
+    private final Inventaire inventaire;
 
     public Joueur(String name) {
         super(name, 100);
         this.maxStamina = 100;
         this.stamina = maxStamina;
+        this.inventaire = new Inventaire();
+    }
+
+    public void ramasserItem(Item item){
+        inventaire.ajouterItem(item);
+        System.out.println(getName() + " ramasse " + item.getNom());
+    }
+
+    public void utiliserItem(Item item, Monstre monstre) {
+        item.utiliser(this, monstre);
+        inventaire.retirerItem(item);
     }
 
 
+    public Inventaire getInventaire() {
+        return inventaire; }
+
     public int getStamina() {
+
         return stamina;
     }
 
     public int getMaxStamina() {
+
         return maxStamina;
     }
-
 
     public void ajouterStamina(int montant) {
         if (montant <= 0) return;
@@ -43,6 +59,5 @@ public class Joueur extends Entite implements Combatant {
         this.perdreVie(montant);
         System.out.println(this.getName() + " a subi " + montant + " dégâts !");
     }
-
 
 }
