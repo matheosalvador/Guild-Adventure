@@ -1,5 +1,8 @@
 package model;
 
+/**
+ * Potion mixte qui soigne le joueur et inflige des dégâts au monstre.
+ */
 public class PotionMix extends Potion {
 
     private final int soin = 20;

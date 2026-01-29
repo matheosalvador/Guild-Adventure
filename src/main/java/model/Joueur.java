@@ -1,13 +1,22 @@
 package model;
 
+/**
+ * Représente le joueur dans le jeu.
+ * Le joueur possède de la stamina en plus de sa santé.
+ */
 public class Joueur extends Entite implements Combatant {
 
     private int stamina;
     private int maxStamina;
     private final Inventaire inventaire;
 
+    /**
+     * Constructeur du joueur.
+     * @param name Le nom du joueur.
+     */
     public Joueur(String name) {
-        super(name, 100);
+        super(name, 100); // santé max = 100 par défaut
+        this.stamina = 100;
         this.maxStamina = 100;
         this.stamina = maxStamina;
         this.inventaire = new Inventaire();
@@ -42,11 +51,16 @@ public class Joueur extends Entite implements Combatant {
         stamina = Math.min(stamina + montant, maxStamina);
     }
 
+    /**
+     * Retire de la stamina au joueur.
+     * @param montant Le montant de stamina à retirer.
+     */
     public void perdreStamina(int montant) {
         if (montant <= 0) return;
         stamina = Math.max(stamina - montant, 0);
     }
 
+    // --- Combat ---
     @Override
     public void attaquer(Combatant cible) {
         int degats = 15;
@@ -59,5 +73,7 @@ public class Joueur extends Entite implements Combatant {
         this.perdreVie(montant);
         System.out.println(this.getName() + " a subi " + montant + " dégâts !");
     }
+}
+
 
 }

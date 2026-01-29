@@ -1,5 +1,8 @@
 package model;
 
+/**
+ * Représente un monstre dans le jeu.
+ */
 public class Monstre extends Entite implements Combatant {
 
     private int cooldownInvocation = 0;

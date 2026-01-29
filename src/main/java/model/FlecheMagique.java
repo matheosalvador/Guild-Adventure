@@ -1,7 +1,14 @@
 package model;
 
+/**
+ * Sort de Flèche magique.
+ * Inflige des dégâts modérés avec un coût et un cooldown réduits.
+ */
 public class FlecheMagique extends Sort {
 
+    /**
+     * Constructeur de la Flèche magique.
+     */
     public FlecheMagique() {
         super("Flèche magique", 15, 15, 2);
     }

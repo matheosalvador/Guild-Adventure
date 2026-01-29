@@ -1,5 +1,8 @@
 package model;
 
+/**
+ * Potion de dégâts qui inflige des dégâts au monstre.
+ */
 public class PotionDps extends Potion {
 
     private final int degats = 30;
