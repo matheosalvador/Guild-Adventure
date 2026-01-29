@@ -6,7 +6,8 @@ public class Gamecontrolleur {
 
     // Joueur et Monstre
     private Joueur joueur;
-    private Monstre monstre;
+    private GestionMonstres gestionMonstres;
+    private Monstre boss;
 
     // Sorts
     private Sort bouleDeFeu;
@@ -15,6 +16,8 @@ public class Gamecontrolleur {
     private Scanner scanner;
     private Attaque attaqueMelee;
     private Attaque attaqueMeleeMonstre;
+
+    // Potions
     private PotionSoin potionVie;
     private PotionDps potionAttaque;
     private PotionMix potionMix;
@@ -23,9 +26,11 @@ public class Gamecontrolleur {
     public Gamecontrolleur() {
         // Initialisation des personnages
         this.joueur = new Joueur("Arthur");
-        this.monstre = new Monstre("Gobelin");
 
-        // Initialisation du scanner
+        this.gestionMonstres = new GestionMonstres();
+        this.boss = new Monstre("Gobelin chef");
+        gestionMonstres.ajouterMonstre(boss);
+
         this.scanner = new Scanner(System.in);
 
         // Initialisation des attaques
@@ -42,6 +47,8 @@ public class Gamecontrolleur {
         this.potionMix = new PotionMix();
     }
 
+    // jeu
+
     public void demarrerJeu() {
         System.out.println("Bienvenue dans le jeu !");
         joueur.ramasserItem(potionMix);
@@ -54,7 +61,8 @@ public class Gamecontrolleur {
         System.out.println(joueur.getInventaire().getItems().toString());
         boolean menuPrincipal = true;
 
-        while (menuPrincipal && joueur.estVivant() && monstre.estVivant()) {
+        while (menuPrincipal && joueur.estVivant() && gestionMonstres.resteDesMonstres()) {
+
             System.out.println("\n--- Menu principal ---");
             System.out.println("1. Attaque corps à corps");
             System.out.println("2. Utiliser une potion");
@@ -140,20 +148,22 @@ public class Gamecontrolleur {
 
     // --- Sous-menu potions ---
     private void utiliserPotion() {
+
         boolean sousMenu = true;
 
         while (sousMenu) {
             System.out.println("\n--- Sous-menu Potions ---");
             System.out.println("1. Potion de soin");
-            System.out.println("2. Potion de dégâts sur le monstre");
+            System.out.println("2. Potion de dégâts");
             System.out.println("3. Potion Mix");
             System.out.println("4. Retour");
             System.out.print("Choix : ");
 
-            int choixItem = scanner.nextInt();
+            int choix = scanner.nextInt();
             scanner.nextLine();
 
-            switch (choixItem) {
+            switch (choix) {
+
                 case 1:
                     if (joueur.getInventaire().contient(potionVie)) {
                         joueur.utiliserItem(potionVie, monstre);
@@ -229,13 +239,19 @@ public class Gamecontrolleur {
             }
         }
 
-        // Monstre riposte avec 50% de chance
-        if (monstre.estVivant()) {
-            if (Math.random() < 0.5) {
-                attaqueMeleeMonstre.executer(monstre, joueur);
-            } else {
-                System.out.println(monstre.getName() + " a raté son attaque !");
-            }
+        gestionMonstres.supprimerMonstresMorts();
+        boss.decrementerCooldownInvocation();
+    }
+
+    // Affichage
+
+    private void afficherEtat() {
+
+        System.out.println("\n--- État du combat ---");
+        System.out.println(joueur.getName() + " : " + joueur.getHealth() + " HP");
+
+        for (Monstre m : gestionMonstres.getMonstres()) {
+            System.out.println(m.getName() + " : " + m.getHealth() + " HP");
         }
     }
 }
