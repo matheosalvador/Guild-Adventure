@@ -1,0 +1,4 @@
+Main-Class: main.java.Main
+
+jar cfm monProjet.jar manifest.txt -C bin .
+
