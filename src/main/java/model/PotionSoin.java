@@ -1,17 +1,25 @@
 package model;
 
-public class PotionSoin extends Potion {
+public class PotionSoin implements Item {
+    private final String name = "Potion de Soin";
+    private final String description = "Restaure 25 points de vie.";
+    private final int soin = 25;
 
-    private int soin = 20;
-    private Joueur joueur;
-
-    public PotionSoin(Joueur joueur) {
-        super("Potion de soin");
-        this.joueur = joueur;
+    @Override
+    public String getName() {
+        return name;
     }
 
     @Override
-    protected void applyEffect() {
-        joueur.ajouterVie(soin);
+    public String getDescription() {
+        return description;
+    }
+
+    @Override
+    public void use(Joueur joueur, Monstre monstre) {
+        if (joueur != null) {
+            joueur.ajouterVie(soin);
+            System.out.println(joueur.getName() + " utilise une " + name + " et récupère " + soin + " PV.");
+        }
     }
 }

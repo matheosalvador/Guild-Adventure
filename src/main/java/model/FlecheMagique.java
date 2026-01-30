@@ -1,5 +1,7 @@
 package model;
 
+import java.util.Scanner;
+
 public class FlecheMagique extends Sort {
 
     public FlecheMagique() {
@@ -7,16 +9,19 @@ public class FlecheMagique extends Sort {
     }
 
     @Override
-    public void lancer(Joueur joueur, Entite cible) {
+    public void lancer(Joueur joueur, Entite cible, Scanner scanner) { // Scanner ajouté mais non utilisé
         if (!peutEtreLance(joueur)) {
-            System.out.println("Impossible de lancer " + nom + " (stamina insuffisante ou cooldown) !");
+            System.out.println("Impossible de lancer " + nom + " !");
             return;
         }
 
         joueur.perdreStamina(coutStamina);
-        cible.perdreVie(degats);
+        if (cible instanceof Combatant) {
+            ((Combatant) cible).subirDegats(degats);
+        } else {
+            cible.perdreVie(degats);
+        }
         cooldownRestant = cooldownMax;
-        System.out.println(joueur.getName() + " lance " + nom + " sur " + cible.getName() +
-                " et inflige " + degats + " dégâts !");
+        System.out.println(joueur.getName() + " lance " + nom + " sur " + cible.getName() + " !");
     }
 }

@@ -1,229 +1,426 @@
 package controlleur;
+
 import model.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 
+/**
+ * Le chef d'orchestre du jeu.
+ * Gère la boucle de jeu principale, la progression dans le donjon, les combats,
+ * et les interactions avec le joueur.
+ */
 public class Gamecontrolleur {
 
-    private Joueur joueur;
-    private Monstre monstre;
-    private boolean potionUtilisee = false;
+    private GameState gameState;
+    private Scanner scanner;
+    private transient Random random = new Random(); // Ignoré par Gson
 
-    // Sorts
+    // Actions
+    private Attaque attaqueMelee;
     private Sort bouleDeFeu;
     private Sort flecheMagique;
+    private Sort pariDeGuerison;
 
-    private Scanner scanner;
-    private Attaque attaqueMelee;
-    private Attaque attaqueMeleeMonstre;
-    private PotionSoin potionVie;
-    private PotionDps potionAttaque;
-    private PotionMix potionMix;
-
-    // Constructeur
-    public Gamecontrolleur() {
-        // Initialisation des personnages
-        this.joueur = new Joueur("Arthur");
-        this.monstre = new Monstre("Gobelin");
-
-        // Initialisation du scanner
+    public Gamecontrolleur(GameState gameState) {
+        this.gameState = gameState;
         this.scanner = new Scanner(System.in);
-
-        // Initialisation des attaques
-        this.attaqueMelee = new AttaqueMelee("frappe", 10);
-        this.attaqueMeleeMonstre = new AttaqueMelee("coup de griffe", 8);
-
-        // Initialisation des sorts
+        this.attaqueMelee = new AttaqueMelee("Frappe", 15);
         this.bouleDeFeu = new BouleDeFeu();
         this.flecheMagique = new FlecheMagique();
-
-        // Initialisation des potions
-        this.potionVie = new PotionSoin(joueur);
-        this.potionAttaque = new PotionDps(monstre);
-        this.potionMix = new PotionMix(joueur, monstre);
+        this.pariDeGuerison = new PariDeGuerison();
     }
 
-    public void demarrerJeu() {
-        System.out.println("Bienvenue dans le jeu !");
-        boolean menuPrincipal = true;
+    /**
+     * Lance et gère la boucle de jeu principale, de l'entrée du donjon à la fin de la partie.
+     */
+    public void demarrerLeJeu() {
+        System.out.println("Vous entrez dans la grotte sombre...");
+        while (gameState.getJoueur().estVivant() && gameState.getNiveauDuDonjon() <= 5) {
+            int niveauIndex = gameState.getNiveauDuDonjon() - 1;
+            DungeonMap.DungeonLevel levelData = gameState.dungeonMap.getLevel(niveauIndex);
 
-        while (menuPrincipal && joueur.estVivant() && monstre.estVivant()) {
-            System.out.println("\n--- Menu principal ---");
-            System.out.println("1. Attaque corps à corps");
-            System.out.println("2. Utiliser une potion");
-            System.out.println("3. Défense (pas encore fait)");
-            System.out.println("4. Fuir le combat");
-            System.out.println("5. Sorts");
-            System.out.print("Choix : ");
-
-            int choix = scanner.nextInt();
-            scanner.nextLine();
-
-            switch (choix) {
-                case 1:
-                    int coutStaminaMelee = 10;
-                    if (joueur.getStamina() >= coutStaminaMelee) {
-                        joueur.perdreStamina(coutStaminaMelee);
-                        attaqueMelee.executer(joueur, monstre);
-                        if (monstre.estVivant()) {
-                            attaqueMeleeMonstre.executer(monstre, joueur);
-                        }
-                    } else {
-                        System.out.println("Pas assez de stamina pour attaquer !");
-                    }
-                    break;
-
-                case 2:
-                    utiliserPotion();
-                    break;
-
-                case 3:
-                    System.out.println("Défense non implémentée pour le moment.");
-                    break;
-
-                case 4:
-                    System.out.println(joueur.getName() + " a fui le combat !");
-                    menuPrincipal = false;
-                    break;
-
-                case 5:
-                    utiliserSort();
-                    break;
-
-                default:
-                    System.out.println("Choix invalide !");
-                    break;
+            if (gameState.getNiveauDuDonjon() == 5) {
+                if (handleFinalChoice()) return; // Fin de partie si le joueur fuit ou trahit
             }
 
+            gameState.dungeonMap.revealNextRooms(niveauIndex);
+            gameState.dungeonMap.display(niveauIndex);
 
-            // Fin du tour : régénération de stamina
-            joueur.ajouterStamina(5); // régénère 5 stamina par tour
-
-            // Décrémenter cooldown des sorts
-            bouleDeFeu.decrementerCooldown();
-            flecheMagique.decrementerCooldown();
-
-            // --- Affichage du statut du joueur et du monstre ---
-            System.out.println("\n--- Statut après ce tour ---");
-            System.out.println(joueur.getName() + " : " + joueur.getHealth() + "/" + joueur.getMaxHealth() + " HP, Stamina : "
-                    + joueur.getStamina() + "/" + joueur.getMaxStamina());
-            System.out.println(monstre.getName() + " : " + monstre.getHealth() + "/" + monstre.getMaxHealth() + " HP");
-            System.out.println("Cooldowns : Boule de feu = " + bouleDeFeu.getCooldownRestant() +
-                    ", Flèche magique = " + flecheMagique.getCooldownRestant());
-        }
-
-        System.out.println("\n--- Fin du combat ---");
-        if (joueur.estVivant()) {
-            System.out.println("Vous avez gagné !");
-        } else {
-            System.out.println("Vous avez été vaincu !");
-        }
-
-        scanner.close();
-    }
-
-    // --- Sous-menu potions ---
-    private void utiliserPotion() {
-        boolean sousMenu = true;
-
-        while (sousMenu && !potionUtilisee) {
-            System.out.println("\n--- Sous-menu Potions ---");
-            System.out.println("1. Potion de soin");
-            System.out.println("2. Potion de dégâts sur le monstre");
-            System.out.println("3. Potion Mix");
-            System.out.println("4. Retour");
-            System.out.print("Choix : ");
-
-            int choixItem = scanner.nextInt();
-            scanner.nextLine();
-
-            switch (choixItem) {
-                case 1:
-                    if (potionVie.use()) {
-                        System.out.println("Potion de soin utilisée !");
-                        potionUtilisee = true;
-                    } else {
-                        System.out.println("Pas de potion de soin !");
-                    }
-                    sousMenu = false;
-                    break;
-
-                case 2:
-                    if (potionAttaque.use()) {
-                        System.out.println("Potion de dégâts utilisée sur le monstre !");
-                        potionUtilisee = true;
-                    } else {
-                        System.out.println("Pas de potion de dégâts !");
-                    }
-                    sousMenu = false;
-                    break;
-
-                case 3:
-                    if (potionMix.use()) {
-                        System.out.println("Potion Mix utilisée !");
-                        potionUtilisee = true;
-                    } else {
-                        System.out.println("Pas de potion Mix !");
-                    }
-                    sousMenu = false;
-                    break;
-
-                case 4:
-                    sousMenu = false;
-                    break;
-
-                default:
-                    System.out.println("Choix invalide !");
-                    break;
+            System.out.println("\nOù voulez-vous aller ?");
+            System.out.println("1. Continuer sur le chemin principal");
+            if (levelData.sideRoomType != null && !levelData.sideRoomVisited) {
+                System.out.println("2. Explorer la salle adjacente");
             }
-        }
-
-        // Monstre riposte après potion
-        if (monstre.estVivant()) {
-            attaqueMeleeMonstre.executer(monstre, joueur);
-        }
-    }
-
-    // --- Sous-menu sorts ---
-    private void utiliserSort() {
-        boolean sousMenuSort = true;
-
-        while (sousMenuSort) {
-            System.out.println("\n--- Sous-menu Sorts ---");
-            System.out.println("1. Boule de feu (25 dégâts, coût 20, cooldown " + bouleDeFeu.getCooldownRestant() + ")");
-            System.out.println("2. Flèche magique (15 dégâts, coût 15, cooldown " + flecheMagique.getCooldownRestant() + ")");
-            System.out.println("3. Retour");
             System.out.print("Choix : ");
+            int pathChoice = lireChoixUtilisateur();
 
-            int choixSort = scanner.nextInt();
-            scanner.nextLine();
-
-            switch (choixSort) {
-                case 1:
-                    bouleDeFeu.lancer(joueur, monstre);
-                    sousMenuSort = false;
-                    break;
-
-                case 2:
-                    flecheMagique.lancer(joueur, monstre);
-                    sousMenuSort = false;
-                    break;
-
-                case 3:
-                    sousMenuSort = false;
-                    break;
-
-                default:
-                    System.out.println("Choix invalide !");
-            }
-        }
-
-        // Monstre riposte avec 50% de chance
-        if (monstre.estVivant()) {
-            if (Math.random() < 0.5) {
-                attaqueMeleeMonstre.executer(monstre, joueur);
+            boolean isSideRoom = pathChoice == 2 && levelData.sideRoomType != null && !levelData.sideRoomVisited;
+            if (isSideRoom) {
+                levelData.sideRoomVisited = true;
+                handleRoomEvent(levelData.sideRoomType, true);
             } else {
-                System.out.println(monstre.getName() + " a raté son attaque !");
+                levelData.mainRoomVisited = true;
+                handleRoomEvent(levelData.mainRoomType, false);
             }
+
+            if (!gameState.getJoueur().estVivant()) {
+                System.out.println("💀 Votre aventure s'arrête ici. 💀");
+                return;
+            }
+        }
+    }
+
+    /**
+     * Gère l'événement correspondant au type de salle dans lequel le joueur entre.
+     * @param roomType   Le type de la salle.
+     * @param isSideRoom Indique si la salle est une salle secondaire.
+     */
+    private void handleRoomEvent(DungeonMap.RoomType roomType, boolean isSideRoom) {
+        switch (roomType) {
+            case COMBAT, BOSS:
+                if (lancerCombat(gameState.getNiveauDuDonjon())) {
+                    if (roomType == DungeonMap.RoomType.BOSS) {
+                        System.out.println("\nL'Église vous nomme... le nouveau Roi Démon.");
+                        SaveManager.saveNewKing(new PartyData(gameState.getJoueur(), gameState.getAllies()));
+                        gameState.incrementerNiveau();
+                    } else {
+                        offrirRecompenses();
+                        if (!isSideRoom) gameState.incrementerNiveau();
+                    }
+                }
+                break;
+            case TREASURE:
+                System.out.println("\nVous trouvez une salle au trésor avec un autel mystérieux.");
+                System.out.println("Voulez-vous tenter d'activer l'autel ? (o/n)");
+                if (scanner.nextLine().equalsIgnoreCase("o")) activateAltar();
+                break;
+            case EMPTY:
+                System.out.println("\nCette salle est vide.");
+                if (!isSideRoom) gameState.incrementerNiveau();
+                break;
+            case SHORTCUT:
+                System.out.println("\nVous avez trouvé un raccourci et sautez un niveau !");
+                gameState.sauterNiveau();
+                break;
+        }
+    }
+
+    /**
+     * Gère la logique d'activation de l'autel secret via le Konami Code.
+     */
+    private void activateAltar() {
+        System.out.println("Entrez la séquence secrète...");
+        String[] konamiCode = {"z", "z", "s", "s", "q", "d", "q", "d", "b", "a"};
+        String[] playerInput = new String[10];
+        for (int i = 0; i < 10; i++) {
+            System.out.print((i + 1) + "/10 > ");
+            playerInput[i] = scanner.nextLine();
+        }
+        if (Arrays.equals(konamiCode, playerInput)) {
+            System.out.println("L'autel s'illumine d'une lueur maléfique !");
+            gameState.isAltarActivated = true;
+        } else {
+            System.out.println("Rien ne se passe...");
+        }
+    }
+
+    /**
+     * Affiche le menu de choix final avant le boss et gère les conséquences.
+     * @return true si le jeu doit se terminer, false si le combat doit commencer.
+     */
+    private boolean handleFinalChoice() {
+        System.out.println("\nVous êtes devant la porte du Roi Démon. Que faites-vous ?");
+        System.out.println("1. Combattre");
+        System.out.println("2. Tenter de fuir");
+        if (gameState.isAltarActivated) System.out.println("3. Proposer vos services au Roi Démon");
+        System.out.print("Choix : ");
+        int choix = lireChoixUtilisateur();
+        switch (choix) {
+            case 2:
+                if (random.nextDouble() < 0.5) {
+                    System.out.println("Fuite réussie ! Mais l'Église vous exécute pour votre échec.");
+                } else {
+                    System.out.println("Fuite impossible ! Le combat est inévitable !");
+                    return false;
+                }
+                return true;
+            case 3:
+                if (gameState.isAltarActivated) {
+                    System.out.println("Le Roi Démon accepte votre allégeance.");
+                    SaveManager.saveTraitor(new PartyData(gameState.getJoueur(), gameState.getAllies()));
+                    return true;
+                }
+            default:
+                System.out.println("Vous ouvrez la porte, prêt pour le combat final !");
+                return false;
+        }
+    }
+
+    /**
+     * Gère la boucle de combat pour un niveau donné.
+     * @param niveau Le niveau actuel, utilisé pour générer la vague de monstres.
+     * @return true si le joueur a gagné le combat, false sinon.
+     */
+    private boolean lancerCombat(int niveau) {
+        List<Monstre> monstres = genererVague(niveau);
+        System.out.println("Des ennemis apparaissent !");
+        while (gameState.getJoueur().estVivant() && !monstres.isEmpty()) {
+            tourDuJoueur(monstres);
+            if (monstres.isEmpty()) break;
+            tourDesAllies(monstres);
+            if (monstres.isEmpty()) break;
+            tourDesMonstres(monstres);
+            finDeTour();
+        }
+        return gameState.getJoueur().estVivant();
+    }
+
+    // ... (Les autres méthodes privées de combat comme tourDuJoueur, attaquer, etc. sont considérées comme des détails d'implémentation de lancerCombat)
+
+    private void tourDuJoueur(List<Monstre> monstres) {
+        gameState.getJoueur().setEnDefense(false);
+        afficherStatut(monstres);
+        System.out.println("\n--- Actions ---");
+        System.out.println("1. Attaquer");
+        System.out.println("2. Inventaire");
+        System.out.println("3. Sorts");
+        System.out.println("4. Se défendre");
+        System.out.print("Choix : ");
+        int choix = lireChoixUtilisateur();
+        switch (choix) {
+            case 1 -> attaquer(monstres);
+            case 2 -> utiliserItem(monstres);
+            case 3 -> utiliserSort(monstres);
+            case 4 -> seDefendre();
+            default -> System.out.println("Choix invalide, vous perdez votre tour !");
+        }
+        monstres.removeIf(m -> !m.estVivant());
+    }
+
+    private void tourDesAllies(List<Monstre> monstres) {
+        gameState.getAllies().removeIf(a -> !a.estVivant());
+        if (gameState.getAllies().isEmpty()) return;
+        System.out.println("\n--- Tour des alliés ---");
+        for (Allie allie : gameState.getAllies()) {
+            if (!monstres.isEmpty()) {
+                allie.attaquer(monstres.get(random.nextInt(monstres.size())));
+            }
+        }
+        monstres.removeIf(m -> !m.estVivant());
+    }
+
+    private void tourDesMonstres(List<Monstre> monstres) {
+        System.out.println("\n--- Tour des monstres ---");
+        List<Combatant> cibles = new ArrayList<>();
+        cibles.add(gameState.getJoueur());
+        cibles.addAll(gameState.getAllies());
+        for (Monstre monstre : monstres) {
+            if (!cibles.isEmpty()) {
+                monstre.attaquer(cibles.get(random.nextInt(cibles.size())));
+            }
+        }
+    }
+
+    private void attaquer(List<Monstre> monstres) {
+        Monstre cible = choisirCible(monstres);
+        if (cible == null) return;
+        if (gameState.getJoueur().getStamina() >= 20) {
+            gameState.getJoueur().perdreStamina(20);
+            attaqueMelee.executer(gameState.getJoueur(), cible);
+        } else {
+            System.out.println("Pas assez de stamina !");
+        }
+    }
+
+    private void utiliserItem(List<Monstre> monstres) {
+        Inventaire inventaire = gameState.getJoueur().getInventaire();
+        if (inventaire.estVide()) {
+            System.out.println("L'inventaire est vide.");
+            return;
+        }
+        System.out.println("\n--- Inventaire ---");
+        List<Item> items = inventaire.getItems();
+        for (int i = 0; i < items.size(); i++) System.out.println((i + 1) + ". " + items.get(i).getName());
+        System.out.println((items.size() + 1) + ". Retour");
+        System.out.print("Choix : ");
+        int choix = lireChoixUtilisateur() - 1;
+        if (choix >= 0 && choix < items.size()) {
+            Item item = items.get(choix);
+            if (item instanceof PotionSoin) {
+                choisirCiblePourSoin();
+            } else {
+                Monstre cibleMonstre = null;
+                if (item instanceof PotionDps || item instanceof PotionMix) {
+                    cibleMonstre = choisirCible(monstres);
+                    if (cibleMonstre == null) return;
+                }
+                item.use(gameState.getJoueur(), cibleMonstre);
+            }
+            inventaire.retirerItem(item);
+        }
+    }
+
+    private void choisirCiblePourSoin() {
+        System.out.println("Qui soigner ?");
+        List<Entite> cibles = new ArrayList<>();
+        cibles.add(gameState.getJoueur());
+        cibles.addAll(gameState.getAllies());
+        for (int i = 0; i < cibles.size(); i++) {
+            Entite e = cibles.get(i);
+            System.out.println((i + 1) + ". " + e.getName() + " (" + e.getHealth() + "/" + e.getMaxHealth() + " PV)");
+        }
+        System.out.print("Choix : ");
+        int choix = lireChoixUtilisateur() - 1;
+        if (choix >= 0 && choix < cibles.size()) {
+            cibles.get(choix).ajouterVie(25);
+            System.out.println(cibles.get(choix).getName() + " récupère 25 PV !");
+        }
+    }
+
+    private void utiliserSort(List<Monstre> monstres) {
+        System.out.println("\n--- Sorts ---");
+        System.out.println("1. Boule de Feu (20 ST, CD:" + bouleDeFeu.getCooldownRestant() + ")");
+        System.out.println("2. Flèche Magique (15 ST, CD:" + flecheMagique.getCooldownRestant() + ")");
+        System.out.println("3. Pari de Guérison (25 ST, CD:" + pariDeGuerison.getCooldownRestant() + ")");
+        System.out.println("4. Retour");
+        System.out.print("Choix : ");
+        int choix = lireChoixUtilisateur();
+        Sort sortChoisi = null;
+        switch (choix) {
+            case 1: sortChoisi = bouleDeFeu; break;
+            case 2: sortChoisi = flecheMagique; break;
+            case 3: sortChoisi = pariDeGuerison; break;
+            default: return;
+        }
+        if (sortChoisi.peutEtreLance(gameState.getJoueur())) {
+            Monstre cible = null;
+            if (sortChoisi instanceof BouleDeFeu || sortChoisi instanceof FlecheMagique) {
+                cible = choisirCible(monstres);
+                if (cible == null) return;
+            }
+            sortChoisi.lancer(gameState.getJoueur(), cible, scanner);
+        } else {
+            System.out.println("Impossible de lancer " + sortChoisi.getNom() + " !");
+        }
+    }
+
+    private void seDefendre() {
+        gameState.getJoueur().setEnDefense(true);
+        System.out.println(gameState.getJoueur().getName() + " lève son bouclier.");
+    }
+
+    private void finDeTour() {
+        if (gameState.getJoueur().isEnDefense()) gameState.getJoueur().ajouterStamina(25);
+        else gameState.getJoueur().ajouterStamina(5);
+        bouleDeFeu.decrementerCooldown();
+        flecheMagique.decrementerCooldown();
+        pariDeGuerison.decrementerCooldown();
+    }
+
+    private List<Monstre> genererVague(int niveau) {
+        List<Monstre> vague = new ArrayList<>();
+        if (niveau == 5) {
+            PartyData newKing = SaveManager.loadNewKing();
+            if (newKing != null) {
+                System.out.println("Un nouveau Roi Démon se dresse devant vous...");
+                vague.add(new Monstre(newKing.getJoueur().getName() + " (Le Nouveau Roi)", 500, 30));
+                newKing.getAllies().forEach(a -> vague.add(new Monstre(a.getName() + " (Garde Royal)", 150, 20)));
+                return vague;
+            }
+            vague.add(new Monstre("ROI DÉMON", 400, 25));
+            PartyData traitor = SaveManager.loadTraitor();
+            if (traitor != null) {
+                System.out.println("Un traître se joint au combat !");
+                vague.add(new Monstre(traitor.getJoueur().getName() + " (Le Traître)", 200, 20));
+                traitor.getAllies().forEach(a -> vague.add(new Monstre(a.getName() + " (Sbire)", 100, 15)));
+            }
+        } else {
+            switch (niveau) {
+                case 1: vague.add(new Monstre("Gobelin", 60, 8)); break;
+                case 2:
+                    vague.add(new Monstre("Gobelin", 60, 8));
+                    vague.add(new Monstre("Orque", 90, 12));
+                    break;
+                case 3:
+                    vague.add(new Monstre("Orque", 90, 12));
+                    vague.add(new Monstre("Orque", 90, 12));
+                    break;
+                case 4:
+                    vague.add(new Monstre("Troll", 150, 18));
+                    vague.add(new Monstre("Orque", 90, 12));
+                    break;
+            }
+        }
+        return vague;
+    }
+
+    private void offrirRecompenses() {
+        System.out.println("\n--- Récompenses ---");
+        System.out.println("1. Une Potion de Soin.");
+        System.out.println("2. Recruter un 'Loup Fidèle' (10 dégâts).");
+        System.out.println("3. Recruter un 'Mercenaire Aguerri' (20 dégâts).");
+        System.out.print("Choix : ");
+        int choix = lireChoixUtilisateur();
+        switch (choix) {
+            case 1:
+                gameState.getJoueur().getInventaire().ajouterItem(new PotionSoin());
+                System.out.println("Vous recevez une Potion de Soin.");
+                break;
+            case 2:
+                gameState.getAllies().add(new Allie("Loup Fidèle", 80, 10));
+                System.out.println("Le Loup Fidèle se joint à vous !");
+                break;
+            case 3:
+                gameState.getAllies().add(new Allie("Mercenaire Aguerri", 120, 20));
+                System.out.println("Le Mercenaire Aguerri se joint à votre cause !");
+                break;
+            default:
+                System.out.println("Vous ne prenez rien.");
+                break;
+        }
+    }
+
+    private Monstre choisirCible(List<Monstre> monstres) {
+        if (monstres.isEmpty()) return null;
+        if (monstres.size() == 1) return monstres.get(0);
+        System.out.println("\n--- Choisir une cible ---");
+        for (int i = 0; i < monstres.size(); i++) {
+            Monstre m = monstres.get(i);
+            System.out.println((i + 1) + ". " + m.getName() + " (" + m.getHealth() + "/" + m.getMaxHealth() + " PV)");
+        }
+        System.out.print("Cible : ");
+        int choix = lireChoixUtilisateur() - 1;
+        if (choix >= 0 && choix < monstres.size()) return monstres.get(choix);
+        System.out.println("Cible invalide.");
+        return null;
+    }
+
+    private void afficherStatut(List<Monstre> monstres) {
+        System.out.println("\n--------------------");
+        Joueur joueur = gameState.getJoueur();
+        String defenseStatus = joueur.isEnDefense() ? " (En défense)" : "";
+        System.out.println(joueur.getName() + " : " + joueur.getHealth() + "/" + joueur.getMaxHealth() + " HP | " + joueur.getStamina() + "/" + joueur.getMaxStamina() + " ST" + defenseStatus);
+        if (!gameState.getAllies().isEmpty()) {
+            System.out.println("--- Alliés ---");
+            for (Allie allie : gameState.getAllies()) {
+                System.out.println("- " + allie.getName() + " : " + allie.getHealth() + "/" + allie.getMaxHealth() + " HP");
+            }
+        }
+        System.out.println("--- Ennemis ---");
+        for (Monstre m : monstres) {
+            System.out.println("- " + m.getName() + " : " + m.getHealth() + "/" + m.getMaxHealth() + " HP");
+        }
+        System.out.println("--------------------");
+    }
+
+    private int lireChoixUtilisateur() {
+        try {
+            return Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            return -1;
         }
     }
 }

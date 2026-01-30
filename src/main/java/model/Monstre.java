@@ -2,30 +2,18 @@ package model;
 
 public class Monstre extends Entite implements Combatant {
 
-    public Monstre(String name) {
-        super(name, 200);
+    private int degats;
+
+    public Monstre(String name, int maxHealth, int degats) {
+        super(name, maxHealth);
+        this.degats = degats;
     }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-
-    public void setHealth(Integer health) {
-        this.health = health;
-    }
-
 
     @Override
     public void attaquer(Combatant cible) {
         if (this.estVivant()) {
-            int degats = 10;
-            System.out.println(this.getName() + " attaque sa cible !");
-            cible.subirDegats(degats);
+            System.out.println(this.getName() + " attaque " + ((Entite)cible).getName() + " !");
+            cible.subirDegats(this.degats);
         }
     }
 
@@ -35,7 +23,7 @@ public class Monstre extends Entite implements Combatant {
         System.out.println(this.getName() + " a subi " + montant + " points de dégâts.");
 
         if (!this.estVivant()) {
-            System.out.println(this.getName() + " a échoué !");
+            System.out.println(this.getName() + " est vaincu !");
         }
     }
 }

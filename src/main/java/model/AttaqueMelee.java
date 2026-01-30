@@ -8,10 +8,13 @@ public class AttaqueMelee extends Attaque {
 
     @Override
     public void executer(Entite attaquant, Entite cible) {
-        cible.perdreVie(degats);
-        System.out.println(attaquant.getName() +
-                " frappe " + cible.getName() +
-                " avec " + nom + " et inflige " +
-                degats + " dégâts !");
+        System.out.println(attaquant.getName() + " utilise " + nom + " sur " + cible.getName() + " !");
+        if (cible instanceof Combatant) {
+            ((Combatant) cible).subirDegats(degats);
+        } else {
+            // Fallback pour les entités qui ne seraient pas des combattants
+            cible.perdreVie(degats);
+            System.out.println(cible.getName() + " a subi " + degats + " dégâts.");
+        }
     }
 }

@@ -1,5 +1,7 @@
 package model;
 
+import java.util.Scanner;
+
 public abstract class Sort {
 
     protected String nom;
@@ -25,12 +27,10 @@ public abstract class Sort {
         return joueur.getStamina() >= coutStamina && cooldownRestant == 0;
     }
 
-    // Décrémente le cooldown
     public void decrementerCooldown() {
         if (cooldownRestant > 0) cooldownRestant--;
     }
 
-    //  lancer le sort
-    public abstract void lancer(Joueur joueur, Entite cible);
+    // La méthode lancer accepte maintenant un Scanner pour les sorts interactifs
+    public abstract void lancer(Joueur joueur, Entite cible, Scanner scanner);
 }
-
