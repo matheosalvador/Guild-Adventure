@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Représente l'état complet d'une partie en cours (une "run").
+ * Représente l'état complet d'une partie en cours
  * Cet objet contient toutes les informations nécessaires pour sauvegarder et charger la progression,
  * y compris le joueur, ses alliés, sa position dans le donjon et l'état des secrets.
  */

@@ -8,7 +8,6 @@ import java.util.Random;
 import java.util.Scanner;
 
 /**
- * Le chef d'orchestre du jeu.
  * Gère la boucle de jeu principale, la progression dans le donjon, les combats,
  * et les interactions avec le joueur.
  */
@@ -23,7 +22,7 @@ public class Gamecontrolleur {
     private Sort bouleDeFeu;
     private Sort flecheMagique;
     private Sort pariDeGuerison;
-
+    // constructeru
     public Gamecontrolleur(GameState gameState) {
         this.gameState = gameState;
         this.scanner = new Scanner(System.in);
@@ -51,6 +50,7 @@ public class Gamecontrolleur {
 
             System.out.println("\nOù voulez-vous aller ?");
             System.out.println("1. Continuer sur le chemin principal");
+
             if (levelData.sideRoomType != null && !levelData.sideRoomVisited) {
                 System.out.println("2. Explorer la salle adjacente");
             }
@@ -67,7 +67,7 @@ public class Gamecontrolleur {
             }
 
             if (!gameState.getJoueur().estVivant()) {
-                System.out.println("💀 Votre aventure s'arrête ici. 💀");
+                System.out.println(" Votre aventure s'arrête ici. ");
                 return;
             }
         }
