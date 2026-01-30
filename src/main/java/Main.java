@@ -5,6 +5,9 @@ import java.util.Scanner;
 public class Main {
 
     public static void main(String[] args) {
+        // Affichage de l'écran-titre
+        System.out.println(AsciiArt.GAME_TITLE);
+
         Scanner scanner = new Scanner(System.in);
         GameState gameState = SaveManager.load();
 
