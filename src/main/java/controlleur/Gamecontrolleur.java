@@ -7,22 +7,17 @@ import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
-/**
- * Gère la boucle de jeu principale, la progression dans le donjon, les combats,
- * et les interactions avec le joueur.
- */
 public class Gamecontrolleur {
 
     private GameState gameState;
     private Scanner scanner;
-    private transient Random random = new Random(); // Ignoré par Gson
+    private transient Random random = new Random();
 
-    // Actions
     private Attaque attaqueMelee;
     private Sort bouleDeFeu;
     private Sort flecheMagique;
     private Sort pariDeGuerison;
-    // constructeru
+
     public Gamecontrolleur(GameState gameState) {
         this.gameState = gameState;
         this.scanner = new Scanner(System.in);
@@ -32,9 +27,6 @@ public class Gamecontrolleur {
         this.pariDeGuerison = new PariDeGuerison();
     }
 
-    /**
-     * Lance et gère la boucle de jeu principale, de l'entrée du donjon à la fin de la partie.
-     */
     public void demarrerLeJeu() {
         System.out.println("Vous entrez dans la grotte sombre...");
         while (gameState.getJoueur().estVivant() && gameState.getNiveauDuDonjon() <= 5) {
@@ -42,7 +34,7 @@ public class Gamecontrolleur {
             DungeonMap.DungeonLevel levelData = gameState.dungeonMap.getLevel(niveauIndex);
 
             if (gameState.getNiveauDuDonjon() == 5) {
-                if (handleFinalChoice()) return; // Fin de partie si le joueur fuit ou trahit
+                if (handleFinalChoice()) return;
             }
 
             gameState.dungeonMap.revealNextRooms(niveauIndex);
@@ -50,7 +42,6 @@ public class Gamecontrolleur {
 
             System.out.println("\nOù voulez-vous aller ?");
             System.out.println("1. Continuer sur le chemin principal");
-
             if (levelData.sideRoomType != null && !levelData.sideRoomVisited) {
                 System.out.println("2. Explorer la salle adjacente");
             }
@@ -67,17 +58,13 @@ public class Gamecontrolleur {
             }
 
             if (!gameState.getJoueur().estVivant()) {
+                System.out.println(AsciiArt.getArt("GAME_OVER"));
                 System.out.println(" Votre aventure s'arrête ici. ");
                 return;
             }
         }
     }
 
-    /**
-     * Gère l'événement correspondant au type de salle dans lequel le joueur entre.
-     * @param roomType   Le type de la salle.
-     * @param isSideRoom Indique si la salle est une salle secondaire.
-     */
     private void handleRoomEvent(DungeonMap.RoomType roomType, boolean isSideRoom) {
         switch (roomType) {
             case COMBAT, BOSS:
@@ -93,7 +80,8 @@ public class Gamecontrolleur {
                 }
                 break;
             case TREASURE:
-                System.out.println("\nVous trouvez une salle au trésor avec un autel mystérieux.");
+                System.out.println(AsciiArt.getArt("TREASURE_CHEST"));
+                System.out.println("Au centre se trouve un autel mystérieux.");
                 System.out.println("Voulez-vous tenter d'activer l'autel ? (o/n)");
                 if (scanner.nextLine().equalsIgnoreCase("o")) activateAltar();
                 break;
@@ -108,9 +96,6 @@ public class Gamecontrolleur {
         }
     }
 
-    /**
-     * Gère la logique d'activation de l'autel secret via le Konami Code.
-     */
     private void activateAltar() {
         System.out.println("Entrez la séquence secrète...");
         String[] konamiCode = {"z", "z", "s", "s", "q", "d", "q", "d", "b", "a"};
@@ -127,10 +112,6 @@ public class Gamecontrolleur {
         }
     }
 
-    /**
-     * Affiche le menu de choix final avant le boss et gère les conséquences.
-     * @return true si le jeu doit se terminer, false si le combat doit commencer.
-     */
     private boolean handleFinalChoice() {
         System.out.println("\nVous êtes devant la porte du Roi Démon. Que faites-vous ?");
         System.out.println("1. Combattre");
@@ -159,14 +140,10 @@ public class Gamecontrolleur {
         }
     }
 
-    /**
-     * Gère la boucle de combat pour un niveau donné.
-     * @param niveau Le niveau actuel, utilisé pour générer la vague de monstres.
-     * @return true si le joueur a gagné le combat, false sinon.
-     */
     private boolean lancerCombat(int niveau) {
         List<Monstre> monstres = genererVague(niveau);
-        System.out.println("Des ennemis apparaissent !");
+        afficherSceneDeCombat(monstres);
+
         while (gameState.getJoueur().estVivant() && !monstres.isEmpty()) {
             tourDuJoueur(monstres);
             if (monstres.isEmpty()) break;
@@ -178,7 +155,26 @@ public class Gamecontrolleur {
         return gameState.getJoueur().estVivant();
     }
 
-    // ... (Les autres méthodes privées de combat comme tourDuJoueur, attaquer, etc. sont considérées comme des détails d'implémentation de lancerCombat)
+    private void afficherSceneDeCombat(List<Monstre> monstres) {
+        System.out.println("\n==================================================");
+        // Affichage du joueur et de ses alliés
+        System.out.println("\n--- VOTRE GROUPE ---");
+        System.out.println(AsciiArt.getArt(gameState.getJoueur().getName()));
+        for (Allie allie : gameState.getAllies()) {
+            System.out.println(AsciiArt.getArt(allie.getName()));
+        }
+
+        // Affichage des monstres
+        System.out.println("\n--- ENNEMIS ---");
+        for (Monstre monstre : monstres) {
+            String artKey = monstre.getName().split(" ")[0];
+            if (monstre.getName().contains("ROI DÉMON") || monstre.getName().contains("Le Nouveau Roi")) {
+                artKey = "DEMON_KING";
+            }
+            System.out.println(AsciiArt.getArt(artKey));
+        }
+        System.out.println("==================================================\n");
+    }
 
     private void tourDuJoueur(List<Monstre> monstres) {
         gameState.getJoueur().setEnDefense(false);
