@@ -72,6 +72,7 @@ public class MainGui extends Application {
         Button equipmentButton = new Button("Équipement");
         Button sleepButton = new Button("Dormir");
         Button adventureButton = new Button("Aventure");
+        Button explorationButton = new Button("Exploration 3D"); // Nouveau bouton
         Button saveButton = new Button("Sauvegarder");
         Button loadButton = new Button("Charger");
         statusButton.setOnAction(e -> showInCenter(consoleOutput, player.toString()));
@@ -83,9 +84,10 @@ public class MainGui extends Application {
         equipmentButton.setOnAction(e -> showInCenter(new EquipmentView(player)));
         sleepButton.setOnAction(e -> showInCenter(new SleepView(player, clock)));
         adventureButton.setOnAction(e -> startAdventure());
+        explorationButton.setOnAction(e -> startExploration()); // Action pour l'exploration
         saveButton.setOnAction(e -> saveManager.saveGame(player, clock));
         loadButton.setOnAction(e -> loadGame());
-        vbox.getChildren().addAll(statusButton, guildButton, tavernButton, shopButton, forgeButton, trainerButton, equipmentButton, sleepButton, adventureButton, saveButton, loadButton);
+        vbox.getChildren().addAll(statusButton, guildButton, tavernButton, shopButton, forgeButton, trainerButton, equipmentButton, sleepButton, adventureButton, explorationButton, saveButton, loadButton);
         vbox.getChildren().forEach(button -> 
             button.addEventHandler(javafx.event.ActionEvent.ACTION, e -> {
                 if (statusView != null) statusView.update();
@@ -150,6 +152,14 @@ public class MainGui extends Application {
             System.out.println("La gestion des quêtes de livraison en GUI n'est pas encore implémentée.");
         }
     }
+    
+    private void startExploration() {
+        System.out.println("Lancement de l'exploration 3D...");
+        Adventure3DView adventureView = new Adventure3DView(600, 500);
+        showInCenter(adventureView);
+        adventureView.requestFocusForGame();
+    }
+
     private void showInCenter(Node content) {
         centerPanel.getChildren().clear();
         centerPanel.getChildren().add(content);
