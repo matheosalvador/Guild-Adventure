@@ -1,61 +1,45 @@
-import controlleur.Gamecontrolleur;
-import model.*;
+import model.Adventurer;
+import model.Guild;
+import model.Quest;
+
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
 
     public static void main(String[] args) {
-        // Affichage de l'écran-titre
-        System.out.println(AsciiArt.GAME_TITLE);
-
+        // --- INITIALISATION DU JEU ---
         Scanner scanner = new Scanner(System.in);
-        GameState gameState = SaveManager.load();
+        Adventurer player = new Adventurer("Lucas", "Caserne");
+        Guild guild = new Guild();
+        System.out.println("Bienvenue dans la guilde, jeune aventurier !");
+        System.out.println(player);
 
-        if (gameState != null && gameState.getJoueur() != null) {
-            System.out.println("Une sauvegarde a été trouvée (Niveau " + gameState.getNiveauDuDonjon() + ").");
-            System.out.println("1. Continuer la partie");
-            System.out.println("2. Commencer une nouvelle partie");
-            System.out.print("Choix : ");
+        // --- BOUCLE DE JEU PRINCIPALE (simplifiée) ---
+        guild.displayAvailableQuests(player.getRank());
 
-            int choix = -1;
-            try {
-                choix = Integer.parseInt(scanner.nextLine());
-            } catch (NumberFormatException e) {
-                // Gère l'entrée invalide
-            }
+        System.out.print("Choisissez une quête (entrez le numéro) : ");
+        int choice = scanner.nextInt();
 
-            if (choix == 2) {
-                System.out.println("Création d'une nouvelle partie.");
-                gameState = createNewGame();
-            } else {
-                System.out.println("Reprise de la partie.");
-            }
+        List<Quest> availableQuests = guild.getQuestsForRank(player.getRank());
+        if (choice > 0 && choice <= availableQuests.size()) {
+            Quest selectedQuest = availableQuests.get(choice - 1);
+            player.acceptQuest(selectedQuest);
         } else {
-            System.out.println("Aucune sauvegarde valide trouvée. Création d'une nouvelle partie.");
-            gameState = createNewGame();
+            System.out.println("Choix invalide.");
+            return;
         }
 
-        // Lancement du jeu
-        Gamecontrolleur gameController = new Gamecontrolleur(gameState);
-        gameController.demarrerLeJeu();
+        // --- SIMULATION DE L'AVENTURE ---
+        System.out.println("\n... Vous partez à l'aventure ...\n");
+        // On simule la réussite de la quête en trouvant l'objet requis
+        player.findItem("Queue de rat"); // Changez ceci pour tester différentes quêtes
 
-        // Sauvegarde en fin de partie
-        SaveManager.save(gameState);
-    }
+        System.out.println("\n... De retour à la guilde ...\n");
+        System.out.println(player);
+        player.completeQuest();
+        System.out.println(player);
 
-    private static GameState createNewGame() {
-        Joueur joueur = new Joueur("Arthur");
-        GameState newGameState = new GameState(joueur, 1);
-        
-        // Ajout des potions de départ
-        Inventaire inventaire = newGameState.getJoueur().getInventaire();
-        inventaire.ajouterItem(new PotionSoin());
-        inventaire.ajouterItem(new PotionSoin());
-        inventaire.ajouterItem(new PotionDps());
-        inventaire.ajouterItem(new PotionDps());
-        inventaire.ajouterItem(new PotionMix());
-        inventaire.ajouterItem(new PotionMix());
-        
-        return newGameState;
+        scanner.close();
     }
 }

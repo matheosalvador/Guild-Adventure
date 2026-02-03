@@ -1,0 +1,62 @@
+/* --- Style Général --- */
+.root {
+    -fx-font-family: "Garamond", "Times New Roman", serif;
+    -fx-background-color: #3d4247;
+}
+
+/* --- Titres --- */
+.h1 {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #E0E0E0;
+}
+
+.h2 {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #BDBDBD;
+}
+
+/* --- Boutons --- */
+.button {
+    -fx-background-color: #546E7A;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-border-color: #78909C;
+    -fx-border-width: 2px;
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+}
+
+.button:hover {
+    -fx-background-color: #607D8B;
+    -fx-border-color: #90A4AE;
+}
+
+.button:disabled {
+    -fx-opacity: 0.5;
+}
+
+/* --- Panneaux Spécifiques --- */
+.status-view {
+    -fx-background-color: #263238;
+}
+
+.left-panel {
+    -fx-background-color: #37474F;
+    -fx-padding: 10;
+}
+
+.view-pane {
+    -fx-padding: 15;
+    -fx-spacing: 10;
+    -fx-background-color: #455A64;
+}
+
+.text-area {
+    -fx-text-fill: #CFD8DC;
+}
+
+.text-area .content {
+    -fx-background-color: #37474F;
+}
