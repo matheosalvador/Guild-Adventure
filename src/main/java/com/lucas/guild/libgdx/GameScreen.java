@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -28,15 +29,17 @@ import com.badlogic.gdx.physics.bullet.collision.btCollisionShape;
 import com.badlogic.gdx.physics.bullet.collision.btDbvtBroadphase;
 import com.badlogic.gdx.physics.bullet.collision.btDefaultCollisionConfiguration;
 import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
+import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.physics.bullet.dynamics.btSequentialImpulseConstraintSolver;
+import com.badlogic.gdx.physics.bullet.linearmath.btDefaultMotionState;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Disposable;
 import com.lucas.guild.model.Adventurer;
 
 public class GameScreen implements Screen {
 
     private final PerspectiveCamera camera;
     private final ModelBatch modelBatch;
-    private final Model groundModel;
-    private final ModelInstance groundInstance;
     private final Environment environment;
     private final PlayerController playerController;
 
@@ -46,24 +49,28 @@ public class GameScreen implements Screen {
     private final btDbvtBroadphase broadphase;
     private final btSequentialImpulseConstraintSolver solver;
     private final btDiscreteDynamicsWorld dynamicsWorld;
-    private final btCollisionShape groundShape;
-    private final btCollisionObject groundObject;
+    
+    private final Array<Disposable> disposables = new Array<>();
+    private final Array<ModelInstance> instances = new Array<>();
 
     private final SpriteBatch spriteBatch;
     private final BitmapFont font;
     private final Adventurer player;
+    private GameObject objectInView = null;
+    private final GlyphLayout layout = new GlyphLayout(); // For text measurement
 
     public GameScreen(MainGame game) {
         Bullet.init();
 
-        camera = new PerspectiveCamera(70, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Adjusted FOV
+        camera = new PerspectiveCamera(70, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.position.set(10f, 10f, 10f);
         camera.lookAt(0, 0, 0);
-        camera.near = 0.1f; // Adjusted near plane
+        camera.near = 0.1f;
         camera.far = 300f;
         camera.update();
 
         modelBatch = new ModelBatch();
+        disposables.add(modelBatch);
 
         environment = new Environment();
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
@@ -76,57 +83,103 @@ public class GameScreen implements Screen {
         solver = new btSequentialImpulseConstraintSolver();
         dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
         dynamicsWorld.setGravity(new Vector3(0, -10f, 0));
+        disposables.addAll(collisionConfig, dispatcher, broadphase, solver, dynamicsWorld);
 
-        // Ground Creation
-        ModelBuilder modelBuilder = new ModelBuilder();
-        Texture cobblestoneTexture = new Texture(Gdx.files.internal("coblestone.png"));
-        cobblestoneTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
-        Material groundMaterial = new Material(TextureAttribute.createDiffuse(cobblestoneTexture));
-        final int textureRepeat = 50;
-        groundModel = modelBuilder.createBox(200f, 1f, 200f, groundMaterial, Usage.Position | Usage.Normal | Usage.TextureCoordinates);
-        groundInstance = new ModelInstance(groundModel);
-        groundInstance.materials.get(0).get(TextureAttribute.class, TextureAttribute.Diffuse).scaleU = textureRepeat;
-        groundInstance.materials.get(0).get(TextureAttribute.class, TextureAttribute.Diffuse).scaleV = textureRepeat;
-
-        groundShape = new btBoxShape(new Vector3(100f, 0.5f, 100f));
-        groundObject = new btCollisionObject();
-        groundObject.setCollisionShape(groundShape);
-        groundObject.setWorldTransform(groundInstance.transform);
-        dynamicsWorld.addCollisionObject(groundObject);
+        // Create world objects
+        createGround();
+        createBox(5, 1.5f, 5);
 
         playerController = new PlayerController(camera, dynamicsWorld);
+        disposables.add(playerController);
         Gdx.input.setInputProcessor(playerController);
-        Gdx.input.setCursorCatched(true); // Capture the mouse cursor
+        Gdx.input.setCursorCatched(true);
 
         // Initialize UI elements
         spriteBatch = new SpriteBatch();
         font = new BitmapFont();
         font.setColor(Color.WHITE);
+        disposables.add(spriteBatch, font);
 
         player = new Adventurer("Lucas", "Caserne");
     }
 
+    private void createGround() {
+        ModelBuilder modelBuilder = new ModelBuilder();
+        Texture cobblestoneTexture = new Texture(Gdx.files.internal("coblestone.png"));
+        disposables.add(cobblestoneTexture);
+        cobblestoneTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
+        Material groundMaterial = new Material(TextureAttribute.createDiffuse(cobblestoneTexture));
+        final int textureRepeat = 50;
+        Model groundModel = modelBuilder.createBox(200f, 1f, 200f, groundMaterial, Usage.Position | Usage.Normal | Usage.TextureCoordinates);
+        disposables.add(groundModel);
+        ModelInstance groundInstance = new ModelInstance(groundModel);
+        instances.add(groundInstance);
+
+        btCollisionShape groundShape = new btBoxShape(new Vector3(100f, 0.5f, 100f));
+        disposables.add(groundShape);
+        btRigidBody.btRigidBodyConstructionInfo groundInfo = new btRigidBody.btRigidBodyConstructionInfo(0, null, groundShape, Vector3.Zero);
+        btRigidBody groundBody = new btRigidBody(groundInfo);
+        disposables.add(groundBody);
+        dynamicsWorld.addRigidBody(groundBody);
+    }
+
+    private void createBox(float x, float y, float z) {
+        ModelBuilder modelBuilder = new ModelBuilder();
+        Model boxModel = modelBuilder.createBox(1f, 1f, 1f, new Material(ColorAttribute.createDiffuse(Color.ORANGE)), Usage.Position | Usage.Normal);
+        disposables.add(boxModel);
+        ModelInstance boxInstance = new ModelInstance(boxModel);
+        boxInstance.transform.setTranslation(x, y, z);
+        instances.add(boxInstance);
+
+        // Associate a GameObject with the instance
+        boxInstance.userData = new GameObject("Box");
+
+        btCollisionShape boxShape = new btBoxShape(new Vector3(0.5f, 0.5f, 0.5f));
+        disposables.add(boxShape);
+        Vector3 localInertia = new Vector3();
+        boxShape.calculateLocalInertia(0, localInertia); // Mass is 0, so it's static
+
+        btDefaultMotionState motionState = new btDefaultMotionState(boxInstance.transform);
+        disposables.add(motionState);
+        btRigidBody.btRigidBodyConstructionInfo boxInfo = new btRigidBody.btRigidBodyConstructionInfo(0, motionState, boxShape, localInertia);
+        btRigidBody boxBody = new btRigidBody(boxInfo);
+        boxBody.userData = boxInstance.userData; // Link the same GameObject to the physics body
+        disposables.add(boxBody);
+        dynamicsWorld.addRigidBody(boxBody);
+    }
+
     @Override
     public void render(float delta) {
-        // Release cursor on ESC
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             Gdx.input.setCursorCatched(!Gdx.input.isCursorCatched());
         }
 
+        playerController.update(delta);
+        objectInView = playerController.getObjectInView(3f);
+
+        dynamicsWorld.stepSimulation(delta, 5, 1/60f);
+
         Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
-        playerController.update(delta);
-        dynamicsWorld.stepSimulation(delta, 5, 1/60f);
-
         modelBatch.begin(camera);
-        modelBatch.render(groundInstance, environment);
-        playerController.render(modelBatch, environment);
+        modelBatch.render(instances, environment);
         modelBatch.end();
 
         spriteBatch.begin();
+        // Draw crosshair
+        font.getData().setScale(2);
+        layout.setText(font, "+");
+        font.draw(spriteBatch, layout, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() / 2f + layout.height / 2f);
+        font.getData().setScale(1);
+
+        // Draw HUD
         font.draw(spriteBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 10, Gdx.graphics.getHeight() - 10);
         font.draw(spriteBatch, "Player: " + player.getName(), 10, Gdx.graphics.getHeight() - 30);
+        if (objectInView != null && objectInView.isActive) {
+            layout.setText(font, "Appuyer sur E pour interagir");
+            font.draw(spriteBatch, layout, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() / 2f - 30);
+        }
         spriteBatch.end();
     }
 
@@ -148,29 +201,16 @@ public class GameScreen implements Screen {
     }
 
     @Override
-    public void pause() {
-    }
+    public void pause() {}
 
     @Override
-    public void resume() {
-    }
+    public void resume() {}
 
     @Override
     public void dispose() {
-        modelBatch.dispose();
-        groundModel.dispose();
-        playerController.dispose();
-        
-        dynamicsWorld.removeCollisionObject(groundObject);
-        groundObject.dispose();
-        groundShape.dispose();
-
-        dynamicsWorld.dispose();
-        solver.dispose();
-        broadphase.dispose();
-        dispatcher.dispose();
-        collisionConfig.dispose();
-        spriteBatch.dispose();
-        font.dispose();
+        for (Disposable disposable : disposables) {
+            disposable.dispose();
+        }
+        disposables.clear();
     }
 }

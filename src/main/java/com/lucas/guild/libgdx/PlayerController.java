@@ -17,10 +17,7 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.physics.bullet.collision.btCapsuleShape;
-import com.badlogic.gdx.physics.bullet.collision.btCollisionObject;
-import com.badlogic.gdx.physics.bullet.collision.btCollisionShape;
-import com.badlogic.gdx.physics.bullet.collision.Collision;
+import com.badlogic.gdx.physics.bullet.collision.*;
 import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.physics.bullet.linearmath.btDefaultMotionState;
@@ -32,6 +29,7 @@ public class PlayerController extends InputAdapter implements Disposable {
     private final Camera camera;
     private final btRigidBody playerBody;
     private final btDefaultMotionState motionState;
+    private final btDiscreteDynamicsWorld dynamicsWorld;
 
     private final IntIntMap keys = new IntIntMap();
     private final float moveSpeed = 8f;
@@ -44,11 +42,16 @@ public class PlayerController extends InputAdapter implements Disposable {
     private final Matrix4 playerTransform = new Matrix4();
     private final Quaternion rotation = new Quaternion();
     
-    private float yaw = 0f;   // Horizontal rotation
-    private float pitch = 0f; // Vertical rotation
+    private float yaw = 0f;
+    private float pitch = 0f;
+    
+    private final static Vector3 rayFrom = new Vector3();
+    private final static Vector3 rayTo = new Vector3();
+    private final static ClosestRayResultCallback rayCallback = new ClosestRayResultCallback(Vector3.Zero, Vector3.Z);
 
     public PlayerController(Camera camera, btDiscreteDynamicsWorld dynamicsWorld) {
         this.camera = camera;
+        this.dynamicsWorld = dynamicsWorld;
 
         btCollisionShape playerShape = new btCapsuleShape(0.5f, 1f);
         Vector3 localInertia = new Vector3();
@@ -63,7 +66,7 @@ public class PlayerController extends InputAdapter implements Disposable {
         playerBody.setAngularFactor(0f);
         playerBody.setActivationState(Collision.DISABLE_DEACTIVATION);
         playerBody.setFriction(0.8f);
-        playerBody.setRestitution(0f); // Prevent bouncing
+        playerBody.setRestitution(0f);
 
         dynamicsWorld.addRigidBody(playerBody);
     }
@@ -71,6 +74,9 @@ public class PlayerController extends InputAdapter implements Disposable {
     @Override
     public boolean keyDown(int keycode) {
         keys.put(keycode, keycode);
+        if (keycode == Input.Keys.E) {
+            interact();
+        }
         return true;
     }
 
@@ -94,7 +100,6 @@ public class PlayerController extends InputAdapter implements Disposable {
         pitch += deltaY;
         pitch = MathUtils.clamp(pitch, -89f, 89f);
 
-        // Update the physics body's rotation based on yaw
         rotation.set(Vector3.Y, yaw);
         playerBody.getMotionState().getWorldTransform(playerTransform);
         playerTransform.set(playerBody.getCenterOfMassPosition(), rotation);
@@ -102,9 +107,7 @@ public class PlayerController extends InputAdapter implements Disposable {
     }
 
     private void handleMovement(float deltaTime) {
-        // Create a forward vector based on the yaw
         Vector3 forward = tmp.set(0, 0, -1).mul(rotation).nor();
-        // Create a side vector
         Vector3 side = new Vector3(forward).crs(Vector3.Y).nor();
 
         moveDirection.set(0, 0, 0);
@@ -113,12 +116,10 @@ public class PlayerController extends InputAdapter implements Disposable {
         if (keys.containsKey(Input.Keys.A)) moveDirection.sub(side);
         if (keys.containsKey(Input.Keys.D)) moveDirection.add(side);
 
-        // Jump
         if (keys.containsKey(Input.Keys.SPACE) && isOnGround()) {
             playerBody.applyCentralImpulse(new Vector3(0, jumpForce, 0));
         }
 
-        // Apply velocity
         moveDirection.y = 0;
         if (!moveDirection.isZero()) {
             moveDirection.nor().scl(moveSpeed);
@@ -131,14 +132,10 @@ public class PlayerController extends InputAdapter implements Disposable {
     }
 
     private void updateCamera(float deltaTime) {
-        // Get player position
         Vector3 playerPosition = playerBody.getCenterOfMassPosition();
-        
-        // Smoothly move camera to player's head
         Vector3 targetPosition = tmp.set(playerPosition).add(0, 0.8f, 0);
         camera.position.lerp(targetPosition, deltaTime * cameraSmoothing);
         
-        // Point the camera in the direction of our yaw and pitch
         Quaternion camRotation = new Quaternion().set(Vector3.Y, yaw);
         camRotation.mul(new Quaternion(Vector3.X, pitch));
         
@@ -146,6 +143,35 @@ public class PlayerController extends InputAdapter implements Disposable {
         camera.up.set(0, 1, 0).mul(camRotation);
         
         camera.update();
+    }
+    
+    private void interact() {
+        GameObject object = getObjectInView(3f);
+        if (object != null && object.isActive) {
+            Gdx.app.log("Interaction", "Interacted with " + object.name);
+            object.isActive = false;
+            // No physical interaction for now
+        }
+    }
+    
+    public GameObject getObjectInView(float maxDistance) {
+        rayFrom.set(camera.position);
+        rayTo.set(camera.direction).scl(maxDistance).add(rayFrom);
+
+        rayCallback.setCollisionObject(null);
+        rayCallback.setClosestHitFraction(1f);
+        rayCallback.setCollisionFilterGroup((short)-1);
+        rayCallback.setCollisionFilterMask((short)-1);
+
+        dynamicsWorld.rayTest(rayFrom, rayTo, rayCallback);
+
+        if (rayCallback.hasHit()) {
+            btCollisionObject obj = rayCallback.getCollisionObject();
+            if (obj.userData instanceof GameObject) {
+                return (GameObject) obj.userData;
+            }
+        }
+        return null;
     }
 
     public void render(ModelBatch modelBatch, Environment environment) {
