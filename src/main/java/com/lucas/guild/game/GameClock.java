@@ -1,7 +1,7 @@
 package com.lucas.guild.game;
 
 import com.lucas.guild.model.Adventurer;
-
+// utilsé actuellement a voire pour le temps IG par rapport temps IRL
 public class GameClock {
 
     private int currentHour = 8;

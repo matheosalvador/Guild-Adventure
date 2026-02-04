@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser plus tard si inutile
 /**
  * Représente une entité de base dans le jeu, comme un joueur, un monstre ou un allié.
  * Possède des attributs fondamentaux tels que le nom et les points de vie.

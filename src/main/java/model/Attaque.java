@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser plus tard si inutile
 /**
  * Classe abstraite représentant une attaque.
  */

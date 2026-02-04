@@ -1,5 +1,5 @@
 package com.lucas.guild.libgdx;
-
+// demande de texture sol de l'ia a enlever plus tard
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;

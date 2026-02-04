@@ -21,7 +21,7 @@ public class Combat {
     }
 
     public boolean start() {
-        // ... (début de la méthode identique)
+        // A implementer plus tard dans LWJGL
         System.out.println("!!! COMBAT !!!");
         System.out.println(player.getName() + " affronte un " + monster.getName() + " !");
 
@@ -82,7 +82,7 @@ public class Combat {
 
         if (potions.isEmpty()) {
             System.out.println("Vous n'avez aucune potion !");
-            playerTurn(); // On le laisse réessayer
+            playerTurn();
             return;
         }
 
@@ -97,7 +97,7 @@ public class Combat {
             chosenPotion.utiliser(player);
             player.removeItem(chosenPotion); // On retire la potion après usage
         } else {
-            playerTurn(); // Annuler ou choix invalide, on retourne au menu du tour
+            playerTurn();
         }
     }
     

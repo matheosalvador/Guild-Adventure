@@ -6,7 +6,7 @@ import com.lucas.guild.model.Quest.QuestType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
+// a iplementer
 public class Guild {
 
     private List<Quest> allQuests = new ArrayList<>();

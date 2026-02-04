@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser si inutile
 public class Allie extends Entite implements Combatant {
 
     private int degats;

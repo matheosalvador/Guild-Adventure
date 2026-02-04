@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser plus tard si inutile
 /**
  * Représente le personnage contrôlé par l'utilisateur.
  * Hérite d'Entite et implémente Combatant, ajoutant des mécaniques spécifiques

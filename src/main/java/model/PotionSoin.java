@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser plus tard si inutile
 public class PotionSoin implements Item {
     private final String name = "Potion de Soin";
     private final String description = "Restaure 25 points de vie.";

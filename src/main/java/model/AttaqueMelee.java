@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser plus tard si inutile
 /**
  * Représente une attaque de mêlée (corps à corps).
  */

@@ -9,13 +9,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
+// futur tuto du debut a modifier et implementer
 public class Trainer {
     private Map<String, SkillTree> skillTrees = new HashMap<>();
 
     public Trainer() {
         skillTrees.put("Caserne", new SkillTree("Caserne"));
-        // skillTrees.put("Académie", new SkillTree("Académie"));
     }
 
     public void displayAvailableSkills(Adventurer player) {

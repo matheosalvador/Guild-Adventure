@@ -1,18 +1,9 @@
 package com.lucas.guild.libgdx;
-
+// tout les imports biblio etc
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.Camera;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.VertexAttributes;
-import com.badlogic.gdx.graphics.g3d.Environment;
-import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.ModelBatch;
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
@@ -23,6 +14,8 @@ import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.physics.bullet.linearmath.btDefaultMotionState;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.IntIntMap;
+import com.lucas.guild.model.Adventurer;
+import com.lucas.guild.model.Item;
 
 public class PlayerController extends InputAdapter implements Disposable {
 
@@ -30,18 +23,20 @@ public class PlayerController extends InputAdapter implements Disposable {
     private final btRigidBody playerBody;
     private final btDefaultMotionState motionState;
     private final btDiscreteDynamicsWorld dynamicsWorld;
+    private final Adventurer player;
 
     private final IntIntMap keys = new IntIntMap();
     private final float moveSpeed = 8f;
     private final float jumpForce = 10f;
-    private final float rotationSpeed = 0.2f;
-    private final float cameraSmoothing = 15.0f;
+    private final float rotationSpeed = 0.8f;
 
     private final Vector3 moveDirection = new Vector3();
     private final Vector3 tmp = new Vector3();
-    private final Matrix4 playerTransform = new Matrix4();
+    private final Vector3 tmp2 = new Vector3();
     private final Quaternion rotation = new Quaternion();
-    
+    private final Quaternion camRotation = new Quaternion();
+    private final Quaternion pitchRotation = new Quaternion();
+
     private float yaw = 0f;
     private float pitch = 0f;
     
@@ -49,9 +44,10 @@ public class PlayerController extends InputAdapter implements Disposable {
     private final static Vector3 rayTo = new Vector3();
     private final static ClosestRayResultCallback rayCallback = new ClosestRayResultCallback(Vector3.Zero, Vector3.Z);
 
-    public PlayerController(Camera camera, btDiscreteDynamicsWorld dynamicsWorld) {
+    public PlayerController(Camera camera, btDiscreteDynamicsWorld dynamicsWorld, Adventurer player) {
         this.camera = camera;
         this.dynamicsWorld = dynamicsWorld;
+        this.player = player;
 
         btCollisionShape playerShape = new btCapsuleShape(0.5f, 1f);
         Vector3 localInertia = new Vector3();
@@ -62,7 +58,7 @@ public class PlayerController extends InputAdapter implements Disposable {
 
         btRigidBody.btRigidBodyConstructionInfo playerInfo = new btRigidBody.btRigidBodyConstructionInfo(80f, motionState, playerShape, localInertia);
         playerBody = new btRigidBody(playerInfo);
-        playerBody.setCollisionFlags(playerBody.getCollisionFlags() | btCollisionObject.CollisionFlags.CF_CHARACTER_OBJECT);
+        
         playerBody.setAngularFactor(0f);
         playerBody.setActivationState(Collision.DISABLE_DEACTIVATION);
         playerBody.setFriction(0.8f);
@@ -86,13 +82,12 @@ public class PlayerController extends InputAdapter implements Disposable {
         return true;
     }
 
-    public void update(float deltaTime) {
-        handleRotation(deltaTime);
-        handleMovement(deltaTime);
-        updateCamera(deltaTime);
+    public void update() {
+        handleRotation();
+        handleMovement();
     }
 
-    private void handleRotation(float deltaTime) {
+    private void handleRotation() {
         float deltaX = -Gdx.input.getDeltaX() * rotationSpeed;
         float deltaY = -Gdx.input.getDeltaY() * rotationSpeed;
 
@@ -101,14 +96,11 @@ public class PlayerController extends InputAdapter implements Disposable {
         pitch = MathUtils.clamp(pitch, -89f, 89f);
 
         rotation.set(Vector3.Y, yaw);
-        playerBody.getMotionState().getWorldTransform(playerTransform);
-        playerTransform.set(playerBody.getCenterOfMassPosition(), rotation);
-        playerBody.setWorldTransform(playerTransform);
     }
 
-    private void handleMovement(float deltaTime) {
+    private void handleMovement() {
         Vector3 forward = tmp.set(0, 0, -1).mul(rotation).nor();
-        Vector3 side = new Vector3(forward).crs(Vector3.Y).nor();
+        Vector3 side = tmp2.set(forward).crs(Vector3.Y).nor();
 
         moveDirection.set(0, 0, 0);
         if (keys.containsKey(Input.Keys.W)) moveDirection.add(forward);
@@ -117,27 +109,26 @@ public class PlayerController extends InputAdapter implements Disposable {
         if (keys.containsKey(Input.Keys.D)) moveDirection.add(side);
 
         if (keys.containsKey(Input.Keys.SPACE) && isOnGround()) {
-            playerBody.applyCentralImpulse(new Vector3(0, jumpForce, 0));
+            playerBody.applyCentralImpulse(tmp.set(0, jumpForce, 0));
         }
 
         moveDirection.y = 0;
+        float vy = playerBody.getLinearVelocity().y;
         if (!moveDirection.isZero()) {
             moveDirection.nor().scl(moveSpeed);
-            float vy = playerBody.getLinearVelocity().y;
             playerBody.setLinearVelocity(tmp.set(moveDirection.x, vy, moveDirection.z));
         } else {
-            float vy = playerBody.getLinearVelocity().y;
-            playerBody.setLinearVelocity(new Vector3(0, vy, 0));
+            playerBody.setLinearVelocity(tmp.set(0, vy, 0));
         }
     }
 
-    private void updateCamera(float deltaTime) {
+    public void updateCamera() {
         Vector3 playerPosition = playerBody.getCenterOfMassPosition();
-        Vector3 targetPosition = tmp.set(playerPosition).add(0, 0.8f, 0);
-        camera.position.lerp(targetPosition, deltaTime * cameraSmoothing);
+        camera.position.set(playerPosition).add(0, 0.8f, 0);
         
-        Quaternion camRotation = new Quaternion().set(Vector3.Y, yaw);
-        camRotation.mul(new Quaternion(Vector3.X, pitch));
+        camRotation.set(Vector3.Y, yaw);
+        pitchRotation.set(Vector3.X, pitch);
+        camRotation.mul(pitchRotation);
         
         camera.direction.set(0, 0, -1).mul(camRotation);
         camera.up.set(0, 1, 0).mul(camRotation);
@@ -146,15 +137,24 @@ public class PlayerController extends InputAdapter implements Disposable {
     }
     
     private void interact() {
-        GameObject object = getObjectInView(3f);
-        if (object != null && object.isActive) {
-            Gdx.app.log("Interaction", "Interacted with " + object.name);
-            object.isActive = false;
-            // No physical interaction for now
+        btCollisionObject body = getBodyInView(3f);
+        if (body != null && body.userData instanceof GameObject) {
+            GameObject object = (GameObject) body.userData;
+            if (object.isActive) {
+                if (object.item != null) {
+                    player.findItem(object.item);
+                    object.isActive = false;
+                } else {
+                    if (body instanceof btRigidBody) {
+                        ((btRigidBody) body).activate();
+                        ((btRigidBody) body).applyCentralImpulse(tmp.set(camera.direction).scl(10f));
+                    }
+                }
+            }
         }
     }
     
-    public GameObject getObjectInView(float maxDistance) {
+    public btCollisionObject getBodyInView(float maxDistance) {
         rayFrom.set(camera.position);
         rayTo.set(camera.direction).scl(maxDistance).add(rayFrom);
 
@@ -166,24 +166,19 @@ public class PlayerController extends InputAdapter implements Disposable {
         dynamicsWorld.rayTest(rayFrom, rayTo, rayCallback);
 
         if (rayCallback.hasHit()) {
-            btCollisionObject obj = rayCallback.getCollisionObject();
-            if (obj.userData instanceof GameObject) {
-                return (GameObject) obj.userData;
-            }
+            return rayCallback.getCollisionObject();
         }
         return null;
     }
 
-    public void render(ModelBatch modelBatch, Environment environment) {
-        // We don't render the player model in first-person view
-    }
-
     private boolean isOnGround() {
-        return Math.abs(playerBody.getLinearVelocity().y) < 0.01f;
+        return Math.abs(playerBody.getLinearVelocity().y) < 0.1f;
     }
 
     @Override
     public void dispose() {
+        dynamicsWorld.removeRigidBody(playerBody);
+        playerBody.dispose();
         motionState.dispose();
     }
 }

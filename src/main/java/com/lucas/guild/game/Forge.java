@@ -6,7 +6,7 @@ import com.lucas.guild.model.Item;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-
+// a implementer commme le reste des fichiers
 public class Forge {
 
     private Map<Item, Integer> itemsForSale = new LinkedHashMap<>();

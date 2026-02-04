@@ -8,14 +8,14 @@ import com.lucas.guild.model.GameData; // On va créer cette classe juste après
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-
+// a implementer et a modifier pour les 3 modes facile,normale,realiste
 public class SaveManager {
 
     private static final String SAVE_FILE = "save.json";
     private Gson gson;
 
     public SaveManager() {
-        // On configure Gson pour qu'il formate joliment le JSON
+        // Config GSON
         this.gson = new GsonBuilder().setPrettyPrinting().create();
     }
 

@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser plus tard si inutile
 import java.util.HashMap;
 import java.util.Map;
 

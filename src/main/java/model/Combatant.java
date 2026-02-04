@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser plus tard si inutile
 /**
  * Définit le contrat pour toute entité capable de participer à un combat.
  * Les combattants peuvent attaquer, subir des dégâts et être vérifiés pour leur état de vie.

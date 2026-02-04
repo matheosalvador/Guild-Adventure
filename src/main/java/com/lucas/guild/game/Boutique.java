@@ -21,7 +21,7 @@ public class Boutique {
         System.out.println("Articles disponibles :");
         for (int i = 0; i < itemsForSale.size(); i++) {
             Item item = itemsForSale.get(i);
-            // On pourrait avoir un système de prix plus complexe plus tard
+            // potentiel rpprix a implementé dans LWJGL
             int price = (item.getName().equals("Grande Potion")) ? 25 : 10;
             System.out.println((i + 1) + ". " + item.getName() + " - " + price + " Or");
         }

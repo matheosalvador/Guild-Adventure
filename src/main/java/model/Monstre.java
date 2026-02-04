@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser plus tard si inutile
 public class Monstre extends Entite implements Combatant {
 
     private int degats;

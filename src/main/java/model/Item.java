@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser plus tard si inutile
 public interface Item {
     String getName();
     String getDescription();

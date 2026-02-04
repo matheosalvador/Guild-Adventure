@@ -1,5 +1,5 @@
 package model;
-
+// a neutraliser plus tard si inutile
 public class PotionDps implements Item {
     private final String name = "Potion de Dégâts";
     private final String description = "Inflige 20 points de dégâts au monstre.";
