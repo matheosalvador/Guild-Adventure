@@ -3,6 +3,7 @@ package com.lucas.guild.libgdx;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -25,8 +26,16 @@ import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.collision.*;
 import com.badlogic.gdx.physics.bullet.dynamics.*;
 import com.badlogic.gdx.physics.bullet.linearmath.btDefaultMotionState;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.Item;
 import com.lucas.guild.model.PotionDeSoin;
@@ -53,6 +62,11 @@ public class LibGDXGame extends InputAdapter implements Screen {
     private SpriteBatch spriteBatch;
     private BitmapFont font;
     private ShapeRenderer shapeRenderer;
+
+    private Stage stage;
+    private Skin skin;
+    private Table inventoryTable;
+    private Table pauseTable;
     
     private final Adventurer player;
     private final GameClock gameClock;
@@ -121,6 +135,7 @@ public class LibGDXGame extends InputAdapter implements Screen {
 
         GameObject itemObject = new GameObject(item.getName(), item);
         itemInstance.userData = itemObject;
+        itemObject.modelInstance = itemInstance;
         gameObjects.add(itemObject);
 
         btCollisionShape itemShape = new btCylinderShape(new Vector3(0.25f, 0.5f, 0.25f));
@@ -139,7 +154,7 @@ public class LibGDXGame extends InputAdapter implements Screen {
 
     private void createEnemy(float x, float y, float z, String name, int health) {
         ModelBuilder modelBuilder = new ModelBuilder();
-        Model enemyModel = modelBuilder.createBox(1f, 1f, 1f, new Material(ColorAttribute.createDiffuse(Color.BLUE)), Usage.Position | Usage.Normal);
+        Model enemyModel = modelBuilder.createBox(0.5f, 1f, 2f, new Material(ColorAttribute.createDiffuse(Color.BLUE)), Usage.Position | Usage.Normal);
         disposables.add(enemyModel);
         ModelInstance enemyInstance = new ModelInstance(enemyModel);
         enemyInstance.transform.setTranslation(x, y, z);
@@ -147,9 +162,10 @@ public class LibGDXGame extends InputAdapter implements Screen {
 
         Enemy enemyObject = new Enemy(name, health);
         enemyInstance.userData = enemyObject;
+        enemyObject.modelInstance = enemyInstance;
         gameObjects.add(enemyObject);
 
-        btCollisionShape enemyShape = new btBoxShape(new Vector3(0.5f, 0.5f, 0.5f));
+        btCollisionShape enemyShape = new btBoxShape(new Vector3(0.25f, 0.5f, 1f));
         Vector3 localInertia = new Vector3();
         float mass = 1f;
         enemyShape.calculateLocalInertia(mass, localInertia);
@@ -158,6 +174,7 @@ public class LibGDXGame extends InputAdapter implements Screen {
         enemyObject.motionState = motionState;
         btRigidBody.btRigidBodyConstructionInfo enemyInfo = new btRigidBody.btRigidBodyConstructionInfo(mass, motionState, enemyShape, localInertia);
         btRigidBody enemyBody = new btRigidBody(enemyInfo);
+        enemyBody.setActivationState(Collision.DISABLE_DEACTIVATION);
         enemyBody.userData = enemyObject;
         enemyObject.body = enemyBody;
         dynamicsWorld.addRigidBody(enemyBody);
@@ -178,9 +195,12 @@ public class LibGDXGame extends InputAdapter implements Screen {
 
         spriteBatch.begin();
         drawHud();
-        if (isInventoryOpen) drawInventory();
-        if (isPaused) drawPauseMenu();
         spriteBatch.end();
+
+        if (isInventoryOpen || isPaused) {
+            stage.act(delta);
+            stage.draw();
+        }
     }
 
     private void update(float delta) {
@@ -190,13 +210,15 @@ public class LibGDXGame extends InputAdapter implements Screen {
             playerController.updateCamera();
 
             for (GameObject go : gameObjects) {
+                if (go.body != null && go.motionState != null) {
+                    go.motionState.getWorldTransform(go.modelInstance.transform);
+                }
                 if (go instanceof Enemy) {
                     ((Enemy) go).update(player, playerController.getPlayerBody(), delta);
                 }
             }
+            gameClock.update(delta);
         }
-        
-        gameClock.update(delta);
 
         for (int i = gameObjects.size - 1; i >= 0; i--) {
             GameObject go = gameObjects.get(i);
@@ -220,34 +242,15 @@ public class LibGDXGame extends InputAdapter implements Screen {
     public boolean keyDown(int keycode) {
         if (keycode == Input.Keys.ESCAPE) {
             if (isInventoryOpen) {
-                isInventoryOpen = false;
-                Gdx.input.setCursorCatched(true);
+                toggleInventory();
             } else {
-                isPaused = !isPaused;
-                Gdx.input.setCursorCatched(!isPaused);
-            }
-            return true;
-        }
-
-        if (isPaused) {
-            if (keycode == Input.Keys.C) {
-                isPaused = false;
-                Gdx.input.setCursorCatched(true);
-            }
-            if (keycode == Input.Keys.M) {
-                game.setScreen(new MainMenuScreen(game));
+                togglePause();
             }
             return true;
         }
 
         if (keycode == Input.Keys.I) {
-            isInventoryOpen = !isInventoryOpen;
-            Gdx.input.setCursorCatched(!isInventoryOpen);
-            return true;
-        }
-
-        if (isInventoryOpen) {
-            if (keycode == Input.Keys.NUM_1) useItem(0);
+            toggleInventory();
             return true;
         }
 
@@ -273,6 +276,7 @@ public class LibGDXGame extends InputAdapter implements Screen {
             if (item instanceof PotionDeSoin) {
                 ((PotionDeSoin) item).utiliser(player);
                 player.getInventory().remove(item);
+                updateInventory();
             }
         }
     }
@@ -297,48 +301,6 @@ public class LibGDXGame extends InputAdapter implements Screen {
                 }
             }
         }
-    }
-
-    private void drawInventory() {
-        spriteBatch.end();
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0, 0, 0, 0.5f);
-        shapeRenderer.rect(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        shapeRenderer.end();
-        Gdx.gl.glDisable(GL20.GL_BLEND);
-        spriteBatch.begin();
-
-        hudText.setLength(0);
-        hudText.append("--- INVENTAIRE ---\n\n");
-        if (player.getInventory().isEmpty()) {
-            hudText.append("Vide");
-        } else {
-            int i = 1;
-            for (Item item : player.getInventory()) {
-                hudText.append("[").append(i++).append("] ").append(item.getName()).append("\n");
-            }
-        }
-        layout.setText(font, hudText);
-        font.draw(spriteBatch, hudText, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() * 0.8f);
-    }
-    
-    private void drawPauseMenu() {
-        spriteBatch.end();
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0, 0, 0, 0.5f);
-        shapeRenderer.rect(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        shapeRenderer.end();
-        Gdx.gl.glDisable(GL20.GL_BLEND);
-        spriteBatch.begin();
-
-        hudText.setLength(0);
-        hudText.append("PAUSE\n\n");
-        hudText.append("[C] pour Continuer\n");
-        hudText.append("[M] pour retourner au Menu Principal");
-        layout.setText(font, hudText);
-        font.draw(spriteBatch, hudText, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() * 0.6f);
     }
 
     private void drawHealthBars() {
@@ -366,6 +328,7 @@ public class LibGDXGame extends InputAdapter implements Screen {
         camera.viewportWidth = width;
         camera.viewportHeight = height;
         camera.update();
+        stage.getViewport().update(width, height, true);
     }
 
     @Override
@@ -375,8 +338,101 @@ public class LibGDXGame extends InputAdapter implements Screen {
         font.setColor(Color.WHITE);
         shapeRenderer = new ShapeRenderer();
         disposables.addAll(spriteBatch, font, shapeRenderer);
-        Gdx.input.setInputProcessor(this);
+
+        stage = new Stage(new ScreenViewport());
+        disposables.add(stage);
+
+        skin = new Skin();
+        skin.add("default-font", font);
+
+        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
+        textButtonStyle.font = skin.getFont("default-font");
+        skin.add("default", textButtonStyle);
+
+        Label.LabelStyle labelStyle = new Label.LabelStyle();
+        labelStyle.font = skin.getFont("default-font");
+        skin.add("default", labelStyle);
+
+        setupPauseMenu();
+        setupInventory();
+
+        InputMultiplexer multiplexer = new InputMultiplexer();
+        multiplexer.addProcessor(stage);
+        multiplexer.addProcessor(this);
+        Gdx.input.setInputProcessor(multiplexer);
         Gdx.input.setCursorCatched(true);
+    }
+
+    private void setupPauseMenu() {
+        pauseTable = new Table(skin);
+        pauseTable.setFillParent(true);
+        pauseTable.setVisible(false);
+        stage.addActor(pauseTable);
+
+        TextButton continueButton = new TextButton("Continuer", skin);
+        TextButton menuButton = new TextButton("Retour au Menu", skin);
+
+        pauseTable.add(continueButton).pad(10).row();
+        pauseTable.add(menuButton).pad(10).row();
+
+        continueButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                togglePause();
+            }
+        });
+
+        menuButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                game.setScreen(new MainMenuScreen(game));
+            }
+        });
+    }
+
+    private void setupInventory() {
+        inventoryTable = new Table(skin);
+        inventoryTable.setFillParent(true);
+        inventoryTable.setVisible(false);
+        stage.addActor(inventoryTable);
+        updateInventory();
+    }
+
+    private void updateInventory() {
+        inventoryTable.clear();
+        inventoryTable.add("--- INVENTAIRE ---").row();
+
+        if (player.getInventory().isEmpty()) {
+            inventoryTable.add("Vide").row();
+        } else {
+            for (int i = 0; i < player.getInventory().size(); i++) {
+                final int index = i;
+                Item item = player.getInventory().get(i);
+                TextButton itemButton = new TextButton(item.getName(), skin);
+                itemButton.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        useItem(index);
+                    }
+                });
+                inventoryTable.add(itemButton).pad(5).row();
+            }
+        }
+    }
+
+    private void togglePause() {
+        isPaused = !isPaused;
+        pauseTable.setVisible(isPaused);
+        Gdx.input.setCursorCatched(!isPaused);
+    }
+
+    private void toggleInventory() {
+        isInventoryOpen = !isInventoryOpen;
+        inventoryTable.setVisible(isInventoryOpen);
+        if (isInventoryOpen) {
+            updateInventory();
+        }
+        Gdx.input.setCursorCatched(!isInventoryOpen);
     }
 
     @Override
@@ -413,5 +469,6 @@ public class LibGDXGame extends InputAdapter implements Screen {
         }
         disposables.clear();
         instances.clear();
+        skin.dispose();
     }
 }

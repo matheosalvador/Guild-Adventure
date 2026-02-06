@@ -1,6 +1,5 @@
 package com.lucas.guild.libgdx;
 
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.lucas.guild.model.Adventurer;
@@ -12,9 +11,8 @@ public class Enemy extends GameObject {
     private final float ATTACK_INTERVAL = 2f;
     private final int attackDamage = 10;
     private final float detectionRadius = 15f;
-    private final float attackRadius = 2f;
+    private final float attackRadius = 1.5f;
     private final float moveSpeed = 4f;
-    public ModelInstance modelInstance;
 
     public Enemy(String name, int health) {
         super(name);
@@ -42,6 +40,7 @@ public class Enemy extends GameObject {
 
         if (distance <= detectionRadius) {
             Vector3 direction = new Vector3(playerPosition).sub(enemyPosition).nor();
+            direction.y = 0; // Ne se déplace que sur le plan horizontal
             ((btRigidBody) this.body).setLinearVelocity(direction.scl(moveSpeed));
 
             if (distance <= attackRadius) {
