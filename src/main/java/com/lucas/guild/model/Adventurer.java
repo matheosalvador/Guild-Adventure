@@ -7,7 +7,7 @@ public class Adventurer extends Entite {
     private String location;
     private String origin;
     private int rank; // Changé en int
-    private List<Item> inventory;
+    private Inventaire inventory;
     private SkillTree skillTree;
     private int skillPoints;
     private int experience;
@@ -21,7 +21,7 @@ public class Adventurer extends Entite {
         this.location = location;
         this.origin = "Village de départ"; // Exemple
         this.rank = 0; // 0 = Débutant / Rang F
-        this.inventory = new ArrayList<>();
+        this.inventory = new Inventaire();
         this.skillTree = new SkillTree(location); // Utilise la location comme classe
         this.skillPoints = 0;
         this.experience = 0;
@@ -45,19 +45,23 @@ public class Adventurer extends Entite {
     }
 
     public List<Item> getInventory() {
-        return inventory;
+        return inventory.getItems();
     }
 
-    public void addItem(Item item) {
-        inventory.add(item);
+    public void setInventory(Inventaire inventory) {
+        this.inventory = inventory;
+    }
+
+    public boolean addItem(Item item) {
+        return inventory.ajouterItem(item);
     }
 
     public void removeItem(Item item) {
-        inventory.remove(item);
+        inventory.retirerItem(item);
     }
 
     public Item findItem(Item itemToFind) {
-        for (Item item : inventory) {
+        for (Item item : inventory.getItems()) {
             if (item.equals(itemToFind)) {
                 return item;
             }
@@ -112,7 +116,17 @@ public class Adventurer extends Entite {
         return level;
     }
 
-    @Override
+    public List<Attaque> getAttaques() {
+        List<Attaque> attaques = new ArrayList<>();
+        attaques.add(new AttaqueMelee("Attaque de base", 10 + getBonusDegats()));
+        for (Skill skill : skillTree.getSkills()) {
+            if (skill.isLearned() && skill.getAttackToLearn() != null) {
+                attaques.add(skill.getAttackToLearn());
+            }
+        }
+        return attaques;
+    }
+
     public void updateVitalSigns() {
         // Pour l'aventurier, la vie ne se régénère pas automatiquement pour l'instant
     }

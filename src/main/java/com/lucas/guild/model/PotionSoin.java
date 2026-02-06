@@ -1,5 +1,5 @@
-package model;
-// a neutraliser plus tard si inutile
+package com.lucas.guild.model;
+
 public class PotionSoin implements Item {
     private final String name = "Potion de Soin";
     private final String description = "Restaure 25 points de vie.";
@@ -26,5 +26,10 @@ public class PotionSoin implements Item {
     @Override
     public double getPoids() {
         return 0.5;
+    }
+
+    @Override
+    public void utiliser(Adventurer player) {
+
     }
 }

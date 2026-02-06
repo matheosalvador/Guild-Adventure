@@ -1,49 +1,38 @@
 package com.lucas.guild.model;
 
-public class Monstre extends Entite {
+import java.util.ArrayList;
+import java.util.List;
 
-    private int xpValue;
-    private String imagePath;
+public class Monstre extends Entite implements Combatant {
 
-    public Monstre(String name, int maxHealth, int xpValue, String imagePath) {
+    private int degats;
+
+    public Monstre(String name, int maxHealth, int degats) {
         super(name, maxHealth);
-        this.xpValue = xpValue;
-        this.imagePath = imagePath;
-        
-        // Apprend ses attaques en fonction de son nom
-        switch (name) {
-            case "Rat Géant":
-                this.apprendreAttaque(new AttaqueSimple("Morsure", 8));
-                this.apprendreAttaque(new AttaqueSimple("Griffe", 6));
-                break;
-            case "Chef Gobelin":
-                this.apprendreAttaque(new AttaqueSimple("Coup de gourdin", 15));
-                this.apprendreAttaque(new AttaqueSimple("Cri de guerre", 5));
-                break;
-        }
-    }
-
-    public Item getLoot() {
-        switch (this.name) {
-            case "Rat Géant":
-                return new ObjetDeQuete("Queue de rat");
-            case "Chef Gobelin":
-                return new ObjetDeQuete("Tête de Gobelin");
-            default:
-                return new ObjetDeQuete("Tissu sans valeur");
-        }
-    }
-    
-    public int getXpValue() {
-        return xpValue;
-    }
-
-    public String getImagePath() {
-        return imagePath;
+        this.degats = degats;
     }
 
     @Override
-    public void updateVitalSigns() {
+    public void attaquer(Combatant cible) {
+        if (this.estVivant()) {
+            System.out.println(this.getName() + " attaque " + ((Entite)cible).getName() + " !");
+            cible.subirDegats(this.degats);
+        }
+    }
 
+    @Override
+    public void subirDegats(int montant) {
+        this.perdreVie(montant);
+        System.out.println(this.getName() + " a subi " + montant + " points de dégâts.");
+
+        if (!this.estVivant()) {
+            System.out.println(this.getName() + " est vaincu !");
+        }
+    }
+
+    public List<Attaque> getAttaques() {
+        List<Attaque> attaques = new ArrayList<>();
+        attaques.add(new AttaqueMelee("Morsure", degats));
+        return attaques;
     }
 }

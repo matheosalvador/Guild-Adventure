@@ -1,15 +1,42 @@
 package com.lucas.guild.model;
 
-public class PotionDeSoin extends Item {
+public class PotionDeSoin implements Item {
+    private String name;
     private int healingAmount;
 
     public PotionDeSoin(String name, int healingAmount) {
-        super(name);
+        this.name = name;
         this.healingAmount = healingAmount;
     }
 
-    public void utiliser(Entite cible) {
-        System.out.println(cible.getName() + " utilise " + this.name + " et récupère " + this.healingAmount + " PV !");
-        cible.ajouterVie(this.healingAmount); // On a besoin de cette méthode dans Entite
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String getDescription() {
+        return "Restaure " + healingAmount + " points de vie.";
+    }
+
+    @Override
+    public void use(Joueur joueur, Monstre monstre) {
+        if (joueur != null) {
+            joueur.ajouterVie(healingAmount);
+            System.out.println(joueur.getName() + " utilise " + name + " et récupère " + healingAmount + " PV.");
+        }
+    }
+
+    @Override
+    public double getPoids() {
+        return 0.5; // Poids par défaut pour une potion
+    }
+
+    /**
+     * @param player
+     */
+    @Override
+    public void utiliser(Adventurer player) {
+
     }
 }

@@ -1,7 +1,7 @@
 package com.lucas.guild.game;
 
 import com.lucas.guild.model.Quest;
-import com.lucas.guild.model.Quest.QuestType;
+import com.lucas.guild.model.QuestType;
 
 import java.util.ArrayList;
 import java.util.List;

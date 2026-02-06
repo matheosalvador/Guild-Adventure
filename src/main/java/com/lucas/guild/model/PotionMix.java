@@ -1,5 +1,5 @@
-package model;
-// a neutraliser plus tard si inutile
+package com.lucas.guild.model;
+
 public class PotionMix implements Item {
     private final String name = "Potion Mixte";
     private final String description = "Restaure 15 PV au joueur et inflige 15 dégâts au monstre.";
@@ -32,5 +32,13 @@ public class PotionMix implements Item {
     @Override
     public double getPoids() {
         return 1.0;
+    }
+
+    /**
+     * @param player
+     */
+    @Override
+    public void utiliser(Adventurer player) {
+
     }
 }

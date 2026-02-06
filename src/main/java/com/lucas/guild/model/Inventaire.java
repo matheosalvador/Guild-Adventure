@@ -1,5 +1,5 @@
-package model;
-// a neutraliser plus tard si inutile
+package com.lucas.guild.model;
+
 import java.util.ArrayList;
 import java.util.List;
 

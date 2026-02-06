@@ -1,5 +1,5 @@
-package model;
-// a neutraliser plus tard si inutilew
+package com.lucas.guild.model;
+
 public class PotionDps implements Item {
     private final String name = "Potion de Dégâts";
     private final String description = "Inflige 20 points de dégâts au monstre.";
@@ -26,5 +26,13 @@ public class PotionDps implements Item {
     @Override
     public double getPoids() {
         return 0.7;
+    }
+
+    /**
+     * @param player
+     */
+    @Override
+    public void utiliser(Adventurer player) {
+
     }
 }

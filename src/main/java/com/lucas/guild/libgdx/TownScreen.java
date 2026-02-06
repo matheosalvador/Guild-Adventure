@@ -24,9 +24,9 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.collision.*;
 import com.badlogic.gdx.physics.bullet.dynamics.*;
-import com.badlogic.gdx.physics.bullet.linearmath.btDefaultMotionState;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -37,8 +37,10 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.game.Forge;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.Building;
+import com.lucas.guild.model.GameClock;
+import com.lucas.guild.model.Inventaire;
+import com.lucas.guild.model.Item;
 import com.lucas.guild.model.Town;
-import model.GameClock;
 
 public class TownScreen extends InputAdapter implements Screen {
 
@@ -46,6 +48,7 @@ public class TownScreen extends InputAdapter implements Screen {
     private final Town town;
     private Adventurer player; // Le joueur dans la ville
     private GameClock gameClock;
+    private final String difficulty;
 
     private PerspectiveCamera camera;
     private ModelBatch modelBatch;
@@ -70,10 +73,13 @@ public class TownScreen extends InputAdapter implements Screen {
     private Stage stage;
     private Skin skin;
     private Table pauseTable;
+    private Table inventoryTable;
     private boolean isPaused = false;
+    private boolean isInventoryOpen = false;
 
-    public TownScreen(MainGame game) {
+    public TownScreen(MainGame game, String difficulty) {
         this.game = game;
+        this.difficulty = difficulty;
         this.town = new Town("Aethelgard");
         town.addBuilding(new Forge("La Forge du Nain Grincheux"));
         town.addBuilding(new Building("Guilde des Aventuriers", "Guilde"));
@@ -84,6 +90,9 @@ public class TownScreen extends InputAdapter implements Screen {
     public void show() {
         Bullet.init();
         player = new Adventurer("Lucas", "Ville");
+        Inventaire inventaire = new Inventaire();
+        inventaire.setPoidsMax(difficulty);
+        player.setInventory(inventaire);
         gameClock = new GameClock(player);
 
         setup3DEnvironment();
@@ -136,7 +145,10 @@ public class TownScreen extends InputAdapter implements Screen {
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
         textButtonStyle.font = skin.getFont("default-font");
         skin.add("default", textButtonStyle);
+        Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
+        skin.add("default", labelStyle);
 
+        // Pause Menu
         pauseTable = new Table();
         pauseTable.setFillParent(true);
         pauseTable.setVisible(false);
@@ -161,6 +173,12 @@ public class TownScreen extends InputAdapter implements Screen {
                 game.setScreen(new MainMenuScreen(game));
             }
         });
+
+        // Inventory Menu
+        inventoryTable = new Table();
+        inventoryTable.setFillParent(true);
+        inventoryTable.setVisible(false);
+        stage.addActor(inventoryTable);
     }
 
     private void setupInput() {
@@ -199,7 +217,7 @@ public class TownScreen extends InputAdapter implements Screen {
         Model model = modelBuilder.createBox(10f, 10f, 10f, material, Usage.Position | Usage.Normal);
         disposables.add(model);
         ModelInstance instance = new ModelInstance(model);
-        instance.transform.setTranslation(position.add(0, 5.5f, 0)); // Ajuster la position y
+        instance.transform.setTranslation(position.add(0, 5.5f, 0));
         instances.add(instance);
 
         instance.userData = building;
@@ -229,14 +247,14 @@ public class TownScreen extends InputAdapter implements Screen {
         drawHud();
         spriteBatch.end();
 
-        if (isPaused) {
+        if (isPaused || isInventoryOpen) {
             stage.act(delta);
             stage.draw();
         }
     }
 
     private void update(float delta) {
-        if (!isPaused) {
+        if (!isPaused && !isInventoryOpen) {
             playerController.update();
             dynamicsWorld.stepSimulation(delta, 5, 1 / 60f);
             playerController.updateCamera();
@@ -245,7 +263,7 @@ public class TownScreen extends InputAdapter implements Screen {
     }
 
     private void drawHud() {
-        if (!isPaused) {
+        if (!isPaused && !isInventoryOpen) {
             font.draw(spriteBatch, "+", Gdx.graphics.getWidth() / 2f - 5, Gdx.graphics.getHeight() / 2f + 5);
 
             hudText.setLength(0);
@@ -264,24 +282,42 @@ public class TownScreen extends InputAdapter implements Screen {
             }
         }
     }
-    
+
+    private void drawInventory() {
+        inventoryTable.clear();
+        inventoryTable.top().left();
+        inventoryTable.add(new Label("Inventaire", skin)).colspan(2).pad(10).row();
+
+        for (Item item : player.getInventory()) {
+            inventoryTable.add(new Label(item.getName(), skin)).pad(5);
+            inventoryTable.add(new Label(item.getDescription(), skin)).pad(5).row();
+        }
+    }
+
     @Override
     public boolean keyDown(int keycode) {
         if (keycode == Input.Keys.ESCAPE) {
-            togglePause();
+            if (isInventoryOpen) {
+                toggleInventory();
+            } else {
+                togglePause();
+            }
             return true;
         }
-        if (isPaused) return false;
+        if (keycode == Input.Keys.I) {
+            toggleInventory();
+            return true;
+        }
+        if (isPaused || isInventoryOpen) return false;
 
         if (keycode == Input.Keys.E) {
             btCollisionObject objectInView = playerController.getBodyInView(10f);
             if (objectInView != null && objectInView.userData instanceof Building) {
                 Building building = (Building) objectInView.userData;
                 if (building instanceof Forge) {
-                    game.setScreen(new ForgeScreen(game));
+                    game.setScreen(new ForgeScreen(game, difficulty));
                     return true;
                 }
-                Gdx.app.log("TownScreen", "Interaction avec " + building.getName());
             }
         }
         return playerController.keyDown(keycode);
@@ -291,6 +327,15 @@ public class TownScreen extends InputAdapter implements Screen {
         isPaused = !isPaused;
         pauseTable.setVisible(isPaused);
         Gdx.input.setCursorCatched(!isPaused);
+    }
+
+    private void toggleInventory() {
+        isInventoryOpen = !isInventoryOpen;
+        inventoryTable.setVisible(isInventoryOpen);
+        Gdx.input.setCursorCatched(!isInventoryOpen);
+        if (isInventoryOpen) {
+            drawInventory();
+        }
     }
 
     @Override

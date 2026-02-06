@@ -84,16 +84,24 @@ public class MainMenuScreen implements Screen {
         });
 
         // Boutons de difficulté real start a intergrer la save qui Lancent le jeu
-        ClickListener startGameListener = new ClickListener() {
+        easyButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                // les difficulté ne change rien
-                game.setScreen(new TownScreen(game)); // Changé pour aller à TownScreen
+                game.setScreen(new TownScreen(game, "facile"));
             }
-        };
-        easyButton.addListener(startGameListener);
-        normalButton.addListener(startGameListener);
-        realisticButton.addListener(startGameListener);
+        });
+        normalButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                game.setScreen(new TownScreen(game, "normale"));
+            }
+        });
+        realisticButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                game.setScreen(new TownScreen(game, "realiste"));
+            }
+        });
 
         // Bouton Retour qui Affiche le menu principal
         backButton.addListener(new ClickListener() {

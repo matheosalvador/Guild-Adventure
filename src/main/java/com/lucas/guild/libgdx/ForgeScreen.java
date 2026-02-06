@@ -40,6 +40,7 @@ import com.lucas.guild.model.Skill;
 public class ForgeScreen extends InputAdapter implements Screen {
 
     private final MainGame game;
+    private final String difficulty;
     private Adventurer player;
 
     private PerspectiveCamera camera;
@@ -65,8 +66,9 @@ public class ForgeScreen extends InputAdapter implements Screen {
     private Table dialogTable;
     private boolean inDialog = false;
 
-    public ForgeScreen(MainGame game) {
+    public ForgeScreen(MainGame game, String difficulty) {
         this.game = game;
+        this.difficulty = difficulty;
     }
 
     @Override
@@ -277,7 +279,7 @@ public class ForgeScreen extends InputAdapter implements Screen {
                     toggleDialog("Blacksmith");
                     return true;
                 } else if ("Door".equals(objectInView.userData)) {
-                    game.setScreen(new TownScreen(game));
+                    game.setScreen(new TownScreen(game, difficulty));
                     return true;
                 }
             }
