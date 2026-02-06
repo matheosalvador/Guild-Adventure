@@ -2,11 +2,11 @@ package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -17,7 +17,6 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -33,7 +32,7 @@ import com.lucas.guild.model.Item;
 import com.lucas.guild.model.PotionDeSoin;
 import model.GameClock;
 
-public class LibGDXGame implements Screen {
+public class LibGDXGame extends InputAdapter implements Screen {
 
     private final MainGame game;
     private final PerspectiveCamera camera;
@@ -49,6 +48,7 @@ public class LibGDXGame implements Screen {
     
     private final Array<Disposable> disposables = new Array<>();
     private final Array<ModelInstance> instances = new Array<>();
+    private final Array<GameObject> gameObjects = new Array<>();
 
     private SpriteBatch spriteBatch;
     private BitmapFont font;
@@ -58,12 +58,9 @@ public class LibGDXGame implements Screen {
     private final GameClock gameClock;
     private final GlyphLayout layout = new GlyphLayout();
     private final StringBuilder hudText = new StringBuilder();
-
-    private float raycastTimer = 0f;
-    private final float RAYCAST_INTERVAL = 0.25f;
-    private btCollisionObject objectInView = null;
     
     private boolean isInventoryOpen = false;
+    private boolean isPaused = false;
 
     public LibGDXGame(MainGame game) {
         this.game = game;
@@ -92,13 +89,12 @@ public class LibGDXGame implements Screen {
         solver = new btSequentialImpulseConstraintSolver();
         dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
         dynamicsWorld.setGravity(new Vector3(0, -10f, 0));
-        disposables.addAll(collisionConfig, dispatcher, broadphase, solver, dynamicsWorld);
 
         createGround();
         createItem(5, 1.5f, 5, new PotionDeSoin("Potion de Soin", 25));
+        createEnemy(-5, 1.5f, 5, "Slime", 50);
 
         playerController = new PlayerController(camera, dynamicsWorld, player);
-        disposables.add(playerController);
     }
 
     private void createGround() {
@@ -110,10 +106,8 @@ public class LibGDXGame implements Screen {
         instances.add(groundInstance);
 
         btCollisionShape groundShape = new btBoxShape(new Vector3(100f, 0.5f, 100f));
-        disposables.add(groundShape);
         btRigidBody.btRigidBodyConstructionInfo groundInfo = new btRigidBody.btRigidBodyConstructionInfo(0, null, groundShape, Vector3.Zero);
         btRigidBody groundBody = new btRigidBody(groundInfo);
-        disposables.add(groundBody);
         dynamicsWorld.addRigidBody(groundBody);
     }
 
@@ -127,26 +121,51 @@ public class LibGDXGame implements Screen {
 
         GameObject itemObject = new GameObject(item.getName(), item);
         itemInstance.userData = itemObject;
+        gameObjects.add(itemObject);
 
         btCollisionShape itemShape = new btCylinderShape(new Vector3(0.25f, 0.5f, 0.25f));
-        disposables.add(itemShape);
         Vector3 localInertia = new Vector3();
         float mass = 0.5f;
         itemShape.calculateLocalInertia(mass, localInertia);
 
         btDefaultMotionState motionState = new btDefaultMotionState(itemInstance.transform);
-        disposables.add(motionState);
+        itemObject.motionState = motionState;
         btRigidBody.btRigidBodyConstructionInfo itemInfo = new btRigidBody.btRigidBodyConstructionInfo(mass, motionState, itemShape, localInertia);
         btRigidBody itemBody = new btRigidBody(itemInfo);
         itemBody.userData = itemObject;
         itemObject.body = itemBody;
-        disposables.add(itemBody);
         dynamicsWorld.addRigidBody(itemBody);
+    }
+
+    private void createEnemy(float x, float y, float z, String name, int health) {
+        ModelBuilder modelBuilder = new ModelBuilder();
+        Model enemyModel = modelBuilder.createBox(1f, 1f, 1f, new Material(ColorAttribute.createDiffuse(Color.BLUE)), Usage.Position | Usage.Normal);
+        disposables.add(enemyModel);
+        ModelInstance enemyInstance = new ModelInstance(enemyModel);
+        enemyInstance.transform.setTranslation(x, y, z);
+        instances.add(enemyInstance);
+
+        Enemy enemyObject = new Enemy(name, health);
+        enemyInstance.userData = enemyObject;
+        gameObjects.add(enemyObject);
+
+        btCollisionShape enemyShape = new btBoxShape(new Vector3(0.5f, 0.5f, 0.5f));
+        Vector3 localInertia = new Vector3();
+        float mass = 1f;
+        enemyShape.calculateLocalInertia(mass, localInertia);
+
+        btDefaultMotionState motionState = new btDefaultMotionState(enemyInstance.transform);
+        enemyObject.motionState = motionState;
+        btRigidBody.btRigidBodyConstructionInfo enemyInfo = new btRigidBody.btRigidBodyConstructionInfo(mass, motionState, enemyShape, localInertia);
+        btRigidBody enemyBody = new btRigidBody(enemyInfo);
+        enemyBody.userData = enemyObject;
+        enemyObject.body = enemyBody;
+        dynamicsWorld.addRigidBody(enemyBody);
     }
 
     @Override
     public void render(float delta) {
-        handleInput(delta);
+        update(delta);
         
         Gdx.gl.glClearColor(0.3f, 0.6f, 0.8f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
@@ -155,51 +174,97 @@ public class LibGDXGame implements Screen {
         modelBatch.render(instances, environment);
         modelBatch.end();
 
+        drawHealthBars();
+
         spriteBatch.begin();
         drawHud();
-        if (isInventoryOpen) {
-            drawInventory();
-        }
+        if (isInventoryOpen) drawInventory();
+        if (isPaused) drawPauseMenu();
         spriteBatch.end();
     }
 
-    private void handleInput(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            if (isInventoryOpen) {
-                isInventoryOpen = false;
-                Gdx.input.setCursorCatched(true);
-            } else {
-                game.setScreen(new MainMenuScreen(game));
-            }
-        }
-        
-        if (Gdx.input.isKeyJustPressed(Input.Keys.I)) {
-            isInventoryOpen = !isInventoryOpen;
-            Gdx.input.setCursorCatched(!isInventoryOpen);
-        }
-        
-        if (!isInventoryOpen) {
+    private void update(float delta) {
+        if (!isPaused && !isInventoryOpen) {
             playerController.update();
             dynamicsWorld.stepSimulation(delta, 5, 1/60f);
             playerController.updateCamera();
-        } else {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
-                useItem(0);
+
+            for (GameObject go : gameObjects) {
+                if (go instanceof Enemy) {
+                    ((Enemy) go).update(player, playerController.getPlayerBody(), delta);
+                }
             }
         }
         
         gameClock.update(delta);
 
-        for (int i = instances.size - 1; i >= 0; i--) {
-            ModelInstance instance = instances.get(i);
-            if (instance.userData instanceof GameObject) {
-                GameObject go = (GameObject) instance.userData;
-                if (!go.isActive) {
-                    dynamicsWorld.removeCollisionObject(go.body);
-                    instances.removeIndex(i);
+        for (int i = gameObjects.size - 1; i >= 0; i--) {
+            GameObject go = gameObjects.get(i);
+            if (!go.isActive) {
+                dynamicsWorld.removeCollisionObject(go.body);
+                go.body.dispose();
+                if (go.motionState != null) go.motionState.dispose();
+                gameObjects.removeIndex(i);
+                
+                for (int j = instances.size - 1; j >= 0; j--) {
+                    if (instances.get(j).userData == go) {
+                        instances.removeIndex(j);
+                        break;
+                    }
                 }
             }
         }
+    }
+
+    @Override
+    public boolean keyDown(int keycode) {
+        if (keycode == Input.Keys.ESCAPE) {
+            if (isInventoryOpen) {
+                isInventoryOpen = false;
+                Gdx.input.setCursorCatched(true);
+            } else {
+                isPaused = !isPaused;
+                Gdx.input.setCursorCatched(!isPaused);
+            }
+            return true;
+        }
+
+        if (isPaused) {
+            if (keycode == Input.Keys.C) {
+                isPaused = false;
+                Gdx.input.setCursorCatched(true);
+            }
+            if (keycode == Input.Keys.M) {
+                game.setScreen(new MainMenuScreen(game));
+            }
+            return true;
+        }
+
+        if (keycode == Input.Keys.I) {
+            isInventoryOpen = !isInventoryOpen;
+            Gdx.input.setCursorCatched(!isInventoryOpen);
+            return true;
+        }
+
+        if (isInventoryOpen) {
+            if (keycode == Input.Keys.NUM_1) useItem(0);
+            return true;
+        }
+
+        return playerController.keyDown(keycode);
+    }
+
+    @Override
+    public boolean keyUp(int keycode) {
+        return playerController.keyUp(keycode);
+    }
+    
+    @Override
+    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+        if (!isPaused && !isInventoryOpen) {
+            return playerController.touchDown(screenX, screenY, pointer, button);
+        }
+        return false;
     }
 
     private void useItem(int index) {
@@ -213,11 +278,7 @@ public class LibGDXGame implements Screen {
     }
 
     private void drawHud() {
-        font.getData().setScale(2);
-        layout.setText(font, "+");
-        font.draw(spriteBatch, layout, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() / 2f + layout.height / 2f);
-        font.getData().setScale(1);
-
+        font.draw(spriteBatch, "+", Gdx.graphics.getWidth() / 2f - 5, Gdx.graphics.getHeight() / 2f + 5);
         hudText.setLength(0);
         hudText.append("FPS: ").append(Gdx.graphics.getFramesPerSecond()).append("\n");
         hudText.append("Player: ").append(player.getName()).append("\n");
@@ -225,12 +286,8 @@ public class LibGDXGame implements Screen {
         hudText.append("Time: ").append(gameClock.getCurrentHour()).append("h, Day ").append(gameClock.getCurrentDay());
         font.draw(spriteBatch, hudText, 10, Gdx.graphics.getHeight() - 10);
 
-        if (!isInventoryOpen) {
-            raycastTimer += Gdx.graphics.getDeltaTime();
-            if (raycastTimer >= RAYCAST_INTERVAL) {
-                raycastTimer -= RAYCAST_INTERVAL;
-                objectInView = playerController.getBodyInView(3f);
-            }
+        if (!isInventoryOpen && !isPaused) {
+            btCollisionObject objectInView = playerController.getBodyInView(3f);
             if (objectInView != null && objectInView.userData instanceof GameObject) {
                 GameObject go = (GameObject) objectInView.userData;
                 if (go.isActive) {
@@ -243,13 +300,14 @@ public class LibGDXGame implements Screen {
     }
 
     private void drawInventory() {
+        spriteBatch.end();
         Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(0, 0, 0, 0.5f);
         shapeRenderer.rect(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         shapeRenderer.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);
+        spriteBatch.begin();
 
         hudText.setLength(0);
         hudText.append("--- INVENTAIRE ---\n\n");
@@ -263,6 +321,44 @@ public class LibGDXGame implements Screen {
         }
         layout.setText(font, hudText);
         font.draw(spriteBatch, hudText, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() * 0.8f);
+    }
+    
+    private void drawPauseMenu() {
+        spriteBatch.end();
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0, 0, 0, 0.5f);
+        shapeRenderer.rect(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        shapeRenderer.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+        spriteBatch.begin();
+
+        hudText.setLength(0);
+        hudText.append("PAUSE\n\n");
+        hudText.append("[C] pour Continuer\n");
+        hudText.append("[M] pour retourner au Menu Principal");
+        layout.setText(font, hudText);
+        font.draw(spriteBatch, hudText, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() * 0.6f);
+    }
+
+    private void drawHealthBars() {
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        for (ModelInstance instance : instances) {
+            if (instance.userData instanceof Enemy) {
+                Enemy enemy = (Enemy) instance.userData;
+                if (enemy.isActive && enemy.health < enemy.maxHealth) {
+                    Vector3 position = new Vector3();
+                    instance.transform.getTranslation(position);
+                    
+                    shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+                    shapeRenderer.setColor(Color.RED);
+                    shapeRenderer.rect(position.x - 0.5f, position.y + 1.2f, 1, 0.1f);
+                    shapeRenderer.setColor(Color.GREEN);
+                    shapeRenderer.rect(position.x - 0.5f, position.y + 1.2f, (float)enemy.health / enemy.maxHealth, 0.1f);
+                    shapeRenderer.end();
+                }
+            }
+        }
     }
 
     @Override
@@ -279,14 +375,14 @@ public class LibGDXGame implements Screen {
         font.setColor(Color.WHITE);
         shapeRenderer = new ShapeRenderer();
         disposables.addAll(spriteBatch, font, shapeRenderer);
-
-        Gdx.input.setInputProcessor(playerController);
+        Gdx.input.setInputProcessor(this);
         Gdx.input.setCursorCatched(true);
     }
 
     @Override
     public void hide() {
         Gdx.input.setCursorCatched(false);
+        dispose();
     }
 
     @Override
@@ -297,16 +393,25 @@ public class LibGDXGame implements Screen {
 
     @Override
     public void dispose() {
-        for (Disposable disposable : disposables) {
-            disposable.dispose();
+        for (GameObject go : gameObjects) {
+            dynamicsWorld.removeCollisionObject(go.body);
+            go.body.dispose();
+            if (go.motionState != null) go.motionState.dispose();
         }
-        disposables.clear();
-        instances.clear();
+        gameObjects.clear();
+        
+        playerController.dispose();
         
         dynamicsWorld.dispose();
         solver.dispose();
         broadphase.dispose();
         dispatcher.dispose();
         collisionConfig.dispose();
+
+        for (Disposable disposable : disposables) {
+            disposable.dispose();
+        }
+        disposables.clear();
+        instances.clear();
     }
 }

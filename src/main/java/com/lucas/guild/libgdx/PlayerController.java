@@ -1,8 +1,7 @@
 package com.lucas.guild.libgdx;
-// tout les imports biblio etc
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
@@ -17,7 +16,7 @@ import com.badlogic.gdx.utils.IntIntMap;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.Item;
 
-public class PlayerController extends InputAdapter implements Disposable {
+public class PlayerController implements Disposable {
 
     private final Camera camera;
     private final btRigidBody playerBody;
@@ -67,19 +66,37 @@ public class PlayerController extends InputAdapter implements Disposable {
         dynamicsWorld.addRigidBody(playerBody);
     }
 
-    @Override
-    public boolean keyDown(int keycode) {
-        keys.put(keycode, keycode);
-        if (keycode == Input.Keys.E) {
-            interact();
-        }
-        return true;
+    public btRigidBody getPlayerBody() {
+        return playerBody;
     }
 
-    @Override
+    public boolean keyDown(int keycode) {
+        switch (keycode) {
+            case Input.Keys.W:
+            case Input.Keys.A:
+            case Input.Keys.S:
+            case Input.Keys.D:
+            case Input.Keys.SPACE:
+                keys.put(keycode, keycode);
+                return true;
+            case Input.Keys.E:
+                interact();
+                return true;
+        }
+        return false;
+    }
+
     public boolean keyUp(int keycode) {
         keys.remove(keycode, 0);
         return true;
+    }
+
+    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+        if (button == Input.Buttons.LEFT) {
+            attack();
+            return true;
+        }
+        return false;
     }
 
     public void update() {
@@ -140,16 +157,19 @@ public class PlayerController extends InputAdapter implements Disposable {
         btCollisionObject body = getBodyInView(3f);
         if (body != null && body.userData instanceof GameObject) {
             GameObject object = (GameObject) body.userData;
-            if (object.isActive) {
-                if (object.item != null) {
-                    player.findItem(object.item);
-                    object.isActive = false;
-                } else {
-                    if (body instanceof btRigidBody) {
-                        ((btRigidBody) body).activate();
-                        ((btRigidBody) body).applyCentralImpulse(tmp.set(camera.direction).scl(10f));
-                    }
-                }
+            if (object.isActive && object.item != null) {
+                player.findItem(object.item);
+                object.isActive = false;
+            }
+        }
+    }
+
+    private void attack() {
+        btCollisionObject body = getBodyInView(5f);
+        if (body != null && body.userData instanceof Enemy) {
+            Enemy enemy = (Enemy) body.userData;
+            if (enemy.isActive) {
+                enemy.takeDamage(player.getBonusDegats());
             }
         }
     }

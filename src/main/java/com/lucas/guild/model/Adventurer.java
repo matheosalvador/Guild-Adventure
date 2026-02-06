@@ -37,14 +37,15 @@ public class Adventurer extends Entite {
         super("Joueur", 100);
     }
 
-    // --- Nouveaux Getters pour la StatusView ---
+    public List<Item> getInventory() {
+        return inventory;
+    }
+
     public int getExperience() { return experience; }
     public int getExperienceToNextRank() { return experienceToNextRank; }
     public double getHunger() { return hunger; }
     public double getThirst() { return thirst; }
     public double getEnergy() { return energy; }
-
-    // ... (le reste des getters et méthodes reste identique)
     public int getGold() { return gold; }
     public Arme getArmeEquipee() { return armeEquipee; }
     public Armure getArmureEquipee() { return armureEquipee; }
@@ -107,7 +108,6 @@ public class Adventurer extends Entite {
             System.out.println("Pas assez d'or !");
         }
     }
-    public List<Item> getInventory() { return inventory; }
     public void removeItem(Item item) { inventory.remove(item); }
     public void completeQuest() {
         if (currentQuest == null) { System.out.println("Pas de quête."); return; }
