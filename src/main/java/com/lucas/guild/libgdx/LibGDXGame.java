@@ -210,12 +210,12 @@ public class LibGDXGame extends InputAdapter implements Screen {
             playerController.updateCamera();
 
             for (GameObject go : gameObjects) {
-                if (go.body != null && go.motionState != null) {
+                if (go.body != null && go.motionState != null && go.modelInstance != null) {
                     go.motionState.getWorldTransform(go.modelInstance.transform);
                 }
-                if (go instanceof Enemy) {
-                    ((Enemy) go).update(player, playerController.getPlayerBody(), delta);
-                }
+                //if (go instanceof Enemy) {
+                //    ((Enemy) go).update(player, playerController.getPlayerBody(), delta);
+                //}
             }
             gameClock.update(delta);
         }
@@ -275,7 +275,7 @@ public class LibGDXGame extends InputAdapter implements Screen {
             Item item = player.getInventory().get(index);
             if (item instanceof PotionDeSoin) {
                 ((PotionDeSoin) item).utiliser(player);
-                player.getInventory().remove(item);
+                player.removeItem(item);
                 updateInventory();
             }
         }

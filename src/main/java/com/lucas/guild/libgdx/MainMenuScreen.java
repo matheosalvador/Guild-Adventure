@@ -88,7 +88,7 @@ public class MainMenuScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 // les difficulté ne change rien
-                game.setScreen(new LibGDXGame(game));
+                game.setScreen(new TownScreen(game)); // Changé pour aller à TownScreen
             }
         };
         easyButton.addListener(startGameListener);

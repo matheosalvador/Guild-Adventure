@@ -6,6 +6,7 @@ public class Skill {
     private int requiredRank;
     private String prerequisiteSkillName; // Nom de la compétence requise (null si aucune)
     private Attaque attackToLearn;
+    private boolean learned;
 
     public Skill(String name, String description, int requiredRank, String prerequisiteSkillName, Attaque attackToLearn) {
         this.name = name;
@@ -13,6 +14,7 @@ public class Skill {
         this.requiredRank = requiredRank;
         this.prerequisiteSkillName = prerequisiteSkillName;
         this.attackToLearn = attackToLearn;
+        this.learned = false; // Par défaut, une compétence n'est pas apprise
     }
 
     // Getters
@@ -21,4 +23,9 @@ public class Skill {
     public int getRequiredRank() { return requiredRank; }
     public String getPrerequisiteSkillName() { return prerequisiteSkillName; }
     public Attaque getAttackToLearn() { return attackToLearn; }
+    public boolean isLearned() { return learned; }
+
+    public void learn() {
+        this.learned = true;
+    }
 }

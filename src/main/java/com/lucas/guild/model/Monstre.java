@@ -41,4 +41,9 @@ public class Monstre extends Entite {
     public String getImagePath() {
         return imagePath;
     }
+
+    @Override
+    public void updateVitalSigns() {
+
+    }
 }
