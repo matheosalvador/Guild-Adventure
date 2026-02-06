@@ -17,14 +17,14 @@ public class PotionMix implements Item {
     }
 
     @Override
-    public void use(Joueur joueur, Monstre monstre) {
-        if (joueur != null) {
-            joueur.ajouterVie(soin);
-            System.out.println(joueur.getName() + " récupère " + soin + " PV.");
+    public void use(Entite user, Entite target) {
+        if (user != null) {
+            user.ajouterVie(soin);
+            System.out.println(user.getName() + " récupère " + soin + " PV.");
         }
-        if (monstre != null) {
-            monstre.perdreVie(degats);
-            System.out.println(monstre.getName() + " subit " + degats + " dégâts.");
+        if (target != null) {
+            target.perdreVie(degats);
+            System.out.println(target.getName() + " subit " + degats + " dégâts.");
         }
         System.out.println("La fiole de " + name + " se brise.");
     }
@@ -32,13 +32,5 @@ public class PotionMix implements Item {
     @Override
     public double getPoids() {
         return 1.0;
-    }
-
-    /**
-     * @param player
-     */
-    @Override
-    public void utiliser(Adventurer player) {
-
     }
 }

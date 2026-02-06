@@ -18,20 +18,12 @@ public class ObjetDeQuete implements Item {
     }
 
     @Override
-    public void use(Joueur joueur, Monstre monstre) {
+    public void use(Entite user, Entite target) {
         // Les objets de quête ne sont généralement pas "utilisables" de cette manière
     }
 
     @Override
     public double getPoids() {
         return 0.1; // Poids par défaut pour un objet de quête
-    }
-
-    /**
-     * @param player
-     */
-    @Override
-    public void utiliser(Adventurer player) {
-
     }
 }

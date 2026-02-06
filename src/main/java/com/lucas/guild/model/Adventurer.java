@@ -1,5 +1,7 @@
 package com.lucas.guild.model;
 
+import com.badlogic.gdx.physics.bullet.collision.gim_bitset;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,7 +46,11 @@ public class Adventurer extends Entite {
         return rank;
     }
 
-    public List<Item> getInventory() {
+    public Inventaire getInventaire() {
+        return inventory;
+    }
+
+    public List<Item> getInventoryItems() {
         return inventory.getItems();
     }
 
@@ -129,5 +135,9 @@ public class Adventurer extends Entite {
 
     public void updateVitalSigns() {
         // Pour l'aventurier, la vie ne se régénère pas automatiquement pour l'instant
+    }
+
+    public gim_bitset getInventory() {
+        return null;
     }
 }

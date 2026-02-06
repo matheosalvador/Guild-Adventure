@@ -1,6 +1,6 @@
 package com.lucas.guild.model;
 
-public abstract class Armure implements Item {
+public class Armure implements Item {
     private String name;
     private int reductionDegats;
 
@@ -24,7 +24,7 @@ public abstract class Armure implements Item {
     }
 
     @Override
-    public void use(Joueur joueur, Monstre monstre) {
+    public void use(Entite user, Entite target) {
         // L'utilisation d'une armure est gérée par l'équipement, pas par une utilisation directe
     }
 

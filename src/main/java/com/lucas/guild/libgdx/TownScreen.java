@@ -286,9 +286,11 @@ public class TownScreen extends InputAdapter implements Screen {
     private void drawInventory() {
         inventoryTable.clear();
         inventoryTable.top().left();
+        Inventaire inventaire = player.getInventaire();
         inventoryTable.add(new Label("Inventaire", skin)).colspan(2).pad(10).row();
+        inventoryTable.add(new Label("Poids: " + inventaire.getPoidsActuel() + " / " + inventaire.getPoidsMax() + " kg", skin)).colspan(2).pad(10).row();
 
-        for (Item item : player.getInventory()) {
+        for (Item item : player.getInventoryItems()) {
             inventoryTable.add(new Label(item.getName(), skin)).pad(5);
             inventoryTable.add(new Label(item.getDescription(), skin)).pad(5).row();
         }

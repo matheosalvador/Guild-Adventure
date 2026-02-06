@@ -20,23 +20,15 @@ public class PotionDeSoin implements Item {
     }
 
     @Override
-    public void use(Joueur joueur, Monstre monstre) {
-        if (joueur != null) {
-            joueur.ajouterVie(healingAmount);
-            System.out.println(joueur.getName() + " utilise " + name + " et récupère " + healingAmount + " PV.");
+    public void use(Entite user, Entite target) {
+        if (user != null) {
+            user.ajouterVie(healingAmount);
+            System.out.println(user.getName() + " utilise " + name + " et récupère " + healingAmount + " PV.");
         }
     }
 
     @Override
     public double getPoids() {
         return 0.5; // Poids par défaut pour une potion
-    }
-
-    /**
-     * @param player
-     */
-    @Override
-    public void utiliser(Adventurer player) {
-
     }
 }

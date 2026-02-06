@@ -37,9 +37,9 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.model.Adventurer;
+import com.lucas.guild.model.GameClock;
 import com.lucas.guild.model.Item;
 import com.lucas.guild.model.PotionDeSoin;
-import model.GameClock;
 
 public class LibGDXGame extends InputAdapter implements Screen {
 
@@ -271,10 +271,10 @@ public class LibGDXGame extends InputAdapter implements Screen {
     }
 
     private void useItem(int index) {
-        if (index >= 0 && index < player.getInventory().size()) {
-            Item item = player.getInventory().get(index);
+        if (index >= 0 && index < player.getInventoryItems().size()) {
+            Item item = player.getInventoryItems().get(index);
             if (item instanceof PotionDeSoin) {
-                ((PotionDeSoin) item).utiliser(player);
+                ((PotionDeSoin) item).use(player, null);
                 player.removeItem(item);
                 updateInventory();
             }
@@ -402,12 +402,12 @@ public class LibGDXGame extends InputAdapter implements Screen {
         inventoryTable.clear();
         inventoryTable.add("--- INVENTAIRE ---").row();
 
-        if (player.getInventory().isEmpty()) {
+        if (player.getInventoryItems().isEmpty()) {
             inventoryTable.add("Vide").row();
         } else {
-            for (int i = 0; i < player.getInventory().size(); i++) {
+            for (int i = 0; i < player.getInventoryItems().size(); i++) {
                 final int index = i;
-                Item item = player.getInventory().get(i);
+                Item item = player.getInventoryItems().get(i);
                 TextButton itemButton = new TextButton(item.getName(), skin);
                 itemButton.addListener(new ClickListener() {
                     @Override

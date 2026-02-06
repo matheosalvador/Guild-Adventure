@@ -76,7 +76,7 @@ public class Combat {
 
     private void useItem() {
         System.out.println("Quel objet utiliser ?");
-        List<Item> potions = player.getInventory().stream()
+        List<Item> potions = player.getInventoryItems().stream()
                 .filter(item -> item instanceof PotionDeSoin)
                 .collect(Collectors.toList());
 
@@ -94,7 +94,7 @@ public class Combat {
         int choice = Integer.parseInt(scanner.nextLine());
         if (choice > 0 && choice <= potions.size()) {
             PotionDeSoin chosenPotion = (PotionDeSoin) potions.get(choice - 1);
-            chosenPotion.utiliser(player);
+            chosenPotion.use(player, null);
             player.removeItem(chosenPotion); // On retire la potion après usage
         } else {
             playerTurn();

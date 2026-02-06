@@ -34,6 +34,10 @@ public class Inventaire {
         return poidsActuel;
     }
 
+    public double getPoidsMax() {
+        return poidsMax;
+    }
+
     public boolean ajouterItem(Item item) {
         if (getPoidsActuel() + item.getPoids() <= poidsMax) {
             if (item instanceof PotionSoin) {

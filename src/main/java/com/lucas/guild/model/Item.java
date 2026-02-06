@@ -3,8 +3,6 @@ package com.lucas.guild.model;
 public interface Item {
     String getName();
     String getDescription();
-    void use(Joueur joueur, Monstre monstre);
+    void use(Entite user, Entite target);
     double getPoids();
-
-    void utiliser(Adventurer player);
 }

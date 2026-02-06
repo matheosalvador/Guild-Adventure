@@ -16,23 +16,15 @@ public class PotionDps implements Item {
     }
 
     @Override
-    public void use(Joueur joueur, Monstre monstre) {
-        if (monstre != null) {
-            monstre.perdreVie(degats);
-            System.out.println("Vous lancez une " + name + ". " + monstre.getName() + " subit " + degats + " dégâts !");
+    public void use(Entite user, Entite target) {
+        if (target != null) {
+            target.perdreVie(degats);
+            System.out.println("Vous lancez une " + name + ". " + target.getName() + " subit " + degats + " dégâts !");
         }
     }
 
     @Override
     public double getPoids() {
         return 0.7;
-    }
-
-    /**
-     * @param player
-     */
-    @Override
-    public void utiliser(Adventurer player) {
-
     }
 }
