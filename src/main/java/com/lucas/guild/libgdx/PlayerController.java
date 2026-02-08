@@ -27,7 +27,7 @@ public class PlayerController implements Disposable {
     private final IntIntMap keys = new IntIntMap();
     private final float moveSpeed = 8f;
     private final float jumpForce = 10f;
-    private final float rotationSpeed = 0.8f;
+    private final float rotationSpeed = 0.25f;
 
     private final Vector3 moveDirection = new Vector3();
     private final Vector3 tmp = new Vector3();
@@ -44,6 +44,10 @@ public class PlayerController implements Disposable {
     private final static ClosestRayResultCallback rayCallback = new ClosestRayResultCallback(Vector3.Zero, Vector3.Z);
 
     public PlayerController(Camera camera, btDiscreteDynamicsWorld dynamicsWorld, Adventurer player) {
+        this(camera, dynamicsWorld, player, new Vector3(0, 10, 0));
+    }
+
+    public PlayerController(Camera camera, btDiscreteDynamicsWorld dynamicsWorld, Adventurer player, Vector3 spawnPoint) {
         this.camera = camera;
         this.dynamicsWorld = dynamicsWorld;
         this.player = player;
@@ -53,7 +57,7 @@ public class PlayerController implements Disposable {
         playerShape.calculateLocalInertia(80f, localInertia);
 
         motionState = new btDefaultMotionState();
-        motionState.setWorldTransform(new Matrix4().setTranslation(0, 10, 0));
+        motionState.setWorldTransform(new Matrix4().setTranslation(spawnPoint));
 
         btRigidBody.btRigidBodyConstructionInfo playerInfo = new btRigidBody.btRigidBodyConstructionInfo(80f, motionState, playerShape, localInertia);
         playerBody = new btRigidBody(playerInfo);

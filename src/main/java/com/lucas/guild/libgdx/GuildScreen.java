@@ -35,15 +35,19 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.model.Adventurer;
+import com.lucas.guild.model.Guild;
 import com.lucas.guild.model.Inventaire;
 import com.lucas.guild.model.Item;
-import com.lucas.guild.model.Skill;
+import com.lucas.guild.model.Quest;
 
-public class ForgeScreen extends InputAdapter implements Screen {
+import java.util.List;
+
+public class GuildScreen extends InputAdapter implements Screen {
 
     private final MainGame game;
     private final String difficulty;
     private Adventurer player;
+    private Guild guild;
 
     private PerspectiveCamera camera;
     private ModelBatch modelBatch;
@@ -68,11 +72,14 @@ public class ForgeScreen extends InputAdapter implements Screen {
     private Table dialogTable;
     private Table inventoryTable;
     private Table pauseTable;
+    private Table questTable;
     private boolean inDialog = false;
     private boolean isInventoryOpen = false;
     private boolean isPaused = false;
+    private boolean isQuestBoardOpen = false;
+    private int selectedQuestIndex = 0;
 
-    public ForgeScreen(MainGame game, String difficulty) {
+    public GuildScreen(MainGame game, String difficulty) {
         this.game = game;
         this.difficulty = difficulty;
     }
@@ -80,25 +87,18 @@ public class ForgeScreen extends InputAdapter implements Screen {
     @Override
     public void show() {
         Bullet.init();
-        player = new Adventurer("Lucas", "Caserne");
+        player = new Adventurer("Lucas", "Guilde");
+        guild = new Guild();
         Inventaire inventaire = new Inventaire();
         inventaire.setPoidsMax(difficulty);
         player.setInventory(inventaire);
-        // Pour le test, on apprend la compétence "Attaque Puissante"
-        for (Skill skill : player.getSkillTree().getSkills()) {
-            if ("Attaque Puissante".equals(skill.getName())) {
-                skill.learn();
-                break;
-            }
-        }
-
 
         setup3DEnvironment();
         setupPhysics();
         setupUI();
         setupInput();
 
-        createForge();
+        createGuildHall();
 
         playerController = new PlayerController(camera, dynamicsWorld, player, new Vector3(0, 2, -8));
     }
@@ -157,11 +157,15 @@ public class ForgeScreen extends InputAdapter implements Screen {
         inventoryTable.setVisible(false);
         stage.addActor(inventoryTable);
 
-        // Pause Menu
         pauseTable = new Table(skin);
         pauseTable.setFillParent(true);
         pauseTable.setVisible(false);
         stage.addActor(pauseTable);
+
+        questTable = new Table(skin);
+        questTable.setFillParent(true);
+        questTable.setVisible(false);
+        stage.addActor(questTable);
 
         TextButton continueButton = new TextButton("Continuer", skin);
         TextButton menuButton = new TextButton("Retour au Menu", skin);
@@ -192,57 +196,53 @@ public class ForgeScreen extends InputAdapter implements Screen {
         Gdx.input.setCursorCatched(true);
     }
 
-    private void createForge() {
+    private void createGuildHall() {
         ModelBuilder modelBuilder = new ModelBuilder();
         
-        // Sol
-        Material floorMaterial = new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY));
-        Model floorModel = modelBuilder.createBox(20f, 1f, 20f, floorMaterial, Usage.Position | Usage.Normal);
+        Material floorMaterial = new Material(ColorAttribute.createDiffuse(Color.BROWN));
+        Model floorModel = modelBuilder.createBox(30f, 1f, 30f, floorMaterial, Usage.Position | Usage.Normal);
         disposables.add(floorModel);
         ModelInstance floorInstance = new ModelInstance(floorModel);
         instances.add(floorInstance);
-        addStaticBody(floorInstance, new btBoxShape(new Vector3(10f, 0.5f, 10f)), null);
+        addStaticBody(floorInstance, new btBoxShape(new Vector3(15f, 0.5f, 15f)), null);
 
-        // Murs
-        Material wallMaterial = new Material(ColorAttribute.createDiffuse(Color.GRAY));
-        Model wallModel = modelBuilder.createBox(1f, 10f, 20f, wallMaterial, Usage.Position | Usage.Normal);
+        Material wallMaterial = new Material(ColorAttribute.createDiffuse(Color.TAN));
+        Model wallModel = modelBuilder.createBox(1f, 10f, 30f, wallMaterial, Usage.Position | Usage.Normal);
         disposables.add(wallModel);
         
         ModelInstance wall1 = new ModelInstance(wallModel);
-        wall1.transform.setTranslation(10f, 5f, 0);
+        wall1.transform.setTranslation(15f, 5f, 0);
         instances.add(wall1);
-        addStaticBody(wall1, new btBoxShape(new Vector3(0.5f, 5f, 10f)), null);
+        addStaticBody(wall1, new btBoxShape(new Vector3(0.5f, 5f, 15f)), null);
 
         ModelInstance wall2 = new ModelInstance(wallModel);
-        wall2.transform.setTranslation(-10f, 5f, 0);
+        wall2.transform.setTranslation(-15f, 5f, 0);
         instances.add(wall2);
-        addStaticBody(wall2, new btBoxShape(new Vector3(0.5f, 5f, 10f)), null);
+        addStaticBody(wall2, new btBoxShape(new Vector3(0.5f, 5f, 15f)), null);
 
-        Model wallModel2 = modelBuilder.createBox(20f, 10f, 1f, wallMaterial, Usage.Position | Usage.Normal);
+        Model wallModel2 = modelBuilder.createBox(30f, 10f, 1f, wallMaterial, Usage.Position | Usage.Normal);
         disposables.add(wallModel2);
 
         ModelInstance wall3 = new ModelInstance(wallModel2);
-        wall3.transform.setTranslation(0, 5f, 10f);
+        wall3.transform.setTranslation(0, 5f, 15f);
         instances.add(wall3);
-        addStaticBody(wall3, new btBoxShape(new Vector3(10f, 5f, 0.5f)), null);
+        addStaticBody(wall3, new btBoxShape(new Vector3(15f, 5f, 0.5f)), null);
 
-        // Porte
         Material doorMaterial = new Material(ColorAttribute.createDiffuse(Color.YELLOW));
         Model doorModel = modelBuilder.createBox(4f, 8f, 0.5f, doorMaterial, Usage.Position | Usage.Normal);
         disposables.add(doorModel);
         ModelInstance doorInstance = new ModelInstance(doorModel);
-        doorInstance.transform.setTranslation(0, 4.5f, -9.75f);
+        doorInstance.transform.setTranslation(0, 4.5f, -14.75f);
         instances.add(doorInstance);
         addStaticBody(doorInstance, new btBoxShape(new Vector3(2f, 4f, 0.25f)), "Door");
 
-        // Forgeron (PNJ)
-        Material npcMaterial = new Material(ColorAttribute.createDiffuse(Color.GREEN));
-        Model npcModel = modelBuilder.createBox(1f, 4f, 1f, npcMaterial, Usage.Position | Usage.Normal);
+        Material npcMaterial = new Material(ColorAttribute.createDiffuse(Color.ROYAL));
+        Model npcModel = modelBuilder.createBox(1f, 2f, 1f, npcMaterial, Usage.Position | Usage.Normal);
         disposables.add(npcModel);
         ModelInstance npcInstance = new ModelInstance(npcModel);
-        npcInstance.transform.setTranslation(2, 2.5f, 0);
+        npcInstance.transform.setTranslation(0, 1.5f, 10f);
         instances.add(npcInstance);
-        addStaticBody(npcInstance, new btBoxShape(new Vector3(0.5f, 2f, 0.5f)), "Blacksmith");
+        addStaticBody(npcInstance, new btBoxShape(new Vector3(0.5f, 1f, 0.5f)), "GuildMaster");
     }
 
     private void addStaticBody(ModelInstance instance, btCollisionShape shape, Object userData) {
@@ -259,7 +259,7 @@ public class ForgeScreen extends InputAdapter implements Screen {
     public void render(float delta) {
         update(delta);
 
-        Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
+        Gdx.gl.glClearColor(0.2f, 0.15f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
         modelBatch.begin(camera);
@@ -270,14 +270,14 @@ public class ForgeScreen extends InputAdapter implements Screen {
         drawHud();
         spriteBatch.end();
 
-        if (inDialog || isInventoryOpen || isPaused) {
+        if (inDialog || isInventoryOpen || isPaused || isQuestBoardOpen) {
             stage.act(delta);
             stage.draw();
         }
     }
 
     private void update(float delta) {
-        if (!inDialog && !isInventoryOpen && !isPaused) {
+        if (!inDialog && !isInventoryOpen && !isPaused && !isQuestBoardOpen) {
             playerController.update();
             dynamicsWorld.stepSimulation(delta, 5, 1 / 60f);
             playerController.updateCamera();
@@ -285,13 +285,13 @@ public class ForgeScreen extends InputAdapter implements Screen {
     }
 
     private void drawHud() {
-        if (!inDialog && !isInventoryOpen && !isPaused) {
+        if (!inDialog && !isInventoryOpen && !isPaused && !isQuestBoardOpen) {
             font.draw(spriteBatch, "+", Gdx.graphics.getWidth() / 2f - 5, Gdx.graphics.getHeight() / 2f + 5);
 
             btCollisionObject objectInView = playerController.getBodyInView(5f);
             if (objectInView != null) {
-                if ("Blacksmith".equals(objectInView.userData)) {
-                    String text = "Parler au forgeron (E)";
+                if ("GuildMaster".equals(objectInView.userData)) {
+                    String text = "Parler au Maître de Guilde (E)";
                     layout.setText(font, text);
                     font.draw(spriteBatch, layout, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() / 2f - 30);
                 } else if ("Door".equals(objectInView.userData)) {
@@ -316,13 +316,66 @@ public class ForgeScreen extends InputAdapter implements Screen {
         }
     }
 
+    private void drawQuestBoard() {
+        questTable.clear();
+        questTable.add("--- Tableau des Quêtes ---").row();
+        List<Quest> quests = guild.getQuestsForRank(player.getRank());
+        if (quests.isEmpty()) {
+            questTable.add("Aucune quête disponible pour votre rang.").row();
+        } else {
+            for (int i = 0; i < quests.size(); i++) {
+                final Quest quest = quests.get(i);
+                String buttonText = (i == selectedQuestIndex) ? "> " + quest.getTitle() : quest.getTitle();
+                TextButton questButton = new TextButton(buttonText, skin);
+                questButton.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        Gdx.app.log("QUETE", quest.toString());
+                    }
+                });
+                questTable.add(questButton).pad(5).row();
+            }
+        }
+        TextButton backButton = new TextButton("Retour", skin);
+        backButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                toggleQuestBoard();
+                toggleDialog("GuildMaster");
+            }
+        });
+        questTable.add(backButton).pad(10).row();
+    }
+
     @Override
     public boolean keyDown(int keycode) {
+        if (isQuestBoardOpen) {
+            List<Quest> quests = guild.getQuestsForRank(player.getRank());
+            if (keycode == Input.Keys.UP) {
+                selectedQuestIndex = Math.max(0, selectedQuestIndex - 1);
+                drawQuestBoard();
+                return true;
+            }
+            if (keycode == Input.Keys.DOWN) {
+                selectedQuestIndex = Math.min(quests.size() - 1, selectedQuestIndex + 1);
+                drawQuestBoard();
+                return true;
+            }
+            if (keycode == Input.Keys.ENTER) {
+                if (!quests.isEmpty() && selectedQuestIndex < quests.size()) {
+                    Gdx.app.log("QUETE", quests.get(selectedQuestIndex).toString());
+                }
+                return true;
+            }
+        }
+
         if (keycode == Input.Keys.ESCAPE) {
             if (isInventoryOpen) {
                 toggleInventory();
             } else if (inDialog) {
                 toggleDialog(null);
+            } else if (isQuestBoardOpen) {
+                toggleQuestBoard();
             } else {
                 togglePause();
             }
@@ -337,11 +390,11 @@ public class ForgeScreen extends InputAdapter implements Screen {
         if (keycode == Input.Keys.E) {
             btCollisionObject objectInView = playerController.getBodyInView(5f);
             if (objectInView != null) {
-                if ("Blacksmith".equals(objectInView.userData)) {
-                    toggleDialog("Blacksmith");
+                if ("GuildMaster".equals(objectInView.userData)) {
+                    toggleDialog("GuildMaster");
                     return true;
                 } else if ("Door".equals(objectInView.userData)) {
-                    game.setScreen(new TownScreen(game, difficulty, new Vector3(0, 2, -14)));
+                    game.setScreen(new TownScreen(game, difficulty, new Vector3(-20, 2, 5)));
                     return true;
                 }
             }
@@ -355,8 +408,8 @@ public class ForgeScreen extends InputAdapter implements Screen {
         dialogTable.setVisible(inDialog);
         Gdx.input.setCursorCatched(!inDialog);
 
-        if (inDialog && "Blacksmith".equals(dialogType)) {
-            setupBlacksmithDialog();
+        if (inDialog && "GuildMaster".equals(dialogType)) {
+            setupGuildMasterDialog();
         } else {
             dialogTable.clear();
         }
@@ -377,31 +430,29 @@ public class ForgeScreen extends InputAdapter implements Screen {
         Gdx.input.setCursorCatched(!isPaused);
     }
 
-    private void setupBlacksmithDialog() {
-        dialogTable.clear();
-        dialogTable.add("Que puis-je faire pour vous ?").row();
+    private void toggleQuestBoard() {
+        isQuestBoardOpen = !isQuestBoardOpen;
+        questTable.setVisible(isQuestBoardOpen);
+        Gdx.input.setCursorCatched(!isQuestBoardOpen);
+        if (isQuestBoardOpen) {
+            selectedQuestIndex = 0;
+            drawQuestBoard();
+        }
+    }
 
-        TextButton buyButton = new TextButton("Forger un objet (10 Po)", skin);
-        dialogTable.add(buyButton).pad(10).row();
-        buyButton.addListener(new ClickListener() {
+    private void setupGuildMasterDialog() {
+        dialogTable.clear();
+        dialogTable.add("Bienvenue à la guilde, aventurier. Que puis-je faire pour vous ?").row();
+
+        TextButton questsButton = new TextButton("Voir les quêtes", skin);
+        dialogTable.add(questsButton).pad(10).row();
+        questsButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                Gdx.app.log("Forge", "Achat d'un objet...");
                 toggleDialog(null);
+                toggleQuestBoard();
             }
         });
-
-        if (player.hasLearnedSkill("Attaque Puissante")) { // On vérifie une compétence de base pour le test
-            TextButton craftButton = new TextButton("Utiliser l'enclume", skin);
-            dialogTable.add(craftButton).pad(10).row();
-            craftButton.addListener(new ClickListener() {
-                @Override
-                public void clicked(InputEvent event, float x, float y) {
-                    Gdx.app.log("Forge", "Utilisation de l'enclume...");
-                    toggleDialog(null);
-                }
-            });
-        }
 
         TextButton leaveButton = new TextButton("Partir", skin);
         dialogTable.add(leaveButton).pad(10).row();

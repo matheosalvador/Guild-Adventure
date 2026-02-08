@@ -49,6 +49,7 @@ public class TownScreen extends InputAdapter implements Screen {
     private Adventurer player; // Le joueur dans la ville
     private GameClock gameClock;
     private final String difficulty;
+    private final Vector3 spawnPoint;
 
     private PerspectiveCamera camera;
     private ModelBatch modelBatch;
@@ -78,8 +79,13 @@ public class TownScreen extends InputAdapter implements Screen {
     private boolean isInventoryOpen = false;
 
     public TownScreen(MainGame game, String difficulty) {
+        this(game, difficulty, new Vector3(0, 2, 0));
+    }
+
+    public TownScreen(MainGame game, String difficulty, Vector3 spawnPoint) {
         this.game = game;
         this.difficulty = difficulty;
+        this.spawnPoint = spawnPoint;
         this.town = new Town("Aethelgard");
         town.addBuilding(new Forge("La Forge du Nain Grincheux"));
         town.addBuilding(new Building("Guilde des Aventuriers", "Guilde"));
@@ -103,7 +109,7 @@ public class TownScreen extends InputAdapter implements Screen {
         createGround();
         createBuildings();
 
-        playerController = new PlayerController(camera, dynamicsWorld, player);
+        playerController = new PlayerController(camera, dynamicsWorld, player, spawnPoint);
     }
 
     private void setup3DEnvironment() {
@@ -316,8 +322,11 @@ public class TownScreen extends InputAdapter implements Screen {
             btCollisionObject objectInView = playerController.getBodyInView(10f);
             if (objectInView != null && objectInView.userData instanceof Building) {
                 Building building = (Building) objectInView.userData;
-                if (building instanceof Forge) {
+                if (building.getName().equals("La Forge du Nain Grincheux")) {
                     game.setScreen(new ForgeScreen(game, difficulty));
+                    return true;
+                } else if (building.getName().equals("Guilde des Aventuriers")) {
+                    game.setScreen(new GuildScreen(game, difficulty));
                     return true;
                 }
             }
