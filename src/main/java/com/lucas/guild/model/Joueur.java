@@ -20,6 +20,11 @@ public class Joueur extends Entite implements Combatant {
         this.inventaire = new Inventaire();
     }
 
+    @Override
+    public void heal(int maxHealth) {
+
+    }
+
     /**
      * Crée un nouveau joueur avec un nom, des statistiques de base et un inventaire.
      *

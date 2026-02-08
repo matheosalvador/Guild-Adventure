@@ -78,4 +78,7 @@ public class GameClock {
     public void setPlayer(Adventurer player) {
         this.player = player;
     }
+
+    public void sleepUntilNextMorning() {
+    }
 }

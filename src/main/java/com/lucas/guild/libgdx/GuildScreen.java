@@ -35,6 +35,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.model.Adventurer;
+import com.lucas.guild.model.GameClock;
 import com.lucas.guild.model.Guild;
 import com.lucas.guild.model.Inventaire;
 import com.lucas.guild.model.Item;
@@ -48,6 +49,7 @@ public class GuildScreen extends InputAdapter implements Screen {
     private final String difficulty;
     private Adventurer player;
     private Guild guild;
+    private GameClock gameClock;
 
     private PerspectiveCamera camera;
     private ModelBatch modelBatch;
@@ -66,6 +68,7 @@ public class GuildScreen extends InputAdapter implements Screen {
     private SpriteBatch spriteBatch;
     private BitmapFont font;
     private final GlyphLayout layout = new GlyphLayout();
+    private final StringBuilder hudText = new StringBuilder();
 
     private Stage stage;
     private Skin skin;
@@ -92,6 +95,7 @@ public class GuildScreen extends InputAdapter implements Screen {
         Inventaire inventaire = new Inventaire();
         inventaire.setPoidsMax(difficulty);
         player.setInventory(inventaire);
+        gameClock = new GameClock(player);
 
         setup3DEnvironment();
         setupPhysics();
@@ -281,12 +285,20 @@ public class GuildScreen extends InputAdapter implements Screen {
             playerController.update();
             dynamicsWorld.stepSimulation(delta, 5, 1 / 60f);
             playerController.updateCamera();
+            gameClock.update(delta);
         }
     }
 
     private void drawHud() {
         if (!inDialog && !isInventoryOpen && !isPaused && !isQuestBoardOpen) {
             font.draw(spriteBatch, "+", Gdx.graphics.getWidth() / 2f - 5, Gdx.graphics.getHeight() / 2f + 5);
+
+            hudText.setLength(0);
+            hudText.append("FPS: ").append(Gdx.graphics.getFramesPerSecond()).append("\n");
+            hudText.append("Player: ").append(player.getName()).append("\n");
+            hudText.append("HP: ").append(player.getHealth()).append(" / ").append(player.getMaxHealth()).append("\n");
+            hudText.append("Time: ").append(gameClock.getCurrentHour()).append("h, Day ").append(gameClock.getCurrentDay());
+            font.draw(spriteBatch, hudText, 10, Gdx.graphics.getHeight() - 10);
 
             btCollisionObject objectInView = playerController.getBodyInView(5f);
             if (objectInView != null) {

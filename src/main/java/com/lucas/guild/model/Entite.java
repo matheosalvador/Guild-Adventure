@@ -71,4 +71,6 @@ public abstract class Entite {
     public boolean estVivant() {
         return health > 0;
     }
+
+    public abstract void heal(int maxHealth);
 }

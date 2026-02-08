@@ -26,7 +26,7 @@ public class PlayerController implements Disposable {
 
     private final IntIntMap keys = new IntIntMap();
     private final float moveSpeed = 8f;
-    private final float jumpForce = 10f;
+    private final float jumpForce = 300f;
     private final float rotationSpeed = 0.25f;
 
     private final Vector3 moveDirection = new Vector3();

@@ -35,4 +35,9 @@ public class Monstre extends Entite implements Combatant {
         attaques.add(new AttaqueMelee("Morsure", degats));
         return attaques;
     }
+
+    @Override
+    public void heal(int maxHealth) {
+
+    }
 }

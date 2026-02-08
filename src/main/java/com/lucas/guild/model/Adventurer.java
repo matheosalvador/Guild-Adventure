@@ -140,4 +140,9 @@ public class Adventurer extends Entite {
     public gim_bitset getInventory() {
         return null;
     }
+
+    @Override
+    public void heal(int maxHealth) {
+
+    }
 }

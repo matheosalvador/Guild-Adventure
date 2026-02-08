@@ -20,6 +20,7 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.collision.*;
@@ -38,9 +39,8 @@ import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.GameClock;
 import com.lucas.guild.model.Inventaire;
 import com.lucas.guild.model.Item;
-import com.lucas.guild.model.Skill;
 
-public class ForgeScreen extends InputAdapter implements Screen {
+public class InnScreen extends InputAdapter implements Screen {
 
     private final MainGame game;
     private final String difficulty;
@@ -75,7 +75,7 @@ public class ForgeScreen extends InputAdapter implements Screen {
     private boolean isInventoryOpen = false;
     private boolean isPaused = false;
 
-    public ForgeScreen(MainGame game, String difficulty) {
+    public InnScreen(MainGame game, String difficulty) {
         this.game = game;
         this.difficulty = difficulty;
     }
@@ -83,26 +83,18 @@ public class ForgeScreen extends InputAdapter implements Screen {
     @Override
     public void show() {
         Bullet.init();
-        player = new Adventurer("Lucas", "Caserne");
+        player = new Adventurer("Lucas", "Auberge");
         Inventaire inventaire = new Inventaire();
         inventaire.setPoidsMax(difficulty);
         player.setInventory(inventaire);
         gameClock = new GameClock(player);
-        // Pour le test, on apprend la compétence "Attaque Puissante"
-        for (Skill skill : player.getSkillTree().getSkills()) {
-            if ("Attaque Puissante".equals(skill.getName())) {
-                skill.learn();
-                break;
-            }
-        }
-
 
         setup3DEnvironment();
         setupPhysics();
         setupUI();
         setupInput();
 
-        createForge();
+        createInn();
 
         playerController = new PlayerController(camera, dynamicsWorld, player, new Vector3(0, 2, -8));
     }
@@ -161,7 +153,6 @@ public class ForgeScreen extends InputAdapter implements Screen {
         inventoryTable.setVisible(false);
         stage.addActor(inventoryTable);
 
-        // Pause Menu
         pauseTable = new Table(skin);
         pauseTable.setFillParent(true);
         pauseTable.setVisible(false);
@@ -196,19 +187,18 @@ public class ForgeScreen extends InputAdapter implements Screen {
         Gdx.input.setCursorCatched(true);
     }
 
-    private void createForge() {
+    private void createInn() {
         ModelBuilder modelBuilder = new ModelBuilder();
-        
-        // Sol
-        Material floorMaterial = new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY));
+
+        // --- Rez-de-chaussée ---
+        Material floorMaterial = new Material(ColorAttribute.createDiffuse(Color.MAROON));
         Model floorModel = modelBuilder.createBox(20f, 1f, 20f, floorMaterial, Usage.Position | Usage.Normal);
         disposables.add(floorModel);
         ModelInstance floorInstance = new ModelInstance(floorModel);
         instances.add(floorInstance);
         addStaticBody(floorInstance, new btBoxShape(new Vector3(10f, 0.5f, 10f)), null);
 
-        // Murs
-        Material wallMaterial = new Material(ColorAttribute.createDiffuse(Color.GRAY));
+        Material wallMaterial = new Material(ColorAttribute.createDiffuse(Color.TAN));
         Model wallModel = modelBuilder.createBox(1f, 10f, 20f, wallMaterial, Usage.Position | Usage.Normal);
         disposables.add(wallModel);
         
@@ -230,7 +220,6 @@ public class ForgeScreen extends InputAdapter implements Screen {
         instances.add(wall3);
         addStaticBody(wall3, new btBoxShape(new Vector3(10f, 5f, 0.5f)), null);
 
-        // Porte
         Material doorMaterial = new Material(ColorAttribute.createDiffuse(Color.YELLOW));
         Model doorModel = modelBuilder.createBox(4f, 8f, 0.5f, doorMaterial, Usage.Position | Usage.Normal);
         disposables.add(doorModel);
@@ -239,14 +228,83 @@ public class ForgeScreen extends InputAdapter implements Screen {
         instances.add(doorInstance);
         addStaticBody(doorInstance, new btBoxShape(new Vector3(2f, 4f, 0.25f)), "Door");
 
-        // Forgeron (PNJ)
-        Material npcMaterial = new Material(ColorAttribute.createDiffuse(Color.GREEN));
-        Model npcModel = modelBuilder.createBox(1f, 4f, 1f, npcMaterial, Usage.Position | Usage.Normal);
+        Material npcMaterial = new Material(ColorAttribute.createDiffuse(Color.ORANGE));
+        Model npcModel = modelBuilder.createBox(1f, 2f, 1f, npcMaterial, Usage.Position | Usage.Normal);
         disposables.add(npcModel);
         ModelInstance npcInstance = new ModelInstance(npcModel);
-        npcInstance.transform.setTranslation(2, 2.5f, 0);
+        npcInstance.transform.setTranslation(0, 1.5f, 5f);
         instances.add(npcInstance);
-        addStaticBody(npcInstance, new btBoxShape(new Vector3(0.5f, 2f, 0.5f)), "Blacksmith");
+        addStaticBody(npcInstance, new btBoxShape(new Vector3(0.5f, 1f, 0.5f)), "Innkeeper");
+
+        // --- Étage ---
+        // Création du sol de l'étage en plusieurs parties pour laisser un trou pour l'escalier
+        Model floor2PartModel = modelBuilder.createBox(12f, 1f, 20f, floorMaterial, Usage.Position | Usage.Normal);
+        disposables.add(floor2PartModel);
+        ModelInstance floor2Part1 = new ModelInstance(floor2PartModel);
+        floor2Part1.transform.setTranslation(4, 10f, 0);
+        instances.add(floor2Part1);
+        addStaticBody(floor2Part1, new btBoxShape(new Vector3(6f, 0.5f, 10f)), null);
+
+        Model floor2Part2Model = modelBuilder.createBox(8f, 1f, 12f, floorMaterial, Usage.Position | Usage.Normal);
+        disposables.add(floor2Part2Model);
+        ModelInstance floor2Part2 = new ModelInstance(floor2Part2Model);
+        floor2Part2.transform.setTranslation(-6, 10f, 4);
+        instances.add(floor2Part2);
+        addStaticBody(floor2Part2, new btBoxShape(new Vector3(4f, 0.5f, 6f)), null);
+
+
+        Material bedMaterial = new Material(ColorAttribute.createDiffuse(Color.RED));
+        Model bedModel = modelBuilder.createBox(4f, 2f, 8f, bedMaterial, Usage.Position | Usage.Normal);
+        disposables.add(bedModel);
+        ModelInstance bedInstance = new ModelInstance(bedModel);
+        bedInstance.transform.setTranslation(5, 11.5f, 5);
+        instances.add(bedInstance);
+        addStaticBody(bedInstance, new btBoxShape(new Vector3(2f, 1f, 4f)), "Bed");
+
+        // Murs de l'étage
+        Model wallUpperModel = modelBuilder.createBox(1f, 10f, 20f, wallMaterial, Usage.Position | Usage.Normal);
+        disposables.add(wallUpperModel);
+        ModelInstance wallUpper1 = new ModelInstance(wallUpperModel);
+        wallUpper1.transform.setTranslation(10f, 15f, 0);
+        instances.add(wallUpper1);
+        addStaticBody(wallUpper1, new btBoxShape(new Vector3(0.5f, 5f, 10f)), null);
+
+        ModelInstance wallUpper2 = new ModelInstance(wallUpperModel);
+        wallUpper2.transform.setTranslation(-10f, 15f, 0);
+        instances.add(wallUpper2);
+        addStaticBody(wallUpper2, new btBoxShape(new Vector3(0.5f, 5f, 10f)), null);
+
+        Model wallUpperModel2 = modelBuilder.createBox(20f, 10f, 1f, wallMaterial, Usage.Position | Usage.Normal);
+        disposables.add(wallUpperModel2);
+        ModelInstance wallUpper3 = new ModelInstance(wallUpperModel2);
+        wallUpper3.transform.setTranslation(0, 15f, 10f);
+        instances.add(wallUpper3);
+        addStaticBody(wallUpper3, new btBoxShape(new Vector3(10f, 5f, 0.5f)), null);
+
+        ModelInstance wallUpper4 = new ModelInstance(wallUpperModel2);
+        wallUpper4.transform.setTranslation(0, 15f, -10f);
+        instances.add(wallUpper4);
+        addStaticBody(wallUpper4, new btBoxShape(new Vector3(10f, 5f, 0.5f)), null);
+
+        // Toit
+        Model roofModel = modelBuilder.createBox(20f, 1f, 20f, floorMaterial, Usage.Position | Usage.Normal);
+        disposables.add(roofModel);
+        ModelInstance roofInstance = new ModelInstance(roofModel);
+        roofInstance.transform.setTranslation(0, 20f, 0);
+        instances.add(roofInstance);
+        addStaticBody(roofInstance, new btBoxShape(new Vector3(10f, 0.5f, 10f)), null);
+
+
+        // Escalier
+        Material stepMaterial = new Material(ColorAttribute.createDiffuse(Color.BROWN));
+        Model stepModel = modelBuilder.createBox(4f, 1f, 2f, stepMaterial, Usage.Position | Usage.Normal);
+        disposables.add(stepModel);
+        for (int i = 0; i < 10; i++) {
+            ModelInstance step = new ModelInstance(stepModel);
+            step.transform.setTranslation(-8, 1f + i, 8f - i * 2f);
+            instances.add(step);
+            addStaticBody(step, new btBoxShape(new Vector3(2f, 0.5f, 1f)), null);
+        }
     }
 
     private void addStaticBody(ModelInstance instance, btCollisionShape shape, Object userData) {
@@ -263,7 +321,7 @@ public class ForgeScreen extends InputAdapter implements Screen {
     public void render(float delta) {
         update(delta);
 
-        Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
+        Gdx.gl.glClearColor(0.3f, 0.2f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
         modelBatch.begin(camera);
@@ -302,12 +360,16 @@ public class ForgeScreen extends InputAdapter implements Screen {
 
             btCollisionObject objectInView = playerController.getBodyInView(5f);
             if (objectInView != null) {
-                if ("Blacksmith".equals(objectInView.userData)) {
-                    String text = "Parler au forgeron (E)";
+                if ("Innkeeper".equals(objectInView.userData)) {
+                    String text = "Parler à l'aubergiste (E)";
                     layout.setText(font, text);
                     font.draw(spriteBatch, layout, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() / 2f - 30);
                 } else if ("Door".equals(objectInView.userData)) {
                     String text = "Sortir (E)";
+                    layout.setText(font, text);
+                    font.draw(spriteBatch, layout, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() / 2f - 30);
+                } else if ("Bed".equals(objectInView.userData)) {
+                    String text = "Dormir (10 Po) (E)";
                     layout.setText(font, text);
                     font.draw(spriteBatch, layout, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() / 2f - 30);
                 }
@@ -349,16 +411,22 @@ public class ForgeScreen extends InputAdapter implements Screen {
         if (keycode == Input.Keys.E) {
             btCollisionObject objectInView = playerController.getBodyInView(5f);
             if (objectInView != null) {
-                if ("Blacksmith".equals(objectInView.userData)) {
-                    toggleDialog("Blacksmith");
+                if ("Innkeeper".equals(objectInView.userData)) {
+                    toggleDialog("Innkeeper");
                     return true;
                 } else if ("Door".equals(objectInView.userData)) {
-                    game.setScreen(new TownScreen(game, difficulty, new Vector3(0, 2, -14)));
+                    game.setScreen(new TownScreen(game, difficulty, new Vector3(20, 2, 5))); // Position de sortie
+                    return true;
+                } else if ("Bed".equals(objectInView.userData)) {
+                    // Logique pour dormir
+                    Gdx.app.log("Auberge", "Le joueur va dormir");
+                    gameClock.sleepUntilNextMorning();
+                    player.heal(player.getMaxHealth()); // Soin complet
                     return true;
                 }
             }
         }
-        
+
         return playerController.keyDown(keycode);
     }
 
@@ -367,8 +435,8 @@ public class ForgeScreen extends InputAdapter implements Screen {
         dialogTable.setVisible(inDialog);
         Gdx.input.setCursorCatched(!inDialog);
 
-        if (inDialog && "Blacksmith".equals(dialogType)) {
-            setupBlacksmithDialog();
+        if (inDialog && "Innkeeper".equals(dialogType)) {
+            setupInnkeeperDialog();
         } else {
             dialogTable.clear();
         }
@@ -389,31 +457,30 @@ public class ForgeScreen extends InputAdapter implements Screen {
         Gdx.input.setCursorCatched(!isPaused);
     }
 
-    private void setupBlacksmithDialog() {
+    private void setupInnkeeperDialog() {
         dialogTable.clear();
-        dialogTable.add("Que puis-je faire pour vous ?").row();
+        dialogTable.add("Bienvenue à La Pinte qui Chante ! Que désirez-vous ?").row();
 
-        TextButton buyButton = new TextButton("Forger un objet (10 Po)", skin);
-        dialogTable.add(buyButton).pad(10).row();
-        buyButton.addListener(new ClickListener() {
+        TextButton foodButton = new TextButton("Manger un repas (5 Po)", skin);
+        dialogTable.add(foodButton).pad(10).row();
+        foodButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                Gdx.app.log("Forge", "Achat d'un objet...");
+                Gdx.app.log("Auberge", "Le joueur mange un repas.");
+                player.heal(20); // Soigne un peu
                 toggleDialog(null);
             }
         });
 
-        if (player.hasLearnedSkill("Attaque Puissante")) { // On vérifie une compétence de base pour le test
-            TextButton craftButton = new TextButton("Utiliser l'enclume", skin);
-            dialogTable.add(craftButton).pad(10).row();
-            craftButton.addListener(new ClickListener() {
-                @Override
-                public void clicked(InputEvent event, float x, float y) {
-                    Gdx.app.log("Forge", "Utilisation de l'enclume...");
-                    toggleDialog(null);
-                }
-            });
-        }
+        TextButton drinkButton = new TextButton("Boire une bière (2 Po)", skin);
+        dialogTable.add(drinkButton).pad(10).row();
+        drinkButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Gdx.app.log("Auberge", "Le joueur boit une bière.");
+                toggleDialog(null);
+            }
+        });
 
         TextButton leaveButton = new TextButton("Partir", skin);
         dialogTable.add(leaveButton).pad(10).row();

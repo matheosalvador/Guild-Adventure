@@ -328,6 +328,9 @@ public class TownScreen extends InputAdapter implements Screen {
                 } else if (building.getName().equals("Guilde des Aventuriers")) {
                     game.setScreen(new GuildScreen(game, difficulty));
                     return true;
+                } else if (building.getName().equals("La Pinte qui Chante")) {
+                    game.setScreen(new InnScreen(game, difficulty));
+                    return true;
                 }
             }
         }

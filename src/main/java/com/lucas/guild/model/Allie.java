@@ -25,4 +25,9 @@ public class Allie extends Entite implements Combatant {
             System.out.println("-> " + this.getName() + " a été vaincu !");
         }
     }
+
+    @Override
+    public void heal(int maxHealth) {
+
+    }
 }
