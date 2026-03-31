@@ -9,7 +9,6 @@ public class DesktopLauncher {
         config.setTitle("Guild Adventure 3D");
         config.setWindowedMode(800, 600);
         config.useVsync(true);
-        // On lance maintenant la classe MainGame
         new Lwjgl3Application(new MainGame(), config);
     }
 }

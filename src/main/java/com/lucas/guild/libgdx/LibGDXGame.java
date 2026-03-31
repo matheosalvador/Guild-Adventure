@@ -213,9 +213,7 @@ public class LibGDXGame extends InputAdapter implements Screen {
                 if (go.body != null && go.motionState != null && go.modelInstance != null) {
                     go.motionState.getWorldTransform(go.modelInstance.transform);
                 }
-                //if (go instanceof Enemy) {
-                //    ((Enemy) go).update(player, playerController.getPlayerBody(), delta);
-                //}
+
             }
             gameClock.update(delta);
         }
