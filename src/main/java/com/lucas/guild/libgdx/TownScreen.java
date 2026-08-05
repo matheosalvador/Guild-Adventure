@@ -114,7 +114,9 @@ public class TownScreen extends InputAdapter implements Screen {
             gameClock = new GameClock(player);
             gameClock.setCurrentHour(savedData.currentHour);
             gameClock.setCurrentDay(savedData.currentDay);
-            Gdx.app.log("SAVE", "Sauvegarde chargée : " + player.getName() + " (Niv " + player.getLevel() + ", HP " + player.getHealth() + "/" + player.getMaxHealth() + ")");
+            // Update spawn point with saved position
+            spawnPoint.set(savedData.playerX, savedData.playerY, savedData.playerZ);
+            Gdx.app.log("SAVE", "Sauvegarde chargée : " + player.getName() + " (Niv " + player.getLevel() + ", HP " + player.getHealth() + "/" + player.getMaxHealth() + ") Position: " + savedData.playerX + ", " + savedData.playerY + ", " + savedData.playerZ);
         } else {
             player = new Adventurer("Lucas", "Ville");
             Inventaire inventaire = new Inventaire();

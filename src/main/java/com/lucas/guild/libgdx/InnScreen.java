@@ -20,7 +20,6 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.collision.*;
@@ -35,8 +34,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.GameClock;
+import com.lucas.guild.model.GameData;
 import com.lucas.guild.model.Inventaire;
 import com.lucas.guild.model.Item;
 
@@ -46,6 +47,7 @@ public class InnScreen extends InputAdapter implements Screen {
     private final String difficulty;
     private Adventurer player;
     private GameClock gameClock;
+    private SaveManager saveManager;
 
     private PerspectiveCamera camera;
     private ModelBatch modelBatch;
@@ -83,11 +85,22 @@ public class InnScreen extends InputAdapter implements Screen {
     @Override
     public void show() {
         Bullet.init();
-        player = new Adventurer("Lucas", "Auberge");
-        Inventaire inventaire = new Inventaire();
-        inventaire.setPoidsMax(difficulty);
-        player.setInventory(inventaire);
-        gameClock = new GameClock(player);
+        
+        saveManager = new SaveManager();
+        GameData savedData = saveManager.loadGame();
+        if (savedData != null && savedData.playerData != null) {
+            player = savedData.playerData;
+            gameClock = new GameClock(player);
+            gameClock.setCurrentHour(savedData.currentHour);
+            gameClock.setCurrentDay(savedData.currentDay);
+            Gdx.app.log("SAVE", "Sauvegarde chargée : " + player.getName() + " (Niv " + player.getLevel() + ", HP " + player.getHealth() + "/" + player.getMaxHealth() + ")");
+        } else {
+            player = new Adventurer("Lucas", "Auberge");
+            Inventaire inventaire = new Inventaire();
+            inventaire.setPoidsMax(difficulty);
+            player.setInventory(inventaire);
+            gameClock = new GameClock(player);
+        }
 
         setup3DEnvironment();
         setupPhysics();
@@ -190,7 +203,6 @@ public class InnScreen extends InputAdapter implements Screen {
     private void createInn() {
         ModelBuilder modelBuilder = new ModelBuilder();
 
-        // --- Rez-de-chaussée ---
         Material floorMaterial = new Material(ColorAttribute.createDiffuse(Color.MAROON));
         Model floorModel = modelBuilder.createBox(20f, 1f, 20f, floorMaterial, Usage.Position | Usage.Normal);
         disposables.add(floorModel);
@@ -236,8 +248,6 @@ public class InnScreen extends InputAdapter implements Screen {
         instances.add(npcInstance);
         addStaticBody(npcInstance, new btBoxShape(new Vector3(0.5f, 1f, 0.5f)), "Innkeeper");
 
-        // --- Étage ---
-        // Création du sol de l'étage en plusieurs parties pour laisser un trou pour l'escalier
         Model floor2PartModel = modelBuilder.createBox(12f, 1f, 20f, floorMaterial, Usage.Position | Usage.Normal);
         disposables.add(floor2PartModel);
         ModelInstance floor2Part1 = new ModelInstance(floor2PartModel);
@@ -252,7 +262,6 @@ public class InnScreen extends InputAdapter implements Screen {
         instances.add(floor2Part2);
         addStaticBody(floor2Part2, new btBoxShape(new Vector3(4f, 0.5f, 6f)), null);
 
-
         Material bedMaterial = new Material(ColorAttribute.createDiffuse(Color.RED));
         Model bedModel = modelBuilder.createBox(4f, 2f, 8f, bedMaterial, Usage.Position | Usage.Normal);
         disposables.add(bedModel);
@@ -261,7 +270,6 @@ public class InnScreen extends InputAdapter implements Screen {
         instances.add(bedInstance);
         addStaticBody(bedInstance, new btBoxShape(new Vector3(2f, 1f, 4f)), "Bed");
 
-        // Murs de l'étage
         Model wallUpperModel = modelBuilder.createBox(1f, 10f, 20f, wallMaterial, Usage.Position | Usage.Normal);
         disposables.add(wallUpperModel);
         ModelInstance wallUpper1 = new ModelInstance(wallUpperModel);
@@ -286,7 +294,6 @@ public class InnScreen extends InputAdapter implements Screen {
         instances.add(wallUpper4);
         addStaticBody(wallUpper4, new btBoxShape(new Vector3(10f, 5f, 0.5f)), null);
 
-        // Toit
         Model roofModel = modelBuilder.createBox(20f, 1f, 20f, floorMaterial, Usage.Position | Usage.Normal);
         disposables.add(roofModel);
         ModelInstance roofInstance = new ModelInstance(roofModel);
@@ -294,8 +301,6 @@ public class InnScreen extends InputAdapter implements Screen {
         instances.add(roofInstance);
         addStaticBody(roofInstance, new btBoxShape(new Vector3(10f, 0.5f, 10f)), null);
 
-
-        // Escalier
         Material stepMaterial = new Material(ColorAttribute.createDiffuse(Color.BROWN));
         Model stepModel = modelBuilder.createBox(4f, 1f, 2f, stepMaterial, Usage.Position | Usage.Normal);
         disposables.add(stepModel);
@@ -415,13 +420,16 @@ public class InnScreen extends InputAdapter implements Screen {
                     toggleDialog("Innkeeper");
                     return true;
                 } else if ("Door".equals(objectInView.userData)) {
-                    game.setScreen(new TownScreen(game, difficulty, new Vector3(20, 2, 5))); // Position de sortie
+                    // Auto-save before leaving
+                    Vector3 playerPos = playerController.getPlayerBody().getCenterOfMassPosition();
+                    saveManager.saveGame(player, gameClock, difficulty, playerPos.x, playerPos.y, playerPos.z, "Town");
+                    Gdx.app.log("SAVE", "Sauvegarde automatique en quittant l'auberge");
+                    game.setScreen(new TownScreen(game, difficulty, new Vector3(20, 2, 5)));
                     return true;
                 } else if ("Bed".equals(objectInView.userData)) {
-                    // Logique pour dormir
                     Gdx.app.log("Auberge", "Le joueur va dormir");
                     gameClock.sleepUntilNextMorning();
-                    player.heal(player.getMaxHealth()); // Soin complet
+                    player.heal(player.getMaxHealth());
                     return true;
                 }
             }
@@ -467,7 +475,7 @@ public class InnScreen extends InputAdapter implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 Gdx.app.log("Auberge", "Le joueur mange un repas.");
-                player.heal(20); // Soigne un peu
+                player.heal(20);
                 toggleDialog(null);
             }
         });

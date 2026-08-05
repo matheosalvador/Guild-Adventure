@@ -34,8 +34,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.GameClock;
+import com.lucas.guild.model.GameData;
 import com.lucas.guild.model.Inventaire;
 import com.lucas.guild.model.Item;
 import com.lucas.guild.model.Skill;
@@ -46,6 +48,7 @@ public class ForgeScreen extends InputAdapter implements Screen {
     private final String difficulty;
     private Adventurer player;
     private GameClock gameClock;
+    private SaveManager saveManager;
 
     private PerspectiveCamera camera;
     private ModelBatch modelBatch;
@@ -83,19 +86,30 @@ public class ForgeScreen extends InputAdapter implements Screen {
     @Override
     public void show() {
         Bullet.init();
-        player = new Adventurer("Lucas", "Caserne");
-        Inventaire inventaire = new Inventaire();
-        inventaire.setPoidsMax(difficulty);
-        player.setInventory(inventaire);
-        gameClock = new GameClock(player);
-        // Pour le test, on apprend la compétence "Attaque Puissante"
-        for (Skill skill : player.getSkillTree().getSkills()) {
-            if ("Attaque Puissante".equals(skill.getName())) {
-                skill.learn();
-                break;
+        
+        // Attempt to load a saved game; fall back to new game if none exists
+        saveManager = new SaveManager();
+        GameData savedData = saveManager.loadGame();
+        if (savedData != null && savedData.playerData != null) {
+            player = savedData.playerData;
+            gameClock = new GameClock(player);
+            gameClock.setCurrentHour(savedData.currentHour);
+            gameClock.setCurrentDay(savedData.currentDay);
+            Gdx.app.log("SAVE", "Sauvegarde chargée : " + player.getName() + " (Niv " + player.getLevel() + ", HP " + player.getHealth() + "/" + player.getMaxHealth() + ")");
+        } else {
+            player = new Adventurer("Lucas", "Caserne");
+            Inventaire inventaire = new Inventaire();
+            inventaire.setPoidsMax(difficulty);
+            player.setInventory(inventaire);
+            gameClock = new GameClock(player);
+            // Pour le test, on apprend la compétence "Attaque Puissante"
+            for (Skill skill : player.getSkillTree().getSkills()) {
+                if ("Attaque Puissante".equals(skill.getName())) {
+                    skill.learn();
+                    break;
+                }
             }
         }
-
 
         setup3DEnvironment();
         setupPhysics();
@@ -104,7 +118,14 @@ public class ForgeScreen extends InputAdapter implements Screen {
 
         createForge();
 
-        playerController = new PlayerController(camera, dynamicsWorld, player, new Vector3(0, 2, -8));
+        // Use saved position or default spawn point
+        Vector3 spawnPos;
+        if (savedData != null && savedData.playerData != null) {
+            spawnPos = new Vector3(savedData.playerX, savedData.playerY, savedData.playerZ);
+        } else {
+            spawnPos = new Vector3(0, 2, -8);
+        }
+        playerController = new PlayerController(camera, dynamicsWorld, player, spawnPos);
     }
 
     private void setup3DEnvironment() {
@@ -353,6 +374,10 @@ public class ForgeScreen extends InputAdapter implements Screen {
                     toggleDialog("Blacksmith");
                     return true;
                 } else if ("Door".equals(objectInView.userData)) {
+                    // Auto-save before leaving
+                    Vector3 playerPos = playerController.getPlayerBody().getCenterOfMassPosition();
+                    saveManager.saveGame(player, gameClock, difficulty, playerPos.x, playerPos.y, playerPos.z, "Town");
+                    Gdx.app.log("SAVE", "Sauvegarde automatique en quittant la forge");
                     game.setScreen(new TownScreen(game, difficulty, new Vector3(0, 2, -14)));
                     return true;
                 }
@@ -403,7 +428,7 @@ public class ForgeScreen extends InputAdapter implements Screen {
             }
         });
 
-        if (player.hasLearnedSkill("Attaque Puissante")) { // On vérifie une compétence de base pour le test
+        if (player.hasLearnedSkill("Attaque Puissante")) {
             TextButton craftButton = new TextButton("Utiliser l'enclume", skin);
             dialogTable.add(craftButton).pad(10).row();
             craftButton.addListener(new ClickListener() {
