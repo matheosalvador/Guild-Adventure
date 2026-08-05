@@ -3,6 +3,11 @@ package com.lucas.guild.model;
 public class ObjetDeQuete implements Item {
     private String name;
 
+    // No-arg constructor for Gson deserialization
+    public ObjetDeQuete() {
+        this.name = "";
+    }
+
     public ObjetDeQuete(String name) {
         this.name = name;
     }

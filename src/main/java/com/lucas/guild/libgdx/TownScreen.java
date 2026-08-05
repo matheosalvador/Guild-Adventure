@@ -22,8 +22,15 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
-import com.badlogic.gdx.physics.bullet.collision.*;
-import com.badlogic.gdx.physics.bullet.dynamics.*;
+import com.badlogic.gdx.physics.bullet.collision.btBoxShape;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionDispatcher;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionObject;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionShape;
+import com.badlogic.gdx.physics.bullet.collision.btDbvtBroadphase;
+import com.badlogic.gdx.physics.bullet.collision.btDefaultCollisionConfiguration;
+import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
+import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
+import com.badlogic.gdx.physics.bullet.dynamics.btSequentialImpulseConstraintSolver;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -35,9 +42,11 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.game.Forge;
+import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.Building;
 import com.lucas.guild.model.GameClock;
+import com.lucas.guild.model.GameData;
 import com.lucas.guild.model.Inventaire;
 import com.lucas.guild.model.Item;
 import com.lucas.guild.model.Town;
@@ -48,6 +57,7 @@ public class TownScreen extends InputAdapter implements Screen {
     private final Town town;
     private Adventurer player; // Le joueur dans la ville
     private GameClock gameClock;
+    private SaveManager saveManager;
     private final String difficulty;
     private final Vector3 spawnPoint;
 
@@ -95,11 +105,23 @@ public class TownScreen extends InputAdapter implements Screen {
     @Override
     public void show() {
         Bullet.init();
-        player = new Adventurer("Lucas", "Ville");
-        Inventaire inventaire = new Inventaire();
-        inventaire.setPoidsMax(difficulty);
-        player.setInventory(inventaire);
-        gameClock = new GameClock(player);
+
+        // Attempt to load a saved game; fall back to new game if none exists
+        saveManager = new SaveManager();
+        GameData savedData = saveManager.loadGame();
+        if (savedData != null && savedData.playerData != null) {
+            player = savedData.playerData;
+            gameClock = new GameClock(player);
+            gameClock.setCurrentHour(savedData.currentHour);
+            gameClock.setCurrentDay(savedData.currentDay);
+            Gdx.app.log("SAVE", "Sauvegarde chargée : " + player.getName() + " (Niv " + player.getLevel() + ", HP " + player.getHealth() + "/" + player.getMaxHealth() + ")");
+        } else {
+            player = new Adventurer("Lucas", "Ville");
+            Inventaire inventaire = new Inventaire();
+            inventaire.setPoidsMax(difficulty);
+            player.setInventory(inventaire);
+            gameClock = new GameClock(player);
+        }
 
         setup3DEnvironment();
         setupPhysics();
@@ -316,6 +338,22 @@ public class TownScreen extends InputAdapter implements Screen {
             toggleInventory();
             return true;
         }
+
+        // Quick Save (F5) — always available, even when paused
+        if (keycode == Input.Keys.F5) {
+            Vector3 playerPos = playerController.getPlayerBody().getCenterOfMassPosition();
+            saveManager.saveGame(player, gameClock, difficulty, playerPos.x, playerPos.y, playerPos.z, "Town");
+            Gdx.app.log("SAVE", "Partie sauvegardée ! Niveau: " + player.getLevel() + ", XP: " + player.getExperience() + ", Items: " + player.getInventoryItems().size());
+            return true;
+        }
+
+        // Quick Load (F9) — restarts the screen to reload from save
+        if (keycode == Input.Keys.F9) {
+            Gdx.app.log("SAVE", "Chargement de la sauvegarde...");
+            game.setScreen(new TownScreen(game, difficulty));
+            return true;
+        }
+
         if (isPaused || isInventoryOpen) return false;
 
         if (keycode == Input.Keys.E) {

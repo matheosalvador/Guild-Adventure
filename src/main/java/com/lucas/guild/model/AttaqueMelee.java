@@ -5,6 +5,11 @@ package com.lucas.guild.model;
  */
 public class AttaqueMelee extends Attaque {
 
+    // No-arg constructor for Gson deserialization
+    public AttaqueMelee() {
+        super("", 0);
+    }
+
     /**
      * Constructeur d'une attaque de mêlée.
      * @param nom Le nom de l'attaque.

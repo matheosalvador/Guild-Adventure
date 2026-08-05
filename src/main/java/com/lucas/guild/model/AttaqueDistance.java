@@ -7,6 +7,12 @@ public class AttaqueDistance extends Attaque {
 
     private int portee;
 
+    // No-arg constructor for Gson deserialization
+    public AttaqueDistance() {
+        super("", 0);
+        this.portee = 0;
+    }
+
     /**
      * Constructeur d'une attaque à distance.
      * @param nom Le nom de l'attaque.

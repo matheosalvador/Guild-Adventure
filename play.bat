@@ -7,7 +7,7 @@ REM 1. Essayer la commande java standard
 java -version >nul 2>&1
 if %errorlevel% equ 0 (
     echo Java trouve dans le PATH.
-    java -jar target\Java-1.0-SNAPSHOT.jar
+    java -jar target\guild-adventure-1.0.0.jar
     goto end
 )
 
@@ -15,7 +15,7 @@ REM 2. Chercher dans Android Studio
 for /d %%i in ("C:\Program Files\Android\Android Studio\jbr*") do set JAVA_HOME=%%i
 if defined JAVA_HOME (
     echo Java trouve dans Android Studio.
-    "%JAVA_HOME%\bin\java.exe" -jar target\Java-1.0-SNAPSHOT.jar
+    "%JAVA_HOME%\bin\java.exe" -jar target\guild-adventure-1.0.0.jar
     goto end
 )
 
@@ -23,7 +23,7 @@ REM 3. Chercher dans IntelliJ
 for /d %%i in ("C:\Program Files\JetBrains\IntelliJ IDEA*\jbr*") do set JAVA_HOME=%%i
 if defined JAVA_HOME (
     echo Java trouve dans IntelliJ.
-    "%JAVA_HOME%\bin\java.exe" -jar target\Java-1.0-SNAPSHOT.jar
+    "%JAVA_HOME%\bin\java.exe" -jar target\guild-adventure-1.0.0.jar
     goto end
 )
 

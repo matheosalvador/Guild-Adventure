@@ -4,6 +4,9 @@ public class Armure implements Item {
     private String name;
     private int reductionDegats;
 
+    // No-arg constructor for Gson deserialization
+    public Armure() {}
+
     public Armure(String name, int reductionDegats) {
         this.name = name;
         this.reductionDegats = reductionDegats;

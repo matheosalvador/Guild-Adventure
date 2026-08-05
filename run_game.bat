@@ -8,7 +8,7 @@ if not defined JAVA_HOME (
 )
 
 if defined JAVA_HOME (
-    "%JAVA_HOME%\bin\java.exe" -jar target\Java-1.0-SNAPSHOT.jar
+    "%JAVA_HOME%\bin\java.exe" -jar target\guild-adventure-1.0.0.jar
 ) else (
     echo Java n'a pas ete trouve automatiquement.
     echo Veuillez installer Java ou l'ajouter au PATH.

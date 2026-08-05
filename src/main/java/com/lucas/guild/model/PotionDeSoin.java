@@ -4,6 +4,12 @@ public class PotionDeSoin implements Item {
     private String name;
     private int healingAmount;
 
+    // No-arg constructor for Gson deserialization
+    public PotionDeSoin() {
+        this.name = "";
+        this.healingAmount = 0;
+    }
+
     public PotionDeSoin(String name, int healingAmount) {
         this.name = name;
         this.healingAmount = healingAmount;

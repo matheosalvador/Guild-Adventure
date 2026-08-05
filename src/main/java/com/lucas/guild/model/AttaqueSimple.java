@@ -2,6 +2,11 @@ package com.lucas.guild.model;
 
 public class AttaqueSimple extends Attaque {
 
+    // No-arg constructor for Gson deserialization
+    public AttaqueSimple() {
+        super("", 0);
+    }
+
     public AttaqueSimple(String nom, int degats) {
         super(nom, degats);
     }

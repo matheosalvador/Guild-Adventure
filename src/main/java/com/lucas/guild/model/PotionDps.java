@@ -1,9 +1,12 @@
 package com.lucas.guild.model;
 
 public class PotionDps implements Item {
-    private final String name = "Potion de Dégâts";
-    private final String description = "Inflige 20 points de dégâts au monstre.";
-    private final int degats = 20;
+    private String name = "Potion de Dégâts";
+    private String description = "Inflige 20 points de dégâts au monstre.";
+    private int degats = 20;
+
+    // No-arg constructor for Gson deserialization
+    public PotionDps() {}
 
     @Override
     public String getName() {

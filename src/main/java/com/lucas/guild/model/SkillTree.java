@@ -12,6 +12,11 @@ public class SkillTree {
         initializeTree();
     }
 
+    // No-arg constructor for Gson deserialization
+    public SkillTree() {
+        this.skills = new ArrayList<>();
+    }
+
     private void initializeTree() {
         if ("Caserne".equals(className)) {
             // --- TIER 1 (Rang F) ---

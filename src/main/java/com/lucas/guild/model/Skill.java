@@ -8,6 +8,9 @@ public class Skill {
     private Attaque attackToLearn;
     private boolean learned;
 
+    // No-arg constructor for Gson deserialization
+    public Skill() {}
+
     public Skill(String name, String description, int requiredRank, String prerequisiteSkillName, Attaque attackToLearn) {
         this.name = name;
         this.description = description;

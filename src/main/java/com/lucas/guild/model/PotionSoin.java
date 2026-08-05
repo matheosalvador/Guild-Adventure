@@ -1,9 +1,12 @@
 package com.lucas.guild.model;
 
 public class PotionSoin implements Item {
-    private final String name = "Potion de Soin";
-    private final String description = "Restaure 25 points de vie.";
-    private final int soin = 25;
+    private String name = "Potion de Soin";
+    private String description = "Restaure 25 points de vie.";
+    private int soin = 25;
+
+    // No-arg constructor for Gson deserialization
+    public PotionSoin() {}
 
     @Override
     public String getName() {

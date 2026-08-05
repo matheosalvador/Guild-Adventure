@@ -4,6 +4,9 @@ public class Arme implements Item {
     private String name;
     private int bonusDegats;
 
+    // No-arg constructor for Gson deserialization
+    public Arme() {}
+
     public Arme(String name, int bonusDegats) {
         this.name = name;
         this.bonusDegats = bonusDegats;

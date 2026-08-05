@@ -1,7 +1,5 @@
 package com.lucas.guild.model;
 
-import com.badlogic.gdx.physics.bullet.collision.gim_bitset;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +15,11 @@ public class Adventurer extends Entite {
     private Arme equippedWeapon;
     private Armure equippedArmor;
 
+
+    // No-arg constructor for Gson deserialization
+    public Adventurer() {
+        super();
+    }
 
     public Adventurer(String name, String location) {
         super(name, 100); // Initial HP
@@ -137,12 +140,8 @@ public class Adventurer extends Entite {
         // Pour l'aventurier, la vie ne se régénère pas automatiquement pour l'instant
     }
 
-    public gim_bitset getInventory() {
-        return null;
-    }
-
     @Override
-    public void heal(int maxHealth) {
-
+    public void heal(int amount) {
+        ajouterVie(amount);
     }
 }
