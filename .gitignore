@@ -15,3 +15,6 @@ dependency-reduced-pom.xml
 
 # Scripts locaux
 *.sh
+
+# Classes compilees (compile_check.bat)
+out/
