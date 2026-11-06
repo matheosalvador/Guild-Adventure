@@ -1,0 +1,130 @@
+package com.lucas.guild.game;
+
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.lucas.guild.model.Adventurer;
+import com.lucas.guild.model.Arme;
+import com.lucas.guild.model.Armure;
+import com.lucas.guild.model.Attaque;
+import com.lucas.guild.model.AttaqueDistance;
+import com.lucas.guild.model.AttaqueMelee;
+import com.lucas.guild.model.AttaqueSimple;
+import com.lucas.guild.model.GameClock;
+import com.lucas.guild.model.GameData;
+import com.lucas.guild.model.Item;
+import com.lucas.guild.model.ObjetDeQuete;
+import com.lucas.guild.model.PotionDeSoin;
+import com.lucas.guild.model.PotionDps;
+import com.lucas.guild.model.PotionMix;
+import com.lucas.guild.model.PotionSoin;
+
+/**
+ * Gestionnaire de sauvegarde/chargement utilisant Gson.
+ * Supporte la sérialisation polymorphique des interfaces Item et Attaque.
+ * Gère les 3 modes de difficulté : facile, normale, realiste.
+ */
+public class SaveManager {
+
+    private static final String SAVE_FILE = "save.json";
+    private final Gson gson;
+
+    public SaveManager() {
+        // Adaptateur pour la sérialisation polymorphique des Items
+        RuntimeTypeAdapterFactory<Item> itemAdapter = RuntimeTypeAdapterFactory.of(Item.class, "itemType")
+                .registerSubtype(Arme.class)
+                .registerSubtype(Armure.class)
+                .registerSubtype(PotionSoin.class)
+                .registerSubtype(PotionDps.class)
+                .registerSubtype(PotionMix.class)
+                .registerSubtype(PotionDeSoin.class)
+                .registerSubtype(ObjetDeQuete.class);
+
+        // Adaptateur pour la sérialisation polymorphique des Attaques
+        RuntimeTypeAdapterFactory<Attaque> attaqueAdapter = RuntimeTypeAdapterFactory.of(Attaque.class, "attaqueType")
+                .registerSubtype(AttaqueSimple.class)
+                .registerSubtype(AttaqueMelee.class)
+                .registerSubtype(AttaqueDistance.class);
+
+        // Config GSON avec les adaptateurs
+        this.gson = new GsonBuilder()
+                .setPrettyPrinting()
+                .registerTypeAdapterFactory(itemAdapter)
+                .registerTypeAdapterFactory(attaqueAdapter)
+                .create();
+    }
+
+    /**
+     * Sauvegarde la partie dans un fichier JSON (version simple).
+     * @param player Le joueur à sauvegarder.
+     * @param clock L'horloge du jeu à sauvegarder.
+     */
+    public void saveGame(Adventurer player, GameClock clock) {
+        GameData data = new GameData(player, clock);
+        try (FileWriter writer = new FileWriter(SAVE_FILE)) {
+            gson.toJson(data, writer);
+            System.out.println("Partie sauvegardée !");
+        } catch (IOException e) {
+            System.out.println("Erreur lors de la sauvegarde : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Sauvegarde la partie dans un fichier JSON (version complète avec position).
+     * @param player Le joueur à sauvegarder.
+     * @param clock L'horloge du jeu à sauvegarder.
+     * @param difficulty La difficulté de la partie (facile, normale, realiste).
+     * @param playerX Position X du joueur.
+     * @param playerY Position Y du joueur.
+     * @param playerZ Position Z du joueur.
+     * @param currentScreen L'écran actuel (Town, Forge, Guild, Inn).
+     */
+    public void saveGame(Adventurer player, GameClock clock, String difficulty,
+                         float playerX, float playerY, float playerZ, String currentScreen) {
+        GameData data = new GameData(player, clock, difficulty, playerX, playerY, playerZ, currentScreen);
+        try (FileWriter writer = new FileWriter(SAVE_FILE)) {
+            gson.toJson(data, writer);
+            System.out.println("Partie sauvegardée !");
+        } catch (IOException e) {
+            System.out.println("Erreur lors de la sauvegarde : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Charge la partie depuis un fichier JSON.
+     * @return Les données de jeu chargées, ou null si aucune sauvegarde n'existe.
+     */
+    public GameData loadGame() {
+        try (FileReader reader = new FileReader(SAVE_FILE)) {
+            GameData data = gson.fromJson(reader, GameData.class);
+            if (data != null && data.playerData != null) {
+                System.out.println("Sauvegarde chargée !");
+            }
+            return data;
+        } catch (IOException e) {
+            System.out.println("Aucune sauvegarde trouvée ou erreur de lecture.");
+            return null;
+        }
+    }
+
+    /**
+     * Vérifie si une sauvegarde existe.
+     * @return true si une sauvegarde existe, false sinon.
+     */
+    public boolean hasSave() {
+        java.io.File file = new java.io.File(SAVE_FILE);
+        return file.exists() && file.length() > 0;
+    }
+
+    /**
+     * Supprime la sauvegarde existante.
+     * @return true si la suppression a réussi, false sinon.
+     */
+    public boolean deleteSave() {
+        java.io.File file = new java.io.File(SAVE_FILE);
+        return file.delete();
+    }
+}

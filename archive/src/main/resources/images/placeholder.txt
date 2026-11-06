@@ -1,0 +1,1 @@
+Place monster images here, e.g., rat_geant.png, chef_gobelin.png
