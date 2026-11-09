@@ -2,333 +2,99 @@ package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.VertexAttributes.Usage;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g3d.Environment;
-import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.ModelBatch;
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.physics.bullet.Bullet;
-import com.badlogic.gdx.physics.bullet.collision.btBoxShape;
-import com.badlogic.gdx.physics.bullet.collision.btCollisionDispatcher;
-import com.badlogic.gdx.physics.bullet.collision.btCollisionObject;
-import com.badlogic.gdx.physics.bullet.collision.btCollisionShape;
-import com.badlogic.gdx.physics.bullet.collision.btDbvtBroadphase;
-import com.badlogic.gdx.physics.bullet.collision.btDefaultCollisionConfiguration;
-import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
-import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
-import com.badlogic.gdx.physics.bullet.dynamics.btSequentialImpulseConstraintSolver;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Disposable;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.game.Forge;
 import com.lucas.guild.game.GameSession;
-import com.lucas.guild.game.SaveManager;
-import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.Building;
-import com.lucas.guild.model.GameClock;
-import com.lucas.guild.model.Inventaire;
-import com.lucas.guild.model.Item;
-import com.lucas.guild.model.Town;
 
-public class TownScreen extends InputAdapter implements Screen {
+/** La ville : le sol et les trois bâtiments qu'on peut entrer avec E. */
+public class TownScreen extends BaseWorldScreen {
 
-    private final MainGame game;
-    private final Town town;
-    private Adventurer player; // Le joueur dans la ville
-    private GameClock gameClock;
-    private SaveManager saveManager;
-    private final String difficulty;
+    private static final String FORGE = "La Forge du Nain Grincheux";
+    private static final String GUILD = "Guilde des Aventuriers";
+    private static final String INN = "La Pinte qui Chante";
+
     private final Vector3 spawnPoint;
-
-    private PerspectiveCamera camera;
-    private ModelBatch modelBatch;
-    private Environment environment;
-    private PlayerController playerController;
-
-    private btDefaultCollisionConfiguration collisionConfig;
-    private btCollisionDispatcher dispatcher;
-    private btDbvtBroadphase broadphase;
-    private btSequentialImpulseConstraintSolver solver;
-    private btDiscreteDynamicsWorld dynamicsWorld;
-
-    private final Array<Disposable> disposables = new Array<>();
-    private final Array<ModelInstance> instances = new Array<>();
-    private final Array<GameObject> gameObjects = new Array<>();
-
-    private SpriteBatch spriteBatch;
-    private BitmapFont font;
-    private final GlyphLayout layout = new GlyphLayout();
-    private final StringBuilder hudText = new StringBuilder();
-
-    private Stage stage;
-    private Skin skin;
-    private Table pauseTable;
-    private Table inventoryTable;
-    private boolean isPaused = false;
-    private boolean isInventoryOpen = false;
 
     public TownScreen(MainGame game, String difficulty) {
         this(game, difficulty, new Vector3(0, 2, 0));
     }
 
     public TownScreen(MainGame game, String difficulty, Vector3 spawnPoint) {
-        this.game = game;
-        this.difficulty = difficulty;
+        super(game, difficulty);
         this.spawnPoint = spawnPoint;
-        this.town = new Town("Aethelgard");
-        town.addBuilding(new Forge("La Forge du Nain Grincheux"));
-        town.addBuilding(new Building("Guilde des Aventuriers", "Guilde"));
-        town.addBuilding(new Building("La Pinte qui Chante", "Taverne"));
     }
 
     @Override
-    public void show() {
-        Bullet.init();
-
-        // L'état de la partie vient de la session en mémoire (jamais relu depuis le disque ici)
-        saveManager = new SaveManager();
-        GameSession session = game.getSession();
-        player = session.getPlayer();
-        gameClock = session.getClock();
-
-        setup3DEnvironment();
-        setupPhysics();
-        setupUI();
-        setupInput();
-
-        createGround();
-        createBuildings();
-
-        playerController = new PlayerController(camera, dynamicsWorld, player, spawnPoint);
-    }
-
-    private void setup3DEnvironment() {
-        camera = new PerspectiveCamera(70, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        camera.position.set(0f, 5f, 10f);
-        camera.lookAt(0, 0, 0);
-        camera.near = 0.1f;
-        camera.far = 300f;
-        camera.update();
-
-        modelBatch = new ModelBatch();
-        disposables.add(modelBatch);
-
-        environment = new Environment();
-        environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
-        environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
-
-        spriteBatch = new SpriteBatch();
-        font = new BitmapFont();
-        disposables.addAll(spriteBatch, font);
-    }
-
-    private void setupPhysics() {
-        collisionConfig = new btDefaultCollisionConfiguration();
-        dispatcher = new btCollisionDispatcher(collisionConfig);
-        broadphase = new btDbvtBroadphase();
-        solver = new btSequentialImpulseConstraintSolver();
-        dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
-        dynamicsWorld.setGravity(new Vector3(0, -10f, 0));
-        disposables.addAll(dynamicsWorld, solver, broadphase, dispatcher, collisionConfig);
-    }
-
-    private void setupUI() {
-        stage = new Stage(new ScreenViewport());
-        disposables.add(stage);
-
-        skin = new Skin();
-        skin.add("default-font", font);
-        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.font = skin.getFont("default-font");
-        skin.add("default", textButtonStyle);
-        Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
-        skin.add("default", labelStyle);
-
-        // Pause Menu
-        pauseTable = new Table();
-        pauseTable.setFillParent(true);
-        pauseTable.setVisible(false);
-        stage.addActor(pauseTable);
-
-        TextButton continueButton = new TextButton("Continuer", skin);
-        TextButton menuButton = new TextButton("Retour au Menu", skin);
-
-        pauseTable.add(continueButton).pad(10).row();
-        pauseTable.add(menuButton).pad(10).row();
-
-        continueButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                togglePause();
-            }
-        });
-
-        menuButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new MainMenuScreen(game));
-            }
-        });
-
-        // Inventory Menu
-        inventoryTable = new Table();
-        inventoryTable.setFillParent(true);
-        inventoryTable.setVisible(false);
-        stage.addActor(inventoryTable);
-    }
-
-    private void setupInput() {
-        InputMultiplexer multiplexer = new InputMultiplexer();
-        multiplexer.addProcessor(stage);
-        multiplexer.addProcessor(this);
-        Gdx.input.setInputProcessor(multiplexer);
-        Gdx.input.setCursorCatched(true);
-    }
-
-    private void createGround() {
-        ModelBuilder modelBuilder = new ModelBuilder();
-        Material groundMaterial = new Material(ColorAttribute.createDiffuse(Color.GRAY));
-        Model groundModel = modelBuilder.createBox(200f, 1f, 200f, groundMaterial, Usage.Position | Usage.Normal);
-        disposables.add(groundModel);
-        ModelInstance groundInstance = new ModelInstance(groundModel);
-        instances.add(groundInstance);
-
-        btCollisionShape groundShape = new btBoxShape(new Vector3(100f, 0.5f, 100f));
-        disposables.add(groundShape);
-        btRigidBody.btRigidBodyConstructionInfo groundInfo = new btRigidBody.btRigidBodyConstructionInfo(0, null, groundShape, Vector3.Zero);
-        disposables.add(groundInfo);
-        btRigidBody groundBody = new btRigidBody(groundInfo);
-        dynamicsWorld.addRigidBody(groundBody);
-    }
-
-    private void createBuildings() {
-        createBuilding(new Forge("La Forge du Nain Grincheux"), new Vector3(0, 0, -20), Color.DARK_GRAY);
-        createBuilding(new Building("Guilde des Aventuriers", "Guilde"), new Vector3(-20, 0, 0), Color.BROWN);
-        createBuilding(new Building("La Pinte qui Chante", "Taverne"), new Vector3(20, 0, 0), Color.TAN);
-    }
-
-    private void createBuilding(Building building, Vector3 position, Color color) {
-        ModelBuilder modelBuilder = new ModelBuilder();
-        Material material = new Material(ColorAttribute.createDiffuse(color));
-        Model model = modelBuilder.createBox(10f, 10f, 10f, material, Usage.Position | Usage.Normal);
-        disposables.add(model);
-        ModelInstance instance = new ModelInstance(model);
-        instance.transform.setTranslation(position.add(0, 5.5f, 0));
-        instances.add(instance);
-
-        instance.userData = building;
-
-        btCollisionShape shape = new btBoxShape(new Vector3(5f, 5f, 5f));
-        disposables.add(shape);
-        btRigidBody.btRigidBodyConstructionInfo info = new btRigidBody.btRigidBodyConstructionInfo(0, null, shape, Vector3.Zero);
-        disposables.add(info);
-        btRigidBody body = new btRigidBody(info);
-        body.setWorldTransform(instance.transform);
-        body.userData = building;
-        dynamicsWorld.addRigidBody(body);
+    protected Vector3 getSpawnPoint() {
+        return spawnPoint;
     }
 
     @Override
-    public void render(float delta) {
-        update(delta);
-
-        Gdx.gl.glClearColor(0.5f, 0.8f, 1f, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-
-        modelBatch.begin(camera);
-        modelBatch.render(instances, environment);
-        modelBatch.end();
-
-        spriteBatch.begin();
-        drawHud();
-        spriteBatch.end();
-
-        if (isPaused || isInventoryOpen) {
-            stage.act(delta);
-            stage.draw();
-        }
-    }
-
-    private void update(float delta) {
-        if (!isPaused && !isInventoryOpen) {
-            playerController.update();
-            dynamicsWorld.stepSimulation(delta, 5, 1 / 60f);
-            playerController.updateCamera();
-            gameClock.update(delta);
-        }
-    }
-
-    private void drawHud() {
-        if (!isPaused && !isInventoryOpen) {
-            font.draw(spriteBatch, "+", Gdx.graphics.getWidth() / 2f - 5, Gdx.graphics.getHeight() / 2f + 5);
-
-            hudText.setLength(0);
-            hudText.append("FPS: ").append(Gdx.graphics.getFramesPerSecond()).append("\n");
-            hudText.append("Player: ").append(player.getName()).append("\n");
-            hudText.append("HP: ").append(player.getHealth()).append(" / ").append(player.getMaxHealth()).append("\n");
-            hudText.append("Time: ").append(gameClock.getCurrentHour()).append("h, Day ").append(gameClock.getCurrentDay());
-            font.draw(spriteBatch, hudText, 10, Gdx.graphics.getHeight() - 10);
-
-            btCollisionObject objectInView = playerController.getBodyInView(10f);
-            if (objectInView != null && objectInView.userData instanceof Building) {
-                Building building = (Building) objectInView.userData;
-                String text = "Entrer dans: " + building.getName() + " (E)";
-                layout.setText(font, text);
-                font.draw(spriteBatch, layout, Gdx.graphics.getWidth() / 2f - layout.width / 2f, Gdx.graphics.getHeight() / 2f - 30);
-            }
-        }
-    }
-
-    private void drawInventory() {
-        inventoryTable.clear();
-        inventoryTable.top().left();
-        Inventaire inventaire = player.getInventaire();
-        inventoryTable.add(new Label("Inventaire", skin)).colspan(2).pad(10).row();
-        inventoryTable.add(new Label("Poids: " + inventaire.getPoidsActuel() + " / " + inventaire.getPoidsMax() + " kg", skin)).colspan(2).pad(10).row();
-
-        for (Item item : player.getInventoryItems()) {
-            inventoryTable.add(new Label(item.getName(), skin)).pad(5);
-            inventoryTable.add(new Label(item.getDescription(), skin)).pad(5).row();
-        }
+    protected Color getBackgroundColor() {
+        return new Color(0.5f, 0.8f, 1f, 1f);
     }
 
     @Override
-    public boolean keyDown(int keycode) {
-        if (keycode == Input.Keys.ESCAPE) {
-            if (isInventoryOpen) {
-                toggleInventory();
-            } else {
-                togglePause();
-            }
+    protected float getAmbientLight() {
+        return 0.4f;
+    }
+
+    @Override
+    protected float getInteractionRange() {
+        return 10f;
+    }
+
+    // ------------------------------------------------------------------ décor
+
+    @Override
+    protected void buildWorld() {
+        addBox(200f, 1f, 200f, Color.GRAY, 0, 0, 0, null); // sol
+
+        addBuilding(new Forge(FORGE), 0, -20, Color.DARK_GRAY);
+        addBuilding(new Building(GUILD, "Guilde"), -20, 0, Color.BROWN);
+        addBuilding(new Building(INN, "Taverne"), 20, 0, Color.TAN);
+    }
+
+    private void addBuilding(Building building, float x, float z, Color color) {
+        addBox(10f, 10f, 10f, color, x, 5.5f, z, building).userData = building;
+    }
+
+    // ------------------------------------------------------------------ interactions
+
+    @Override
+    protected String getInteractionPrompt(Object userData) {
+        if (userData instanceof Building) {
+            return "Entrer dans: " + ((Building) userData).getName() + " (E)";
+        }
+        return null;
+    }
+
+    @Override
+    protected boolean onInteract(Object userData) {
+        if (!(userData instanceof Building)) {
+            return false;
+        }
+        String name = ((Building) userData).getName();
+        if (name.equals(FORGE)) {
+            game.setScreen(new ForgeScreen(game, difficulty));
+            return true;
+        } else if (name.equals(GUILD)) {
+            game.setScreen(new GuildScreen(game, difficulty));
+            return true;
+        } else if (name.equals(INN)) {
+            game.setScreen(new InnScreen(game, difficulty));
             return true;
         }
-        if (keycode == Input.Keys.I) {
-            toggleInventory();
-            return true;
-        }
+        return false;
+    }
 
-        // Quick Save (F5) — always available, even when paused
+    // ------------------------------------------------------------------ sauvegarde rapide
+
+    @Override
+    protected boolean onGlobalKeyDown(int keycode) {
+        // Quick Save (F5) — toujours disponible, même en pause
         if (keycode == Input.Keys.F5) {
             Vector3 playerPos = playerController.getPlayerBody().getCenterOfMassPosition();
             boolean saved = saveManager.saveGame(player, gameClock, difficulty, playerPos.x, playerPos.y, playerPos.z, "Town");
@@ -354,82 +120,6 @@ public class TownScreen extends InputAdapter implements Screen {
             }
             return true;
         }
-
-        if (isPaused || isInventoryOpen) return false;
-
-        if (keycode == Input.Keys.E) {
-            btCollisionObject objectInView = playerController.getBodyInView(10f);
-            if (objectInView != null && objectInView.userData instanceof Building) {
-                Building building = (Building) objectInView.userData;
-                if (building.getName().equals("La Forge du Nain Grincheux")) {
-                    game.setScreen(new ForgeScreen(game, difficulty));
-                    return true;
-                } else if (building.getName().equals("Guilde des Aventuriers")) {
-                    game.setScreen(new GuildScreen(game, difficulty));
-                    return true;
-                } else if (building.getName().equals("La Pinte qui Chante")) {
-                    game.setScreen(new InnScreen(game, difficulty));
-                    return true;
-                }
-            }
-        }
-        return playerController.keyDown(keycode);
-    }
-
-    private void togglePause() {
-        isPaused = !isPaused;
-        pauseTable.setVisible(isPaused);
-        Gdx.input.setCursorCatched(!isPaused);
-    }
-
-    private void toggleInventory() {
-        isInventoryOpen = !isInventoryOpen;
-        inventoryTable.setVisible(isInventoryOpen);
-        Gdx.input.setCursorCatched(!isInventoryOpen);
-        if (isInventoryOpen) {
-            drawInventory();
-        }
-    }
-
-    @Override
-    public boolean keyUp(int keycode) {
-        return playerController.keyUp(keycode);
-    }
-
-    @Override
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        return playerController.touchDown(screenX, screenY, pointer, button);
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        camera.viewportWidth = width;
-        camera.viewportHeight = height;
-        camera.update();
-        stage.getViewport().update(width, height, true);
-    }
-
-    @Override
-    public void hide() {
-        Gdx.input.setCursorCatched(false);
-        dispose();
-    }
-
-    @Override
-    public void pause() {}
-
-    @Override
-    public void resume() {}
-
-    @Override
-    public void dispose() {
-        playerController.dispose();
-        for (Disposable disposable : disposables) {
-            disposable.dispose();
-        }
-        disposables.clear();
-        instances.clear();
-        gameObjects.clear();
-        skin.dispose();
+        return false;
     }
 }
