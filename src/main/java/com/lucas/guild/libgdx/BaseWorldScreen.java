@@ -10,6 +10,11 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -110,9 +115,17 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected Table dialogTable;
     protected Table inventoryTable;
     private InventoryPanel inventoryPanel;
+    protected Table skillsTable;
+    private SkillsPanel skillsPanel;
     protected Table pauseTable;
     protected boolean inDialog = false;
     protected boolean isInventoryOpen = false;
+    protected boolean isSkillsOpen = false;
+
+    // Dernière position du joueur, pour mesurer la distance marchée (compétences Endurance et Portage)
+    private float lastX;
+    private float lastZ;
+    private boolean hasLastPosition = false;
     protected boolean isPaused = false;
 
     protected BaseWorldScreen(MainGame game, String difficulty) {
@@ -261,6 +274,24 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         stage.addActor(inventoryTable);
         inventoryPanel = new InventoryPanel(inventoryTable, skin, player);
 
+        skillsTable = new Table(skin);
+        skillsTable.setFillParent(true);
+        skillsTable.setVisible(false);
+        stage.addActor(skillsTable);
+
+        // Fond sombre translucide derrière les panneaux : le texte blanc reste lisible sur le ciel clair
+        Pixmap shade = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        shade.setColor(0f, 0f, 0f, 0.7f);
+        shade.fill();
+        Texture shadeTexture = new Texture(shade);
+        shade.dispose();
+        disposables.add(shadeTexture);
+        Drawable panelBackground = new TextureRegionDrawable(new TextureRegion(shadeTexture));
+        dialogTable.setBackground(panelBackground);
+        inventoryTable.setBackground(panelBackground);
+        skillsTable.setBackground(panelBackground);
+        skillsPanel = new SkillsPanel(skillsTable, skin, player, gameClock);
+
         // Menu pause
         pauseTable = new Table(skin);
         pauseTable.setFillParent(true);
@@ -367,7 +398,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     /** Vrai quand un menu (pause, inventaire, dialogue, menu supplémentaire) bloque le jeu. */
     protected boolean isOverlayOpen() {
-        return inDialog || isInventoryOpen || isPaused || isExtraOverlayOpen();
+        return inDialog || isInventoryOpen || isSkillsOpen || isPaused || isExtraOverlayOpen();
     }
 
     private void update(float delta) {
@@ -376,7 +407,30 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             dynamicsWorld.stepSimulation(delta, 5, 1 / 60f);
             playerController.updateCamera();
             gameClock.update(delta);
+            trainWalking();
         }
+    }
+
+    /** La marche entraîne l'Endurance, et le Portage quand on porte au moins la moitié de sa charge maximale. */
+    private void trainWalking() {
+        Vector3 position = playerController.getPlayerBody().getCenterOfMassPosition();
+        float x = position.x;
+        float z = position.z;
+        if (hasLastPosition) {
+            float dx = x - lastX;
+            float dz = z - lastZ;
+            float distance = (float) Math.sqrt(dx * dx + dz * dz);
+            // Un grand saut d'une image à l'autre (apparition, téléportation) n'est pas de la marche
+            if (distance > 0.001f && distance < 2f) {
+                player.train("athletics", distance);
+                if (player.getInventaire().getPoidsActuel() >= 0.5 * player.getInventaire().getPoidsMax()) {
+                    player.train("carrying", distance);
+                }
+            }
+        }
+        lastX = x;
+        lastZ = z;
+        hasLastPosition = true;
     }
 
     private void drawHud(float delta) {
@@ -452,7 +506,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         }
 
         if (keycode == Input.Keys.ESCAPE) {
-            if (isInventoryOpen) {
+            if (isSkillsOpen) {
+                toggleSkills();
+            } else if (isInventoryOpen) {
                 toggleInventory();
             } else if (inDialog) {
                 toggleDialog(null);
@@ -462,7 +518,16 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             return true;
         }
         if (keycode == Input.Keys.I) {
-            toggleInventory();
+            if (!isSkillsOpen) {
+                toggleInventory();
+            }
+            return true;
+        }
+        if (keycode == Input.Keys.K) {
+            // le panneau du personnage ne s'ouvre que depuis le jeu (pas par-dessus un autre menu)
+            if (isSkillsOpen || !(inDialog || isInventoryOpen || isPaused || isExtraOverlayOpen())) {
+                toggleSkills();
+            }
             return true;
         }
 
@@ -508,6 +573,15 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         Gdx.input.setCursorCatched(!isInventoryOpen);
         if (isInventoryOpen) {
             drawInventory();
+        }
+    }
+
+    protected void toggleSkills() {
+        isSkillsOpen = !isSkillsOpen;
+        skillsTable.setVisible(isSkillsOpen);
+        Gdx.input.setCursorCatched(!isSkillsOpen);
+        if (isSkillsOpen) {
+            skillsPanel.rebuild();
         }
     }
 

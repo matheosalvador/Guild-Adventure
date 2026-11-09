@@ -20,7 +20,6 @@ import com.google.gson.reflect.TypeToken;
 import com.lucas.guild.model.AgingStage;
 import com.lucas.guild.model.Item;
 import com.lucas.guild.model.Quest;
-import com.lucas.guild.model.Skill;
 
 /**
  * Contenu du jeu lu depuis les fichiers JSON de {@code assets/data/} : quêtes, compétences,
@@ -61,11 +60,116 @@ public final class GameContent {
         return quests;
     }
 
-    /** Les compétences de la classe {@code className}, ou une liste vide si la classe n'a pas d'arbre. */
-    public static List<Skill> skillsFor(String className) {
-        Map<String, List<Skill>> all = read("skills.json", new TypeToken<Map<String, List<Skill>>>() { }.getType());
-        List<Skill> skills = all.get(className);
-        return skills != null ? skills : new ArrayList<Skill>();
+    /** Toutes les compétences du jeu, dans l'ordre du fichier (nouvelles instances à chaque appel). */
+    public static List<SkillData> skills() {
+        List<SkillData> skills = read("skills.json", new TypeToken<List<SkillData>>() { }.getType());
+        Set<String> seen = new HashSet<>();
+        for (int i = 0; i < skills.size(); i++) {
+            SkillData s = skills.get(i);
+            String where = "skills.json : competence n°" + (i + 1);
+            if (s == null) throw new IllegalStateException(where + " : vide");
+            if (s.id == null || s.id.isEmpty()) throw new IllegalStateException(where + " : \"id\" manquant");
+            where += " (" + s.id + ")";
+            if (!seen.add(s.id)) throw new IllegalStateException(where + " : \"id\" en double");
+            if (s.label == null || s.label.isEmpty()) throw new IllegalStateException(where + " : \"label\" manquant");
+            if (s.description == null) s.description = "";
+            if (s.trainedBy == null) s.trainedBy = "";
+            if (s.unit == null) s.unit = "";
+            if (s.thresholds == null || s.thresholds.isEmpty()) throw new IllegalStateException(where + " : \"thresholds\" doit contenir au moins un seuil");
+            double previous = 0;
+            for (Double threshold : s.thresholds) {
+                if (threshold == null || threshold <= previous) {
+                    throw new IllegalStateException(where + " : \"thresholds\" doit etre une liste croissante de nombres > 0");
+                }
+                previous = threshold;
+            }
+            if (s.effects == null || s.effects.isEmpty()) throw new IllegalStateException(where + " : \"effects\" manquant");
+            for (Map.Entry<String, Double> effect : s.effects.entrySet()) {
+                if (!SkillData.EFFECTS.containsKey(effect.getKey())) {
+                    throw new IllegalStateException(where + " : effet inconnu \"" + effect.getKey() + "\" (connus : " + SkillData.EFFECTS.keySet() + ")");
+                }
+                if (effect.getValue() == null || effect.getValue() == 0) {
+                    throw new IllegalStateException(where + " : l'effet \"" + effect.getKey() + "\" doit avoir une valeur non nulle");
+                }
+            }
+        }
+        return skills;
+    }
+
+    /** Les classes de personnage proposées à la création (classes.json). */
+    public static List<ProfileData> characterClasses() {
+        return profiles("classes.json");
+    }
+
+    /** Les origines de personnage proposées à la création (backgrounds.json). */
+    public static List<ProfileData> backgrounds() {
+        return profiles("backgrounds.json");
+    }
+
+    /** La classe {@code id}, ou {@code null} si elle n'existe pas. */
+    public static ProfileData characterClass(String id) {
+        return findProfile(characterClasses(), id);
+    }
+
+    /** L'origine {@code id}, ou {@code null} si elle n'existe pas. */
+    public static ProfileData background(String id) {
+        return findProfile(backgrounds(), id);
+    }
+
+    private static ProfileData findProfile(List<ProfileData> all, String id) {
+        if (id != null) {
+            for (ProfileData p : all) {
+                if (id.equals(p.id)) {
+                    return p;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static List<ProfileData> profiles(String file) {
+        List<ProfileData> all = read(file, new TypeToken<List<ProfileData>>() { }.getType());
+        if (all.isEmpty()) {
+            throw new IllegalStateException(file + " : au moins une entree est necessaire");
+        }
+        Set<String> itemIds = itemIds();
+        Map<String, SkillData> skills = new java.util.HashMap<>();
+        for (SkillData s : skills()) {
+            skills.put(s.id, s);
+        }
+        Set<String> seen = new HashSet<>();
+        for (int i = 0; i < all.size(); i++) {
+            ProfileData p = all.get(i);
+            String where = file + " : entree n°" + (i + 1);
+            if (p == null) throw new IllegalStateException(where + " : vide");
+            if (p.id == null || p.id.isEmpty()) throw new IllegalStateException(where + " : \"id\" manquant");
+            where += " (" + p.id + ")";
+            if (!seen.add(p.id)) throw new IllegalStateException(where + " : \"id\" en double");
+            if (p.label == null || p.label.isEmpty()) throw new IllegalStateException(where + " : \"label\" manquant");
+            if (p.description == null) p.description = "";
+            if (p.startingItems == null) p.startingItems = new ArrayList<>();
+            if (p.skillStart == null) p.skillStart = new java.util.LinkedHashMap<>();
+            if (p.practiceBonusPercent == null) p.practiceBonusPercent = new java.util.LinkedHashMap<>();
+            for (String itemId : p.startingItems) {
+                if (!itemIds.contains(itemId)) throw new IllegalStateException(where + " : objet de depart inconnu \"" + itemId + "\" (voir items.json)");
+            }
+            for (Map.Entry<String, Integer> start : p.skillStart.entrySet()) {
+                SkillData skill = skills.get(start.getKey());
+                if (skill == null) throw new IllegalStateException(where + " : competence inconnue \"" + start.getKey() + "\" dans \"skillStart\" (voir skills.json)");
+                if (start.getValue() == null || start.getValue() < 1 || start.getValue() > skill.maxLevel()) {
+                    throw new IllegalStateException(where + " : \"skillStart\" de \"" + start.getKey() + "\" doit etre un niveau entre 1 et " + skill.maxLevel());
+                }
+            }
+            for (Map.Entry<String, Integer> bonus : p.practiceBonusPercent.entrySet()) {
+                if (!skills.containsKey(bonus.getKey())) {
+                    throw new IllegalStateException(where + " : competence inconnue \"" + bonus.getKey() + "\" dans \"practiceBonusPercent\" (voir skills.json)");
+                }
+                if (bonus.getValue() == null || bonus.getValue() <= -100) {
+                    throw new IllegalStateException(where + " : \"practiceBonusPercent\" de \"" + bonus.getKey() + "\" doit etre > -100");
+                }
+            }
+        }
+        return all;
     }
 
     /** Poids maximum de l'inventaire (sans sac) pour une difficulté, ou {@code null} si la difficulté est inconnue. */
@@ -208,7 +312,9 @@ public final class GameContent {
      */
     public static void validateAll() {
         quests();
-        skillsFor("Caserne");
+        skills();
+        characterClasses();
+        backgrounds();
         maxWeight("normale");
         shop("forge");
         shop("guild");

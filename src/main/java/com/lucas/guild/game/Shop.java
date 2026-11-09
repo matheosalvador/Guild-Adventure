@@ -39,14 +39,30 @@ public class Shop {
         return stock;
     }
 
-    /** Prix payé au joueur quand il revend {@code item} à la boutique. */
+    /** Prix de base payé quand on revend {@code item} à la boutique (sans le talent du vendeur). */
     public int sellPrice(Item item) {
         return item.getPrix() * data.sellPercent / 100;
     }
 
+    /** Prix que {@code player} paie pour {@code item} : le prix affiché, réduit par sa compétence Marchandage. */
+    public int buyPrice(Adventurer player, Item item) {
+        if (item.getPrix() <= 0) {
+            return 0;
+        }
+        int discount = (int) Math.round(player.getSkillBonus("buyDiscountPercent"));
+        // arrondi au plus proche : une réduction de 2 % ne doit pas faire perdre 1 Po sur un objet à 10 Po
+        return Math.max(1, (int) Math.round(item.getPrix() * (100 - Math.min(discount, 90)) / 100.0));
+    }
+
+    /** Prix que {@code player} reçoit pour {@code item} : la part de base, augmentée par son Marchandage. */
+    public int sellPrice(Adventurer player, Item item) {
+        int percent = data.sellPercent + (int) Math.round(player.getSkillBonus("sellBonusPercent"));
+        return item.getPrix() * Math.min(percent, 100) / 100;
+    }
+
     /** Le joueur achète l'objet {@code wanted} (un élément de {@link #getStock()}). */
     public String buy(Adventurer player, Item wanted) {
-        int price = wanted.getPrix();
+        int price = buyPrice(player, wanted);
         if (player.getGold() < price) {
             return "Pas assez d'or : il vous faut " + price + " Po.";
         }
@@ -57,6 +73,7 @@ public class Shop {
         }
         player.spendGold(price);
         player.addItem(bought);
+        player.train("haggling", price);
         return null;
     }
 
@@ -65,12 +82,13 @@ public class Shop {
         if (!player.getInventoryItems().contains(item)) {
             return "Vous ne portez pas cet objet dans votre inventaire.";
         }
-        int price = sellPrice(item);
+        int price = sellPrice(player, item);
         if (price <= 0) {
             return "La boutique n'en veut pas.";
         }
         player.removeItem(item);
         player.addGold(price);
+        player.train("haggling", price);
         return null;
     }
 }

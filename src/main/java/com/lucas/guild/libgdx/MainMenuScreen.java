@@ -207,9 +207,9 @@ public class MainMenuScreen implements Screen {
         });
     }
 
+    /** La difficulté est choisie : on passe à la création du personnage (la partie démarre à la fin de celle-ci). */
     private void startNewGame(String difficulty) {
-        game.startNewGame(difficulty);
-        game.setScreen(new TownScreen(game, difficulty));
+        game.setScreen(new CharacterCreationScreen(game, difficulty));
     }
 
     @Override

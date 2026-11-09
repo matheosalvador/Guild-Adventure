@@ -1,27 +1,43 @@
 package com.lucas.guild.model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import com.lucas.guild.data.GameContent;
+import com.lucas.guild.data.ProfileData;
 
 public class Adventurer extends Entite {
     private String location;
     private String origin;
     private int rank; // Changé en int
     private Inventaire inventory;
-    private SkillTree skillTree;
-    private int skillPoints;
-    private int experience;
-    private int level;
     /** Or du personnage, en Po. */
     private int gold;
 
     /** Numéro de jour de la naissance (zéro ou négatif pour un personnage né avant le début de la partie). */
     private int birthDay;
 
+    /** Classe et origine choisies à la création (classes.json, backgrounds.json) ; null pour une ancienne sauvegarde. */
+    private String classId;
+    private String backgroundId;
+
+    /** Compétences, gagnées par la pratique. */
+    private Skills skills = new Skills();
+
     // Effets de l'âge : recalculés à chaque chargement (refreshAging), donc pas sauvegardés
     private transient double healthFactor = 1.0;
     private transient double speedFactor = 1.0;
     private transient String agingLabel;
+    // Bonus de la classe et de l'origine : recalculés à chaque chargement (refreshBonuses)
+    private transient double profileSpeedPercent = 0;
+    // Reçoit les messages du personnage (compétence gagnée...) ; branché par la partie en cours
+    private transient Consumer<String> notifier;
+
+    /** Points de vie de base d'un nouveau personnage, avant les bonus de classe et d'origine. */
+    private static final int BASE_HEALTH = 100;
 
 
     // No-arg constructor for Gson deserialization
@@ -35,10 +51,6 @@ public class Adventurer extends Entite {
         this.origin = "Village de départ"; // Exemple
         this.rank = 0; // 0 = Débutant / Rang F
         this.inventory = new Inventaire();
-        this.skillTree = new SkillTree(location); // Utilise la location comme classe
-        this.skillPoints = 0;
-        this.experience = 0;
-        this.level = 1;
     }
 
     public String getLocation() {
@@ -133,57 +145,151 @@ public class Adventurer extends Entite {
         return true;
     }
 
-    public SkillTree getSkillTree() {
-        return skillTree;
-    }
-
-    public void setSkillTree(SkillTree skillTree) {
-        this.skillTree = skillTree;
-    }
-
-    public boolean hasLearnedSkill(String skillName) {
-        for (Skill skill : skillTree.getSkills()) {
-            if (skill.getName().equals(skillName) && skill.isLearned()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public int getSkillPoints() {
-        return skillPoints;
-    }
-
-    public int getExperience() {
-        return experience;
-    }
-
-    public void addExperience(int amount) {
-        this.experience += amount;
-        // Logique de montée de niveau simple
-        if (experience >= level * 100) {
-            level++;
-            experience = 0;
-            maxHealth += 10;
-            health = getMaxHealth();
-            skillPoints++;
-            System.out.println(name + " est monté au niveau " + level + " !");
-        }
-    }
-
-    public int getLevel() {
-        return level;
-    }
-
     public List<Attaque> getAttaques() {
         List<Attaque> attaques = new ArrayList<>();
         attaques.add(new AttaqueMelee("Attaque de base", 10 + getBonusDegats()));
-        for (Skill skill : skillTree.getSkills()) {
-            if (skill.isLearned() && skill.getAttackToLearn() != null) {
-                attaques.add(skill.getAttackToLearn());
+        return attaques;
+    }
+
+    // ------------------------------------------------------------------ classe, origine, compétences
+
+    public String getClassId() {
+        return classId;
+    }
+
+    public String getBackgroundId() {
+        return backgroundId;
+    }
+
+    /** Libellé de la classe (« Guerrier »), ou null pour un personnage sans classe. */
+    public String getClassLabel() {
+        ProfileData profile = GameContent.characterClass(classId);
+        return profile != null ? profile.label : null;
+    }
+
+    /** Libellé de l'origine (« Noble déchu »), ou null pour un personnage sans origine. */
+    public String getBackgroundLabel() {
+        ProfileData profile = GameContent.background(backgroundId);
+        return profile != null ? profile.label : null;
+    }
+
+    /**
+     * Applique les choix de la création : vie de départ, compétences de départ, bonus.
+     * Un identifiant inconnu ou null veut dire « pas de classe » / « pas d'origine ».
+     */
+    public void chooseProfile(String classId, String backgroundId) {
+        ProfileData characterClass = GameContent.characterClass(classId);
+        ProfileData background = GameContent.background(backgroundId);
+        this.classId = characterClass != null ? classId : null;
+        this.backgroundId = background != null ? backgroundId : null;
+
+        int bonusHealth = 0;
+        for (ProfileData profile : new ProfileData[] {characterClass, background}) {
+            if (profile != null) {
+                bonusHealth += profile.healthBonus;
             }
         }
-        return attaques;
+        this.maxHealth = Math.max(10, BASE_HEALTH + bonusHealth);
+
+        refreshBonuses();
+        for (ProfileData profile : new ProfileData[] {characterClass, background}) {
+            if (profile != null) {
+                for (Map.Entry<String, Integer> start : profile.skillStart.entrySet()) {
+                    skills.setLevel(start.getKey(), start.getValue());
+                }
+            }
+        }
+        refreshBonuses();
+        this.health = getMaxHealth();
+    }
+
+    /**
+     * Recalcule les bonus de la classe, de l'origine et des compétences (vitesse, charge, progression).
+     * À appeler après la création, après un chargement et à chaque niveau de compétence gagné.
+     */
+    public void refreshBonuses() {
+        if (skills == null) {
+            skills = new Skills();
+        }
+        Map<String, Integer> practiceBonus = new HashMap<>();
+        double carry = 0;
+        double speed = 0;
+        for (ProfileData profile : new ProfileData[] {GameContent.characterClass(classId), GameContent.background(backgroundId)}) {
+            if (profile == null) {
+                continue;
+            }
+            carry += profile.carryBonus;
+            speed += profile.speedBonusPercent;
+            for (Map.Entry<String, Integer> bonus : profile.practiceBonusPercent.entrySet()) {
+                Integer sum = practiceBonus.get(bonus.getKey());
+                practiceBonus.put(bonus.getKey(), (sum != null ? sum : 0) + bonus.getValue());
+            }
+        }
+        skills.bind(practiceBonus);
+        profileSpeedPercent = speed;
+        if (inventory != null) {
+            inventory.setBaseBonus(carry + skills.bonus("carryKg"));
+        }
+        health = Math.min(health, getMaxHealth());
+    }
+
+    public Skills getSkills() {
+        return skills;
+    }
+
+    /** Effet cumulé des compétences (voir {@code SkillData.EFFECTS}), par exemple « buyDiscountPercent ». */
+    public double getSkillBonus(String effect) {
+        return skills != null ? skills.bonus(effect) : 0;
+    }
+
+    /** Le personnage envoie ses messages (compétence gagnée...) à ce récepteur ; {@code null} pour les ignorer. */
+    public void setNotifier(Consumer<String> notifier) {
+        this.notifier = notifier;
+    }
+
+    /**
+     * Fait progresser une compétence par la pratique. Un niveau gagné applique tout de suite ses
+     * effets (une vie max plus haute soigne d'autant) et envoie un message au joueur.
+     *
+     * @param amount points de pratique (dans l'unité de la compétence : mètres, Po, potions...)
+     */
+    public void train(String skillId, double amount) {
+        int maxBefore = getMaxHealth();
+        String message = skills.train(skillId, amount);
+        if (message == null) {
+            return;
+        }
+        refreshBonuses();
+        int gain = getMaxHealth() - maxBefore;
+        if (gain > 0) {
+            health = Math.min(getMaxHealth(), health + gain);
+        }
+        if (notifier != null) {
+            notifier.accept(message);
+        }
+    }
+
+    /**
+     * Utilise une potion de soin de l'inventaire. Refusé si la vie est déjà pleine (on ne gaspille
+     * pas la potion). La compétence Soins augmente ce qu'elle rend, et progresse avec l'usage.
+     *
+     * @return le message à afficher au joueur
+     */
+    public String useHealingItem(Item item) {
+        if (health >= getMaxHealth()) {
+            return "Vous êtes déjà en pleine forme.";
+        }
+        int before = health;
+        item.use(this, null);
+        removeItem(item);
+        int gained = health - before;
+        int extra = (int) Math.round(gained * getSkillBonus("healBonusPercent") / 100.0);
+        if (extra > 0) {
+            ajouterVie(extra);
+        }
+        String message = item.getName() + " utilisée : +" + (health - before) + " PV.";
+        train("healing", 1);
+        return message;
     }
 
     // ------------------------------------------------------------------ âge
@@ -229,16 +335,25 @@ public class Adventurer extends Entite {
         return message;
     }
 
-    /** Multiplicateur de vitesse de déplacement : l'âge, puis l'encombrement dû à la charge (1.0 = pleine vitesse). */
-    public double getSpeedFactor() {
-        double encumbrance = inventory != null ? inventory.getEncumbranceSpeedFactor() : 1.0;
-        return speedFactor * encumbrance;
+    /** Palier de vieillesse en toutes lettres, ou null avant le premier calcul. */
+    public String getAgingLabel() {
+        return agingLabel;
     }
 
-    /** Vie max réelle : la vie de base réduite par l'âge. */
+    /**
+     * Multiplicateur de vitesse de déplacement : l'âge, l'encombrement dû à la charge, puis les bonus
+     * de classe, d'origine et de compétence (1.0 = pleine vitesse).
+     */
+    public double getSpeedFactor() {
+        double encumbrance = inventory != null ? inventory.getEncumbranceSpeedFactor() : 1.0;
+        double bonus = Math.max(0.5, 1 + (profileSpeedPercent + getSkillBonus("speedPercent")) / 100.0);
+        return speedFactor * encumbrance * bonus;
+    }
+
+    /** Vie max réelle : la vie de base et les bonus de compétence, réduits par l'âge. */
     @Override
     public int getMaxHealth() {
-        return Math.max(1, (int) Math.round(maxHealth * healthFactor));
+        return Math.max(1, (int) Math.round((maxHealth + getSkillBonus("healthBonus")) * healthFactor));
     }
 
     public void updateVitalSigns() {

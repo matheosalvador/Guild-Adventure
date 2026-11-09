@@ -95,7 +95,7 @@ class InventoryPanel {
             table.add(UiKit.button(skin, "Utiliser", new Runnable() {
                 @Override
                 public void run() {
-                    rebuild(use(item));
+                    rebuild(player.useHealingItem(item));
                 }
             })).pad(3);
         } else if (isEquipment(item)) {
@@ -123,16 +123,5 @@ class InventoryPanel {
         return item instanceof com.lucas.guild.model.Arme
                 || item instanceof com.lucas.guild.model.Armure
                 || item instanceof com.lucas.guild.model.Sac;
-    }
-
-    /** Utilise un objet de soin : refusé si la vie est déjà pleine (on ne gaspille pas la potion). */
-    private String use(Item item) {
-        if (player.getHealth() >= player.getMaxHealth()) {
-            return "Vous êtes déjà en pleine forme.";
-        }
-        int before = player.getHealth();
-        item.use(player, null);
-        player.removeItem(item);
-        return item.getName() + " utilisée : +" + (player.getHealth() - before) + " PV.";
     }
 }

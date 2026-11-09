@@ -33,6 +33,11 @@ public class MainGame extends Game {
         session = GameSession.newGame(difficulty);
     }
 
+    /** Démarre une partie neuve avec le personnage créé par le joueur. */
+    public void startNewGame(String difficulty, String name, String classId, String backgroundId) {
+        session = GameSession.newGame(difficulty, name, classId, backgroundId);
+    }
+
     /**
      * Charge la sauvegarde disque dans la session.
      *

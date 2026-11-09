@@ -1,0 +1,43 @@
+[
+  {
+    "id": "warrior",
+    "label": "Guerrier",
+    "description": "Entraîné à encaisser les coups et à porter son équipement.",
+    "healthBonus": 20,
+    "carryBonus": 5,
+    "goldBonus": -10,
+    "startingItems": ["short_sword"],
+    "practiceBonusPercent": { "haggling": -30 }
+  },
+  {
+    "id": "scout",
+    "label": "Éclaireur",
+    "description": "Léger et rapide, il préfère éviter le danger que l'affronter.",
+    "healthBonus": -10,
+    "carryBonus": -3,
+    "speedBonusPercent": 6,
+    "startingItems": ["dagger"],
+    "skillStart": { "athletics": 1 },
+    "practiceBonusPercent": { "athletics": 50 }
+  },
+  {
+    "id": "merchant",
+    "label": "Marchand",
+    "description": "Il sait compter, négocier et partir avec un peu d'avance.",
+    "healthBonus": -10,
+    "goldBonus": 30,
+    "startingItems": ["pouch"],
+    "skillStart": { "haggling": 1 },
+    "practiceBonusPercent": { "haggling": 50 }
+  },
+  {
+    "id": "herbalist",
+    "label": "Herboriste",
+    "description": "Connaît les plantes et les remèdes, mais n'a jamais tenu une épée.",
+    "healthBonus": -10,
+    "goldBonus": -10,
+    "startingItems": ["healing_potion", "healing_potion"],
+    "skillStart": { "healing": 1 },
+    "practiceBonusPercent": { "healing": 50 }
+  }
+]

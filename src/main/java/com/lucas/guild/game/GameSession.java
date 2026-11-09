@@ -1,17 +1,21 @@
 package com.lucas.guild.game;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.lucas.guild.model.Adventurer;
+import com.lucas.guild.model.Arme;
+import com.lucas.guild.model.Armure;
 import com.lucas.guild.data.CalendarData;
 import com.lucas.guild.data.DifficultyData;
 import com.lucas.guild.data.GameContent;
+import com.lucas.guild.data.ProfileData;
 import com.lucas.guild.model.GameCalendar;
 import com.lucas.guild.model.GameClock;
 import com.lucas.guild.model.GameData;
 import com.lucas.guild.model.Inventaire;
 import com.lucas.guild.model.Item;
 import com.lucas.guild.model.Sac;
-import com.lucas.guild.model.Skill;
-import com.lucas.guild.model.SkillTree;
 
 /**
  * État de la partie en cours, gardé en mémoire et partagé par tous les écrans
@@ -24,6 +28,7 @@ import com.lucas.guild.model.SkillTree;
 public class GameSession {
 
     private static final String DEFAULT_DIFFICULTY = "normale";
+    private static final String DEFAULT_NAME = "Aventurier";
 
     private final Adventurer player;
     private final GameClock clock;
@@ -46,31 +51,52 @@ public class GameSession {
         this.savedZ = z;
     }
 
-    /** Nouvelle partie : un seul joueur, créé ici, pour toute la session. */
+    /** Nouvelle partie sans création de personnage : un aventurier sans classe ni origine. */
     public static GameSession newGame(String difficulty) {
-        String diff = normalizeDifficulty(difficulty);
+        return newGame(difficulty, DEFAULT_NAME, null, null);
+    }
 
-        Adventurer player = new Adventurer("Lucas", "Caserne");
+    /**
+     * Nouvelle partie avec le personnage créé par le joueur : un seul joueur, créé ici, pour toute la session.
+     *
+     * @param classId      classe choisie (classes.json), ou null
+     * @param backgroundId origine choisie (backgrounds.json), ou null
+     */
+    public static GameSession newGame(String difficulty, String name, String classId, String backgroundId) {
+        String diff = normalizeDifficulty(difficulty);
+        String playerName = name != null && !name.trim().isEmpty() ? name.trim() : DEFAULT_NAME;
+
+        Adventurer player = new Adventurer(playerName, "Ville");
+        player.chooseProfile(classId, backgroundId);
         Inventaire inventaire = new Inventaire();
         inventaire.applyDifficulty(diff);
         player.setInventory(inventaire);
+        player.refreshBonuses(); // la charge portable dépend de la classe et de l'origine
 
-        // Or et objets de départ selon la difficulté (difficulties.json)
+        // Or et objets de départ : la difficulté (difficulties.json), puis la classe et l'origine
         DifficultyData settings = GameContent.difficulty(diff);
-        player.addGold(settings.startingGold);
-        for (String itemId : settings.startingItems) {
-            Item item = GameContent.newItem(itemId);
-            if (player.addItem(item) && item instanceof Sac) {
-                player.equip(item); // un sac de départ est porté tout de suite
+        ProfileData characterClass = GameContent.characterClass(classId);
+        ProfileData background = GameContent.background(backgroundId);
+        int gold = settings.startingGold;
+        List<String> itemIds = new ArrayList<>(settings.startingItems);
+        for (ProfileData profile : new ProfileData[] {characterClass, background}) {
+            if (profile != null) {
+                gold += profile.goldBonus;
+                itemIds.addAll(profile.startingItems);
             }
         }
-
-        // Pour le test : on apprend "Attaque Puissante" (ancien comportement de la forge).
-        // A retirer quand le système de compétences sera en place.
-        for (Skill skill : player.getSkillTree().getSkills()) {
-            if ("Attaque Puissante".equals(skill.getName())) {
-                skill.learn();
-                break;
+        player.addGold(Math.max(0, gold));
+        for (String itemId : itemIds) {
+            Item item = GameContent.newItem(itemId);
+            if (!player.addItem(item)) {
+                continue; // trop lourd pour la charge de départ : on ne le donne pas
+            }
+            // sac, arme et armure de départ sont portés tout de suite (si l'emplacement est libre)
+            boolean wearIt = (item instanceof Sac && inventaire.getBag() == null)
+                    || (item instanceof Arme && inventaire.getWeapon() == null)
+                    || (item instanceof Armure && inventaire.getArmor() == null);
+            if (wearIt) {
+                player.equip(item);
             }
         }
 
@@ -83,6 +109,7 @@ public class GameSession {
         clock.setCurrentMinute(start.minute);
         player.setBirthDay(start.day - start.startingAge * calendar.daysPerYear());
         player.refreshAging(start.day);
+        player.setNotifier(clock::postMessage);
 
         return new GameSession(player, clock, diff, false, 0, 0, 0);
     }
@@ -99,9 +126,8 @@ public class GameSession {
         player.getInventaire().migrateLegacy();
         player.getInventaire().applyDifficulty(diff);
 
-        if (player.getSkillTree() == null) {
-            player.setSkillTree(new SkillTree(player.getLocation()));
-        }
+        // Bonus de classe, d'origine et de compétence (charge portable...) : pas sauvegardés, on les recalcule.
+        player.refreshBonuses();
 
         GameClock clock = new GameClock(player);
         clock.setCurrentHour(Math.max(0, Math.min(23, data.currentHour)));
@@ -119,6 +145,7 @@ public class GameSession {
         }
         // Les effets de l'âge ne sont pas sauvegardés : on les recalcule.
         player.refreshAging(clock.getCurrentDay());
+        player.setNotifier(clock::postMessage);
 
         // currentScreen n'est renseigné que par les sauvegardes qui contiennent une position
         boolean hasPosition = data.currentScreen != null;

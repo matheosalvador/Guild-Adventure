@@ -49,6 +49,7 @@ public class Inventaire {
 
     // Recalculés à chaque chargement (âge, difficulté) : pas sauvegardés
     private transient double capacityFactor = 1.0;
+    private transient double baseBonus = 0;
     private transient double encumbranceStart = 0.5;
     private transient double minSpeedFactor = 1.0;
 
@@ -104,9 +105,14 @@ public class Inventaire {
         return total;
     }
 
-    /** Poids porté sans sac, selon la difficulté. */
+    /** Charge portable en plus (ou en moins) venant du personnage : classe, origine, compétence Portage. */
+    public void setBaseBonus(double baseBonus) {
+        this.baseBonus = baseBonus;
+    }
+
+    /** Poids porté sans sac : la difficulté, plus les bonus du personnage. */
     public double getPoidsDeBase() {
-        return poidsMax;
+        return Math.max(0, poidsMax + baseBonus);
     }
 
     /** Charge supplémentaire apportée par le sac porté (0 sans sac). */
@@ -116,7 +122,7 @@ public class Inventaire {
 
     /** Poids maximum réellement portable : (base + sac) réduit par l'âge. */
     public double getPoidsMax() {
-        return (poidsMax + getCapaciteSac()) * capacityFactor;
+        return (getPoidsDeBase() + getCapaciteSac()) * capacityFactor;
     }
 
     /** Peut-on porter cet objet en plus sans dépasser la capacité ? */
@@ -243,7 +249,7 @@ public class Inventaire {
             case BAG:
                 if (bag == null) return "Aucun sac porté.";
                 // Sans le sac, la capacité baisse : on ne peut le poser que si le reste se porte encore
-                if (getPoidsActuel() > poidsMax * capacityFactor + 1e-9) {
+                if (getPoidsActuel() > getPoidsDeBase() * capacityFactor + 1e-9) {
                     return "Trop lourd : videz d'abord votre sac avant de le poser.";
                 }
                 items.add(bag);

@@ -1,6 +1,5 @@
 package com.lucas.guild.libgdx;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 
 /** Intérieur de la forge : le forgeron. */
@@ -50,13 +49,6 @@ public class ForgeScreen extends InteriorScreen {
             dialogTable.clear();
             buildDialog(BLACKSMITH);
         }));
-
-        if (player.hasLearnedSkill("Attaque Puissante")) {
-            addDialogButton("Utiliser l'enclume", () -> {
-                Gdx.app.log("Forge", "Utilisation de l'enclume...");
-                toggleDialog(null);
-            });
-        }
 
         addLeaveButton();
     }

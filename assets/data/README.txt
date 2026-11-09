@@ -12,9 +12,25 @@ quests.json
     rank : rang minimum (0 = F, 1 = E, ...) ; type : COMBAT, DELIVERY ou ESCORT.
 
 skills.json
-    Arbres de competences, par classe ("Caserne"...).
-    prerequisiteSkillName : competence requise (absent = aucune).
-    attackToLearn.attaqueType : AttaqueSimple, AttaqueMelee ou AttaqueDistance.
+    Les competences. On ne les achete pas : elles progressent quand on fait l'action.
+    id = identifiant (utilise par le code et par classes/backgrounds) ; trainedBy = texte affiche
+    (ce qui la fait progresser) ; unit = unite de pratique (m, Po...).
+    thresholds = pratique cumulee pour atteindre le niveau 1, 2, 3... (liste croissante ; le niveau 1
+    "debloque" la competence). effects = ce que chaque niveau apporte (cumule) :
+    speedPercent (% de vitesse), carryKg (kg de charge), buyDiscountPercent (% de reduction a l'achat),
+    sellBonusPercent (% en plus a la revente), healBonusPercent (% de soin en plus des potions),
+    healthBonus (PV max).
+    Ce qui donne de la pratique est dans le code : marcher (1 par metre, Endurance), marcher avec au moins
+    la moitie de sa charge max (Portage), 1 par Po echange en boutique (Marchandage), 1 par potion de soin
+    utilisee (Soins), manger a l'auberge (1) et y dormir (2) (Vigueur).
+
+classes.json et backgrounds.json
+    Les choix de la creation du personnage (4 classes, 4 origines). Chaque choix a des avantages et des
+    inconvenients CHIFFRES, que l'ecran de creation affiche tels quels :
+    healthBonus (PV), carryBonus (kg), speedBonusPercent (% de vitesse), goldBonus (Po au depart),
+    startingItems (identifiants de items.json), skillStart (competences deja debloquees : id -> niveau),
+    practiceBonusPercent (une competence progresse plus vite (+) ou moins vite (-) : id -> %).
+    Les valeurs negatives sont les inconvenients ; l'or de depart ne descend jamais sous 0.
 
 difficulties.json
     Par difficulte (facile, normale, realiste) :

@@ -42,7 +42,7 @@ class ShopPanel {
             table.add(UiKit.label(skin, wanted.getName())).left().pad(3);
             table.add(UiKit.label(skin, wanted.getDescription())).left().pad(3);
             table.add(UiKit.label(skin, UiKit.kg(wanted.getPoids()))).pad(3);
-            table.add(UiKit.label(skin, wanted.getPrix() + " Po")).pad(3);
+            table.add(UiKit.label(skin, shop.buyPrice(player, wanted) + " Po")).pad(3);
             table.add(UiKit.button(skin, "Acheter", new Runnable() {
                 @Override
                 public void run() {
@@ -58,7 +58,7 @@ class ShopPanel {
         boolean any = false;
         for (Map.Entry<String, List<Item>> stack : UiKit.stacks(player.getInventoryItems()).entrySet()) {
             final Item item = stack.getValue().get(0);
-            int price = shop.sellPrice(item);
+            int price = shop.sellPrice(player, item);
             if (price <= 0) {
                 continue;
             }

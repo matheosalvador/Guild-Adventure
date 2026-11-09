@@ -148,7 +148,7 @@ public class TownScreen extends BaseWorldScreen {
             Vector3 playerPos = playerController.getPlayerBody().getCenterOfMassPosition();
             boolean saved = saveManager.saveGame(player, gameClock, difficulty, playerPos.x, playerPos.y, playerPos.z, "Town");
             if (saved) {
-                Gdx.app.log("SAVE", "Partie sauvegardée ! Niveau: " + player.getLevel() + ", XP: " + player.getExperience() + ", Items: " + player.getInventoryItems().size());
+                Gdx.app.log("SAVE", "Partie sauvegardée ! Items: " + player.getInventoryItems().size());
             } else {
                 Gdx.app.error("SAVE", "ÉCHEC de la sauvegarde (voir la console)");
             }

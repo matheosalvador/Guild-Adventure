@@ -77,6 +77,7 @@ public class InnScreen extends InteriorScreen {
             }
             Gdx.app.log("Auberge", "Le joueur va dormir");
             gameClock.sleepUntilNextMorning();
+            player.train("vigor", 2); // une vie max plus haute doit être soignée aussi
             player.heal(player.getMaxHealth());
             return true;
         }
@@ -99,6 +100,7 @@ public class InnScreen extends InteriorScreen {
             Gdx.app.log("Auberge", "Le joueur mange un repas.");
             player.heal(20);
             gameClock.postMessage("Vous mangez un bon repas (+20 PV).");
+            player.train("vigor", 1);
         });
 
         addDialogButton("Boire une bière (" + BEER_PRICE + " Po)", () -> {
