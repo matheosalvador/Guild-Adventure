@@ -15,24 +15,12 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonParseException;
+import com.lucas.guild.data.GameGson;
 import com.lucas.guild.model.Adventurer;
-import com.lucas.guild.model.Arme;
-import com.lucas.guild.model.Armure;
-import com.lucas.guild.model.Attaque;
-import com.lucas.guild.model.AttaqueDistance;
-import com.lucas.guild.model.AttaqueMelee;
-import com.lucas.guild.model.AttaqueSimple;
 import com.lucas.guild.model.GameClock;
 import com.lucas.guild.model.GameData;
-import com.lucas.guild.model.Item;
-import com.lucas.guild.model.ObjetDeQuete;
-import com.lucas.guild.model.PotionDeSoin;
-import com.lucas.guild.model.PotionDps;
-import com.lucas.guild.model.PotionMix;
-import com.lucas.guild.model.PotionSoin;
 
 /**
  * Lecture / écriture de la sauvegarde (un seul emplacement, {@code save.json}
@@ -54,25 +42,7 @@ public class SaveManager {
     private final Gson gson;
 
     public SaveManager() {
-        RuntimeTypeAdapterFactory<Item> itemAdapter = RuntimeTypeAdapterFactory.of(Item.class, "itemType")
-                .registerSubtype(Arme.class)
-                .registerSubtype(Armure.class)
-                .registerSubtype(PotionSoin.class)
-                .registerSubtype(PotionDps.class)
-                .registerSubtype(PotionMix.class)
-                .registerSubtype(PotionDeSoin.class)
-                .registerSubtype(ObjetDeQuete.class);
-
-        RuntimeTypeAdapterFactory<Attaque> attaqueAdapter = RuntimeTypeAdapterFactory.of(Attaque.class, "attaqueType")
-                .registerSubtype(AttaqueSimple.class)
-                .registerSubtype(AttaqueMelee.class)
-                .registerSubtype(AttaqueDistance.class);
-
-        this.gson = new GsonBuilder()
-                .setPrettyPrinting()
-                .registerTypeAdapterFactory(itemAdapter)
-                .registerTypeAdapterFactory(attaqueAdapter)
-                .create();
+        this.gson = GameGson.create();
     }
 
     /** @return true si la sauvegarde a bien été écrite. */

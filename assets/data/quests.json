@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Nettoyage de la cave",
+    "description": "Des rats ont envahi la cave du tavernier.",
+    "rank": 0,
+    "type": "COMBAT",
+    "target": "Rat Géant",
+    "goldReward": 20,
+    "experienceReward": 5,
+    "proofItem": "Queue de rat"
+  },
+  {
+    "title": "Livraison express",
+    "description": "Livrer une lettre au forgeron.",
+    "rank": 0,
+    "type": "DELIVERY",
+    "target": "Forgeron",
+    "goldReward": 10,
+    "experienceReward": 2,
+    "proofItem": "Lettre signée"
+  },
+  {
+    "title": "Chasse aux gobelins",
+    "description": "Un groupe de gobelins attaque les voyageurs.",
+    "rank": 1,
+    "type": "COMBAT",
+    "target": "Chef Gobelin",
+    "goldReward": 100,
+    "experienceReward": 15,
+    "proofItem": "Oreille de gobelin"
+  }
+]

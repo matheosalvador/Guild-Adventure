@@ -5,7 +5,6 @@ import java.util.List;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -24,7 +23,7 @@ public class GuildScreen extends InteriorScreen {
     private int selectedQuestIndex = 0;
 
     public GuildScreen(MainGame game, String difficulty) {
-        super(game, difficulty, new Vector3(-20, 2, 5), "la guilde");
+        super(game, difficulty, "guild", "la guilde");
     }
 
     @Override

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.lucas.guild.data.GameContent;
+
 public class Guild {
 
     private List<Quest> availableQuests = new ArrayList<>();
@@ -12,13 +14,9 @@ public class Guild {
         initializeQuests();
     }
 
+    /** Les quêtes viennent de assets/data/quests.json (rang 0 = F, 1 = E...). */
     private void initializeQuests() {
-        // Quêtes de Rang F (0)
-        availableQuests.add(new Quest("Nettoyage de la cave", "Des rats ont envahi la cave du tavernier.", 0, QuestType.COMBAT, "Rat Géant", 20, 5, "Queue de rat"));
-        availableQuests.add(new Quest("Livraison express", "Livrer une lettre au forgeron.", 0, QuestType.DELIVERY, "Forgeron", 10, 2, "Lettre signée"));
-
-        // Quêtes de Rang E (1)
-        availableQuests.add(new Quest("Chasse aux gobelins", "Un groupe de gobelins attaque les voyageurs.", 1, QuestType.COMBAT, "Chef Gobelin", 100, 15, "Oreille de gobelin"));
+        availableQuests.addAll(GameContent.quests());
     }
 
     /**

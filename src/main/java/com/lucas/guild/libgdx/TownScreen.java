@@ -1,19 +1,37 @@
 package com.lucas.guild.libgdx;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Colors;
 import com.badlogic.gdx.math.Vector3;
-import com.lucas.guild.game.Forge;
+import com.lucas.guild.data.GameContent;
+import com.lucas.guild.data.TownData;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.model.Building;
 
-/** La ville : le sol et les trois bâtiments qu'on peut entrer avec E. */
+/**
+ * La ville. Le sol est fixe ; les bâtiments (nom, position, couleur, intérieur à ouvrir)
+ * viennent de {@code assets/data/town.json}. On entre dans un bâtiment en le visant et en appuyant sur E.
+ */
 public class TownScreen extends BaseWorldScreen {
 
-    private static final String FORGE = "La Forge du Nain Grincheux";
-    private static final String GUILD = "Guilde des Aventuriers";
-    private static final String INN = "La Pinte qui Chante";
+    /** Identifiants d'intérieur reconnus (voir {@link #interiorScreen(String)}). */
+    private static final Set<String> KNOWN_INTERIORS = new HashSet<>(Arrays.asList("forge", "guild", "inn"));
+
+    /** Un bâtiment de la ville, avec l'intérieur qu'il ouvre. */
+    private static class TownBuilding extends Building {
+        final String interior;
+
+        TownBuilding(String name, String type, String interior) {
+            super(name, type);
+            this.interior = interior;
+        }
+    }
 
     private final Vector3 spawnPoint;
 
@@ -52,13 +70,23 @@ public class TownScreen extends BaseWorldScreen {
     protected void buildWorld() {
         addBox(200f, 1f, 200f, Color.GRAY, 0, 0, 0, null); // sol
 
-        addBuilding(new Forge(FORGE), 0, -20, Color.DARK_GRAY);
-        addBuilding(new Building(GUILD, "Guilde"), -20, 0, Color.BROWN);
-        addBuilding(new Building(INN, "Taverne"), 20, 0, Color.TAN);
+        TownData town = GameContent.town();
+        for (TownData.BuildingData data : town.buildings) {
+            addBuilding(data);
+        }
     }
 
-    private void addBuilding(Building building, float x, float z, Color color) {
-        addBox(10f, 10f, 10f, color, x, 5.5f, z, building).userData = building;
+    private void addBuilding(TownData.BuildingData data) {
+        Color color = Colors.get(data.color);
+        if (color == null) {
+            throw new IllegalStateException("town.json : batiment \"" + data.name + "\" : couleur inconnue \"" + data.color + "\"");
+        }
+        if (!KNOWN_INTERIORS.contains(data.interior)) {
+            throw new IllegalStateException("town.json : batiment \"" + data.name + "\" : interieur inconnu \"" + data.interior
+                    + "\" (attendu : " + KNOWN_INTERIORS + ")");
+        }
+        TownBuilding building = new TownBuilding(data.name, data.type, data.interior);
+        addBox(10f, 10f, 10f, color, data.x, 5.5f, data.z, building).userData = building;
     }
 
     // ------------------------------------------------------------------ interactions
@@ -73,21 +101,25 @@ public class TownScreen extends BaseWorldScreen {
 
     @Override
     protected boolean onInteract(Object userData) {
-        if (!(userData instanceof Building)) {
+        if (!(userData instanceof TownBuilding)) {
             return false;
         }
-        String name = ((Building) userData).getName();
-        if (name.equals(FORGE)) {
-            game.setScreen(new ForgeScreen(game, difficulty));
-            return true;
-        } else if (name.equals(GUILD)) {
-            game.setScreen(new GuildScreen(game, difficulty));
-            return true;
-        } else if (name.equals(INN)) {
-            game.setScreen(new InnScreen(game, difficulty));
-            return true;
+        game.setScreen(interiorScreen(((TownBuilding) userData).interior));
+        return true;
+    }
+
+    /** L'écran d'intérieur correspondant à un identifiant de town.json. */
+    private com.badlogic.gdx.Screen interiorScreen(String interiorId) {
+        switch (interiorId) {
+            case "forge":
+                return new ForgeScreen(game, difficulty);
+            case "guild":
+                return new GuildScreen(game, difficulty);
+            case "inn":
+                return new InnScreen(game, difficulty);
+            default:
+                throw new IllegalStateException("interieur inconnu : " + interiorId);
         }
-        return false;
     }
 
     // ------------------------------------------------------------------ sauvegarde rapide

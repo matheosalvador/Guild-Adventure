@@ -2,6 +2,7 @@ package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.lucas.guild.data.GameContent;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.model.GameData;
@@ -13,6 +14,7 @@ public class MainGame extends Game {
 
     @Override
     public void create() {
+        GameContent.validateAll(); // échoue tout de suite, avec le nom du fichier, si un JSON est cassé
         this.setScreen(new MainMenuScreen(this));
     }
 

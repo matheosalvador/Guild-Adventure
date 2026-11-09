@@ -2,7 +2,6 @@ package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.math.Vector3;
 
 /** Intérieur de l'auberge « La Pinte qui Chante » : l'aubergiste, un lit à l'étage. */
 public class InnScreen extends InteriorScreen {
@@ -11,7 +10,7 @@ public class InnScreen extends InteriorScreen {
     private static final String BED = "Bed";
 
     public InnScreen(MainGame game, String difficulty) {
-        super(game, difficulty, new Vector3(20, 2, 5), "l'auberge");
+        super(game, difficulty, "inn", "l'auberge");
     }
 
     @Override

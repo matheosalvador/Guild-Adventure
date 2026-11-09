@@ -21,3 +21,6 @@ out/
 
 # Fichiers temporaires / mis de cote par la sauvegarde
 save.json.*
+
+# ... sauf les donnees du jeu
+!assets/data/*.json

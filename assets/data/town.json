@@ -1,0 +1,32 @@
+{
+  "name": "Aethelgard",
+  "buildings": [
+    {
+      "name": "La Forge du Nain Grincheux",
+      "type": "Forge",
+      "interior": "forge",
+      "x": 0,
+      "z": -20,
+      "color": "DARK_GRAY",
+      "exit": { "x": 0, "y": 2, "z": -14 }
+    },
+    {
+      "name": "Guilde des Aventuriers",
+      "type": "Guilde",
+      "interior": "guild",
+      "x": -20,
+      "z": 0,
+      "color": "BROWN",
+      "exit": { "x": -20, "y": 2, "z": 5 }
+    },
+    {
+      "name": "La Pinte qui Chante",
+      "type": "Taverne",
+      "interior": "inn",
+      "x": 20,
+      "z": 0,
+      "color": "TAN",
+      "exit": { "x": 20, "y": 2, "z": 5 }
+    }
+  ]
+}

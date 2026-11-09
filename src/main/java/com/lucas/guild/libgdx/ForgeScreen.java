@@ -2,7 +2,6 @@ package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.math.Vector3;
 
 /** Intérieur de la forge : le forgeron. */
 public class ForgeScreen extends InteriorScreen {
@@ -10,7 +9,7 @@ public class ForgeScreen extends InteriorScreen {
     private static final String BLACKSMITH = "Blacksmith";
 
     public ForgeScreen(MainGame game, String difficulty) {
-        super(game, difficulty, new Vector3(0, 2, -14), "la forge");
+        super(game, difficulty, "forge", "la forge");
     }
 
     @Override

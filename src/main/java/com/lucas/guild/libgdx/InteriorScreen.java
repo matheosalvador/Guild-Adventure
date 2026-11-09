@@ -3,6 +3,8 @@ package com.lucas.guild.libgdx;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector3;
+import com.lucas.guild.data.GameContent;
+import com.lucas.guild.data.TownData;
 
 /**
  * Intérieur d'un bâtiment (forge, guilde, auberge) : une pièce avec une porte de sortie
@@ -18,12 +20,17 @@ public abstract class InteriorScreen extends BaseWorldScreen {
     private final String placeName;
 
     /**
-     * @param townSpawn où réapparaît le joueur en ville quand il sort (devant la porte du bâtiment)
+     * @param interiorId identifiant de l'intérieur dans town.json (« forge », « guild », « inn ») :
+     *                   on y lit où réapparaît le joueur en ville quand il sort
      * @param placeName nom du lieu pour le journal (« la forge », « la guilde »...)
      */
-    protected InteriorScreen(MainGame game, String difficulty, Vector3 townSpawn, String placeName) {
+    protected InteriorScreen(MainGame game, String difficulty, String interiorId, String placeName) {
         super(game, difficulty);
-        this.townSpawn = townSpawn;
+        TownData.BuildingData building = GameContent.town().findByInterior(interiorId);
+        if (building == null) {
+            throw new IllegalStateException("town.json : aucun batiment n'a \"interior\": \"" + interiorId + "\"");
+        }
+        this.townSpawn = new Vector3(building.exit.x, building.exit.y, building.exit.z);
         this.placeName = placeName;
     }
 

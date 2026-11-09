@@ -3,6 +3,8 @@ package com.lucas.guild.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.lucas.guild.data.GameContent;
+
 public class Inventaire {
     private final List<PotionSoin> potionsSoin = new ArrayList<>();
     private final List<PotionDps> potionsDps = new ArrayList<>();
@@ -12,17 +14,11 @@ public class Inventaire {
     public Inventaire() {
     }
 
+    /** Poids max selon la difficulté, lu dans assets/data/difficulties.json (inchangé si la difficulté est inconnue). */
     public void setPoidsMax(String difficulte) {
-        switch (difficulte) {
-            case "facile":
-                this.poidsMax = 35.0; // Poids de base + 10kg
-                break;
-            case "normale":
-                this.poidsMax = 30.0; // Poids de base + 5kg
-                break;
-            case "realiste":
-                this.poidsMax = 25.0; // Poids de base du chevalier
-                break;
+        Double max = GameContent.maxWeight(difficulte);
+        if (max != null) {
+            this.poidsMax = max;
         }
     }
 

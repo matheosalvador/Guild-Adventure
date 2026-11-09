@@ -3,6 +3,8 @@ package com.lucas.guild.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.lucas.guild.data.GameContent;
+
 public class SkillTree {
     private String className;
     private List<Skill> skills = new ArrayList<>();
@@ -17,18 +19,9 @@ public class SkillTree {
         this.skills = new ArrayList<>();
     }
 
+    /** Les compétences de la classe viennent de assets/data/skills.json (aucune si la classe n'y figure pas). */
     private void initializeTree() {
-        if ("Caserne".equals(className)) {
-            // --- TIER 1 (Rang F) ---
-            skills.add(new Skill("Attaque Puissante", "Une frappe lente mais dévastatrice.", 0, null, new AttaqueSimple("Attaque Puissante", 25)));
-
-            // --- TIER 2 (Rang E) ---
-            skills.add(new Skill("Coup de Bouclier", "Repousse l'ennemi, infligeant de légers dégâts.", 1, "Attaque Puissante", new AttaqueSimple("Coup de Bouclier", 10)));
-            
-            // --- TIER 3 (Rang D) ---
-            skills.add(new Skill("Frappe Circulaire", "Une attaque qui pourrait toucher plusieurs ennemis.", 2, "Coup de Bouclier", new AttaqueSimple("Frappe Circulaire", 20)));
-        }
-        // On pourra ajouter ici les arbres pour "Académie" et "Église"
+        skills.addAll(GameContent.skillsFor(className));
     }
 
     public List<Skill> getSkills() {

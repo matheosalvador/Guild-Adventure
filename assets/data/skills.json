@@ -1,0 +1,36 @@
+{
+  "Caserne": [
+    {
+      "name": "Attaque Puissante",
+      "description": "Une frappe lente mais dévastatrice.",
+      "requiredRank": 0,
+      "attackToLearn": {
+        "attaqueType": "AttaqueSimple",
+        "nom": "Attaque Puissante",
+        "degats": 25
+      }
+    },
+    {
+      "name": "Coup de Bouclier",
+      "description": "Repousse l\'ennemi, infligeant de légers dégâts.",
+      "requiredRank": 1,
+      "prerequisiteSkillName": "Attaque Puissante",
+      "attackToLearn": {
+        "attaqueType": "AttaqueSimple",
+        "nom": "Coup de Bouclier",
+        "degats": 10
+      }
+    },
+    {
+      "name": "Frappe Circulaire",
+      "description": "Une attaque qui pourrait toucher plusieurs ennemis.",
+      "requiredRank": 2,
+      "prerequisiteSkillName": "Coup de Bouclier",
+      "attackToLearn": {
+        "attaqueType": "AttaqueSimple",
+        "nom": "Frappe Circulaire",
+        "degats": 20
+      }
+    }
+  ]
+}

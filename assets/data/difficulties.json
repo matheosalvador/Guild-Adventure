@@ -1,0 +1,14 @@
+{
+  "facile": {
+    "label": "Facile",
+    "maxWeight": 35.0
+  },
+  "normale": {
+    "label": "Normale",
+    "maxWeight": 30.0
+  },
+  "realiste": {
+    "label": "Réaliste",
+    "maxWeight": 25.0
+  }
+}
