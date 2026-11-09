@@ -1,6 +1,6 @@
 package com.lucas.guild.model;
 
-public class ObjetDeQuete implements Item {
+public class ObjetDeQuete extends BaseItem {
     private String name;
 
     // No-arg constructor for Gson deserialization
@@ -28,7 +28,7 @@ public class ObjetDeQuete implements Item {
     }
 
     @Override
-    public double getPoids() {
-        return 0.1; // Poids par défaut pour un objet de quête
+    protected double defaultPoids() {
+        return 0.1;
     }
 }

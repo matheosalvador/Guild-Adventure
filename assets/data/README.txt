@@ -17,7 +17,11 @@ skills.json
     attackToLearn.attaqueType : AttaqueSimple, AttaqueMelee ou AttaqueDistance.
 
 difficulties.json
-    Poids maximum de l'inventaire par difficulte (facile, normale, realiste).
+    Par difficulte (facile, normale, realiste) :
+    maxWeight = poids que le personnage porte sans sac (kg) ;
+    encumbranceStart = part de la charge max a partir de laquelle on ralentit (0.5 = la moitie) ;
+    minSpeedPercent = vitesse (en %) quand on est charge au maximum ;
+    startingGold = or de depart ; startingItems = identifiants (items.json) des objets de depart.
 
 town.json
     La ville : ses batiments (nom, type, position x/z, couleur LibGDX comme DARK_GRAY, BROWN, TAN),
@@ -35,3 +39,12 @@ aging.json
     Paliers de vieillesse, du plus jeune au plus vieux (le premier doit commencer a l'age 0).
     A partir de fromAge ans, les pourcentages s'appliquent a la vie max, a la charge portee et a la vitesse.
 
+items.json
+    Catalogue de tous les objets. "itemType" = Arme, Armure, Sac, PotionSoin, PotionDeSoin, PotionDps ou PotionMix.
+    id = identifiant unique (utilise par les boutiques et les kits de depart) ; poids en kg ; prix en Po.
+    Arme : bonusDegats. Armure : reductionDegats. Sac : capacityBonus (kg de charge en plus quand il est porte).
+    Potions : soin / degats / healingAmount selon le type.
+
+shops.json
+    Les boutiques ("forge", "guild") : title, sellPercent (% du prix paye quand on leur revend un objet)
+    et stock = identifiants (items.json) des objets en vente.

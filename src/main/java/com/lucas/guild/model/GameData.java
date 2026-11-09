@@ -7,7 +7,7 @@ package com.lucas.guild.model;
 public class GameData {
 
     /** Version du format de sauvegarde. 0 = anciennes sauvegardes sans ce champ. */
-    public static final int CURRENT_VERSION = 2;
+    public static final int CURRENT_VERSION = 3;
 
     // Pas d'initialiseur : Gson laisse 0 quand le champ est absent du fichier (ancienne sauvegarde)
     public int version;

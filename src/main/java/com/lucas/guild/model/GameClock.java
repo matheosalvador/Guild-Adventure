@@ -69,7 +69,7 @@ public class GameClock {
         int toSleep = nowMinutes < wakeMinutes ? wakeMinutes - nowMinutes : 24 * 60 - nowMinutes + wakeMinutes;
         advanceMinutes(toSleep);
         minuteFraction = 0f;
-        post("Vous vous réveillez, il est " + formatTime() + ".");
+        postMessage("Vous vous réveillez, il est " + formatTime() + ".");
     }
 
     private void stepMinute() {
@@ -93,18 +93,18 @@ public class GameClock {
         CalendarDate date = GameCalendar.standard().dateOf(currentDay);
         if (date.dayOfSeason == 1) {
             if (date.seasonIndex == 0) {
-                post("Une nouvelle année commence : An " + date.year + ", " + date.seasonName + ".");
+                postMessage("Une nouvelle année commence : An " + date.year + ", " + date.seasonName + ".");
             } else {
-                post("Une nouvelle saison commence : " + date.seasonName + ".");
+                postMessage("Une nouvelle saison commence : " + date.seasonName + ".");
             }
         }
         if (player != null) {
             if (player.isBirthday(currentDay)) {
-                post("Joyeux anniversaire ! Vous avez " + player.getAge(currentDay) + " ans.");
+                postMessage("Joyeux anniversaire ! Vous avez " + player.getAge(currentDay) + " ans.");
             }
             String aging = player.refreshAging(currentDay);
             if (aging != null) {
-                post(aging);
+                postMessage(aging);
             }
         }
     }
@@ -150,7 +150,13 @@ public class GameClock {
         return messages.poll();
     }
 
-    private void post(String message) {
+    /** D'autres messages attendent-ils d'être affichés ? */
+    public boolean hasPendingMessage() {
+        return !messages.isEmpty();
+    }
+
+    /** Ajoute un message à afficher au joueur (événement, refus...). */
+    public void postMessage(String message) {
         messages.add(message);
     }
 

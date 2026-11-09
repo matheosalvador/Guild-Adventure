@@ -12,8 +12,8 @@ public class Adventurer extends Entite {
     private int skillPoints;
     private int experience;
     private int level;
-    private Arme equippedWeapon;
-    private Armure equippedArmor;
+    /** Or du personnage, en Po. */
+    private int gold;
 
     /** Numéro de jour de la naissance (zéro ou négatif pour un personnage né avant le début de la partie). */
     private int birthDay;
@@ -86,13 +86,51 @@ public class Adventurer extends Entite {
         return null;
     }
 
+    /** Équipe un objet de l'inventaire (arme, armure, sac). @return null si c'est fait, sinon la raison du refus. */
+    public String equip(Item item) {
+        return inventory.equip(item);
+    }
+
+    /** Retire un équipement. @return null si c'est fait, sinon la raison du refus. */
+    public String unequip(Inventaire.Slot slot) {
+        return inventory.unequip(slot);
+    }
+
     public int getBonusDegats() {
         int bonus = 0;
-        if (equippedWeapon != null) {
-            bonus += equippedWeapon.getBonusDegats();
+        Arme weapon = inventory != null ? inventory.getWeapon() : null;
+        if (weapon != null) {
+            bonus += weapon.getBonusDegats();
         }
         // On pourrait ajouter d'autres bonus ici (armure, compétences, etc.)
         return bonus;
+    }
+
+    /** Réduction de dégâts de l'armure portée. */
+    public int getDefense() {
+        Armure armor = inventory != null ? inventory.getArmor() : null;
+        return armor != null ? armor.getReductionDegats() : 0;
+    }
+
+    // ------------------------------------------------------------------ or
+
+    public int getGold() {
+        return gold;
+    }
+
+    public void addGold(int amount) {
+        if (amount > 0) {
+            gold += amount;
+        }
+    }
+
+    /** Dépense de l'or. @return false (rien n'est retiré) si le personnage n'en a pas assez. */
+    public boolean spendGold(int amount) {
+        if (amount < 0 || amount > gold) {
+            return false;
+        }
+        gold -= amount;
+        return true;
     }
 
     public SkillTree getSkillTree() {
@@ -191,9 +229,10 @@ public class Adventurer extends Entite {
         return message;
     }
 
-    /** Multiplicateur de vitesse de déplacement dû à l'âge (1.0 = pleine vitesse). */
+    /** Multiplicateur de vitesse de déplacement : l'âge, puis l'encombrement dû à la charge (1.0 = pleine vitesse). */
     public double getSpeedFactor() {
-        return speedFactor;
+        double encumbrance = inventory != null ? inventory.getEncumbranceSpeedFactor() : 1.0;
+        return speedFactor * encumbrance;
     }
 
     /** Vie max réelle : la vie de base réduite par l'âge. */

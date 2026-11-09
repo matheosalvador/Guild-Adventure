@@ -15,6 +15,7 @@ import com.lucas.guild.model.PotionDeSoin;
 import com.lucas.guild.model.PotionDps;
 import com.lucas.guild.model.PotionMix;
 import com.lucas.guild.model.PotionSoin;
+import com.lucas.guild.model.Sac;
 
 /**
  * Configuration Gson unique du jeu, partagée par la sauvegarde et le chargement des données.
@@ -36,7 +37,8 @@ public final class GameGson {
                 .registerSubtype(PotionDps.class)
                 .registerSubtype(PotionMix.class)
                 .registerSubtype(PotionDeSoin.class)
-                .registerSubtype(ObjetDeQuete.class);
+                .registerSubtype(ObjetDeQuete.class)
+                .registerSubtype(Sac.class);
 
         RuntimeTypeAdapterFactory<Attaque> attaqueAdapter = RuntimeTypeAdapterFactory.of(Attaque.class, "attaqueType")
                 .registerSubtype(AttaqueSimple.class)

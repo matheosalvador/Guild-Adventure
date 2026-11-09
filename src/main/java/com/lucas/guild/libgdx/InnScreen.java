@@ -9,6 +9,11 @@ public class InnScreen extends InteriorScreen {
     private static final String INNKEEPER = "Innkeeper";
     private static final String BED = "Bed";
 
+    // Prix en Po
+    private static final int MEAL_PRICE = 5;
+    private static final int BEER_PRICE = 2;
+    private static final int BED_PRICE = 10;
+
     public InnScreen(MainGame game, String difficulty) {
         super(game, difficulty, "inn", "l'auberge");
     }
@@ -54,7 +59,7 @@ public class InnScreen extends InteriorScreen {
             return "Parler à l'aubergiste (E)";
         }
         if (BED.equals(userData)) {
-            return "Dormir (10 Po) (E)";
+            return "Dormir (" + BED_PRICE + " Po) (E)";
         }
         return null;
     }
@@ -66,6 +71,10 @@ public class InnScreen extends InteriorScreen {
             return true;
         }
         if (BED.equals(userData)) {
+            if (!player.spendGold(BED_PRICE)) {
+                gameClock.postMessage("Pas assez d'or : une nuit coûte " + BED_PRICE + " Po.");
+                return true;
+            }
             Gdx.app.log("Auberge", "Le joueur va dormir");
             gameClock.sleepUntilNextMorning();
             player.heal(player.getMaxHealth());
@@ -81,15 +90,25 @@ public class InnScreen extends InteriorScreen {
         }
         dialogTable.add("Bienvenue à La Pinte qui Chante ! Que désirez-vous ?").row();
 
-        addDialogButton("Manger un repas (5 Po)", () -> {
+        addDialogButton("Manger un repas (" + MEAL_PRICE + " Po)", () -> {
+            toggleDialog(null);
+            if (!player.spendGold(MEAL_PRICE)) {
+                gameClock.postMessage("Pas assez d'or : un repas coûte " + MEAL_PRICE + " Po.");
+                return;
+            }
             Gdx.app.log("Auberge", "Le joueur mange un repas.");
             player.heal(20);
-            toggleDialog(null);
+            gameClock.postMessage("Vous mangez un bon repas (+20 PV).");
         });
 
-        addDialogButton("Boire une bière (2 Po)", () -> {
-            Gdx.app.log("Auberge", "Le joueur boit une bière.");
+        addDialogButton("Boire une bière (" + BEER_PRICE + " Po)", () -> {
             toggleDialog(null);
+            if (!player.spendGold(BEER_PRICE)) {
+                gameClock.postMessage("Pas assez d'or : une bière coûte " + BEER_PRICE + " Po.");
+                return;
+            }
+            Gdx.app.log("Auberge", "Le joueur boit une bière.");
+            gameClock.postMessage("Vous buvez une bière. Ça fait du bien.");
         });
 
         addLeaveButton();

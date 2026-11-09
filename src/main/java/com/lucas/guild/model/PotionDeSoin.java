@@ -1,6 +1,6 @@
 package com.lucas.guild.model;
 
-public class PotionDeSoin implements Item {
+public class PotionDeSoin extends BaseItem {
     private String name;
     private int healingAmount;
 
@@ -34,7 +34,12 @@ public class PotionDeSoin implements Item {
     }
 
     @Override
-    public double getPoids() {
-        return 0.5; // Poids par défaut pour une potion
+    public boolean estUtilisableHorsCombat() {
+        return true;
+    }
+
+    @Override
+    protected double defaultPoids() {
+        return 0.5;
     }
 }

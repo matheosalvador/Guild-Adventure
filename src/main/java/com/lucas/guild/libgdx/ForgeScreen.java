@@ -46,10 +46,10 @@ public class ForgeScreen extends InteriorScreen {
         }
         dialogTable.add("Que puis-je faire pour vous ?").row();
 
-        addDialogButton("Forger un objet (10 Po)", () -> {
-            Gdx.app.log("Forge", "Achat d'un objet...");
-            toggleDialog(null);
-        });
+        addDialogButton("Armes et armures", () -> showShop("forge", () -> {
+            dialogTable.clear();
+            buildDialog(BLACKSMITH);
+        }));
 
         if (player.hasLearnedSkill("Attaque Puissante")) {
             addDialogButton("Utiliser l'enclume", () -> {

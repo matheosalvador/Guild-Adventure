@@ -45,10 +45,9 @@ import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.SaveManager;
+import com.lucas.guild.game.Shop;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.GameClock;
-import com.lucas.guild.model.Inventaire;
-import com.lucas.guild.model.Item;
 
 /**
  * Base commune de tous les écrans « monde 3D » (ville et intérieurs de bâtiments).
@@ -101,6 +100,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     // Message d'événement affiché quelques secondes (saison, anniversaire, réveil...)
     private static final float TOAST_SECONDS = 5f;
+    private static final float TOAST_MIN_SECONDS = 2f; // durée minimale quand un autre message attend
     private String toast;
     private float toastTimer;
 
@@ -109,6 +109,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected Skin skin;
     protected Table dialogTable;
     protected Table inventoryTable;
+    private InventoryPanel inventoryPanel;
     protected Table pauseTable;
     protected boolean inDialog = false;
     protected boolean isInventoryOpen = false;
@@ -258,6 +259,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         inventoryTable.setFillParent(true);
         inventoryTable.setVisible(false);
         stage.addActor(inventoryTable);
+        inventoryPanel = new InventoryPanel(inventoryTable, skin, player);
 
         // Menu pause
         pauseTable = new Table(skin);
@@ -391,7 +393,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         hudText.append("Player: ").append(player.getName())
                 .append(" (").append(player.getAge(gameClock.getCurrentDay())).append(" ans)\n");
         hudText.append("HP: ").append(player.getHealth()).append(" / ").append(player.getMaxHealth()).append("\n");
-        hudText.append(gameClock.getDate()).append(" - ").append(gameClock.formatTime());
+        hudText.append(gameClock.getDate()).append(" - ").append(gameClock.formatTime()).append("\n");
+        hudText.append("Or : ").append(player.getGold()).append(" Po - ").append(UiKit.loadLine(player));
         font.draw(spriteBatch, hudText, 10, h - 10);
 
         drawToast(delta, w, h);
@@ -410,7 +413,10 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     private void drawToast(float delta, float w, float h) {
         if (toast != null) {
             toastTimer -= delta;
-            if (toastTimer <= 0f) {
+            // Si d'autres messages attendent, on ne garde pas celui-ci les 5 s complètes : un refus
+            // ("Pas assez d'or") doit apparaître vite, pas après le message précédent.
+            boolean shownLongEnough = toastTimer <= TOAST_SECONDS - TOAST_MIN_SECONDS;
+            if (toastTimer <= 0f || (shownLongEnough && gameClock.hasPendingMessage())) {
                 toast = null;
             }
         }
@@ -425,16 +431,16 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     }
 
     private void drawInventory() {
-        inventoryTable.clear();
-        inventoryTable.top().left();
-        Inventaire inventaire = player.getInventaire();
-        inventoryTable.add(new Label("Inventaire", skin)).colspan(2).pad(10).row();
-        inventoryTable.add(new Label("Poids: " + inventaire.getPoidsActuel() + " / " + inventaire.getPoidsMax() + " kg", skin)).colspan(2).pad(10).row();
+        inventoryPanel.rebuild(null);
+    }
 
-        for (Item item : player.getInventoryItems()) {
-            inventoryTable.add(new Label(item.getName(), skin)).pad(5);
-            inventoryTable.add(new Label(item.getDescription(), skin)).pad(5).row();
-        }
+    /**
+     * Ouvre la boutique {@code shopId} (shops.json) dans la fenêtre de dialogue en cours.
+     *
+     * @param onBack appelé par « Retour » : en général, réafficher le dialogue du PNJ
+     */
+    protected void showShop(String shopId, Runnable onBack) {
+        new ShopPanel(dialogTable, skin, player, new Shop(shopId), onBack).rebuild(null);
     }
 
     // ================================================================== entrées clavier / souris

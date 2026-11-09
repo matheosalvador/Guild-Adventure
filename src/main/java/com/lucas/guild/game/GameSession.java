@@ -2,10 +2,14 @@ package com.lucas.guild.game;
 
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.data.CalendarData;
+import com.lucas.guild.data.DifficultyData;
+import com.lucas.guild.data.GameContent;
 import com.lucas.guild.model.GameCalendar;
 import com.lucas.guild.model.GameClock;
 import com.lucas.guild.model.GameData;
 import com.lucas.guild.model.Inventaire;
+import com.lucas.guild.model.Item;
+import com.lucas.guild.model.Sac;
 import com.lucas.guild.model.Skill;
 import com.lucas.guild.model.SkillTree;
 
@@ -48,8 +52,18 @@ public class GameSession {
 
         Adventurer player = new Adventurer("Lucas", "Caserne");
         Inventaire inventaire = new Inventaire();
-        inventaire.setPoidsMax(diff);
+        inventaire.applyDifficulty(diff);
         player.setInventory(inventaire);
+
+        // Or et objets de départ selon la difficulté (difficulties.json)
+        DifficultyData settings = GameContent.difficulty(diff);
+        player.addGold(settings.startingGold);
+        for (String itemId : settings.startingItems) {
+            Item item = GameContent.newItem(itemId);
+            if (player.addItem(item) && item instanceof Sac) {
+                player.equip(item); // un sac de départ est porté tout de suite
+            }
+        }
 
         // Pour le test : on apprend "Attaque Puissante" (ancien comportement de la forge).
         // A retirer quand le système de compétences sera en place.
@@ -79,10 +93,12 @@ public class GameSession {
         Adventurer player = data.playerData;
 
         if (player.getInventaire() == null) {
-            Inventaire inventaire = new Inventaire();
-            inventaire.setPoidsMax(diff);
-            player.setInventory(inventaire);
+            player.setInventory(new Inventaire());
         }
+        // Anciens formats d'inventaire (une liste par potion) -> liste unique ; poids et encombrement selon la difficulté
+        player.getInventaire().migrateLegacy();
+        player.getInventaire().applyDifficulty(diff);
+
         if (player.getSkillTree() == null) {
             player.setSkillTree(new SkillTree(player.getLocation()));
         }
@@ -96,6 +112,10 @@ public class GameSession {
         GameCalendar calendar = GameCalendar.standard();
         if (data.version < 2) {
             player.setBirthDay(clock.getCurrentDay() - calendar.newGame().startingAge * calendar.daysPerYear());
+        }
+        // Les sauvegardes d'avant la version 3 n'ont pas d'or : on donne celui de départ.
+        if (data.version < 3 && player.getGold() == 0) {
+            player.addGold(GameContent.difficulty(diff).startingGold);
         }
         // Les effets de l'âge ne sont pas sauvegardés : on les recalcule.
         player.refreshAging(clock.getCurrentDay());

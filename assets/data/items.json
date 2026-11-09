@@ -1,0 +1,19 @@
+[
+  { "itemType": "PotionSoin", "id": "healing_potion", "name": "Potion de Soin", "description": "Restaure 25 points de vie.", "soin": 25, "poids": 0.5, "prix": 10 },
+  { "itemType": "PotionDeSoin", "id": "greater_healing_potion", "name": "Grande potion de soin", "healingAmount": 60, "poids": 0.8, "prix": 30 },
+  { "itemType": "PotionDps", "id": "damage_potion", "name": "Potion de Dégâts", "description": "Inflige 20 points de dégâts au monstre.", "degats": 20, "poids": 0.7, "prix": 15 },
+  { "itemType": "PotionMix", "id": "mixed_potion", "name": "Potion Mixte", "description": "Restaure 15 PV au joueur et inflige 15 dégâts au monstre.", "soin": 15, "degats": 15, "poids": 1.0, "prix": 20 },
+
+  { "itemType": "Arme", "id": "dagger", "name": "Dague", "bonusDegats": 3, "poids": 1.0, "prix": 15 },
+  { "itemType": "Arme", "id": "short_sword", "name": "Épée courte", "bonusDegats": 6, "poids": 2.0, "prix": 40 },
+  { "itemType": "Arme", "id": "battle_axe", "name": "Hache de guerre", "bonusDegats": 9, "poids": 3.5, "prix": 70 },
+  { "itemType": "Arme", "id": "long_sword", "name": "Épée longue", "bonusDegats": 12, "poids": 3.0, "prix": 110 },
+
+  { "itemType": "Armure", "id": "leather_armor", "name": "Armure de cuir", "reductionDegats": 2, "poids": 4.0, "prix": 35 },
+  { "itemType": "Armure", "id": "chain_mail", "name": "Cotte de mailles", "reductionDegats": 5, "poids": 8.0, "prix": 90 },
+  { "itemType": "Armure", "id": "plate_armor", "name": "Armure de plaques", "reductionDegats": 9, "poids": 15.0, "prix": 220 },
+
+  { "itemType": "Sac", "id": "pouch", "name": "Besace", "capacityBonus": 5.0, "poids": 0.5, "prix": 20 },
+  { "itemType": "Sac", "id": "backpack", "name": "Sac à dos", "capacityBonus": 15.0, "poids": 1.5, "prix": 60 },
+  { "itemType": "Sac", "id": "travel_bag", "name": "Sac de voyage", "capacityBonus": 30.0, "poids": 3.0, "prix": 150 }
+]

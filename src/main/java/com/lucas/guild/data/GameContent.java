@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,6 +18,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
 import com.lucas.guild.model.AgingStage;
+import com.lucas.guild.model.Item;
 import com.lucas.guild.model.Quest;
 import com.lucas.guild.model.Skill;
 
@@ -65,11 +68,99 @@ public final class GameContent {
         return skills != null ? skills : new ArrayList<Skill>();
     }
 
-    /** Poids maximum de l'inventaire pour une difficulté, ou {@code null} si la difficulté est inconnue. */
+    /** Poids maximum de l'inventaire (sans sac) pour une difficulté, ou {@code null} si la difficulté est inconnue. */
     public static Double maxWeight(String difficulty) {
-        Map<String, DifficultyData> all = read("difficulties.json", new TypeToken<Map<String, DifficultyData>>() { }.getType());
-        DifficultyData data = difficulty != null ? all.get(difficulty) : null;
+        DifficultyData data = difficulty(difficulty);
         return data != null ? Double.valueOf(data.maxWeight) : null;
+    }
+
+    /** Les réglages d'une difficulté (poids, encombrement, or et objets de départ), ou {@code null} si inconnue. */
+    public static DifficultyData difficulty(String difficulty) {
+        Map<String, DifficultyData> all = difficulties();
+        return difficulty != null ? all.get(difficulty) : null;
+    }
+
+    private static Map<String, DifficultyData> difficulties() {
+        Map<String, DifficultyData> all = read("difficulties.json", new TypeToken<Map<String, DifficultyData>>() { }.getType());
+        Set<String> itemIds = null;
+        for (Map.Entry<String, DifficultyData> e : all.entrySet()) {
+            DifficultyData d = e.getValue();
+            String where = "difficulties.json : \"" + e.getKey() + "\"";
+            if (d == null) throw new IllegalStateException(where + " : vide");
+            if (d.maxWeight <= 0) throw new IllegalStateException(where + " : \"maxWeight\" doit etre > 0");
+            if (d.encumbranceStart <= 0 || d.encumbranceStart > 1) throw new IllegalStateException(where + " : \"encumbranceStart\" doit etre entre 0 (exclu) et 1");
+            if (d.minSpeedPercent < 1 || d.minSpeedPercent > 100) throw new IllegalStateException(where + " : \"minSpeedPercent\" doit etre entre 1 et 100");
+            if (d.startingGold < 0) throw new IllegalStateException(where + " : \"startingGold\" doit etre >= 0");
+            if (d.startingItems == null) d.startingItems = new ArrayList<>();
+            for (String id : d.startingItems) {
+                if (itemIds == null) itemIds = itemIds();
+                if (!itemIds.contains(id)) throw new IllegalStateException(where + " : objet de depart inconnu \"" + id + "\" (voir items.json)");
+            }
+        }
+        return all;
+    }
+
+    /** Tous les objets du catalogue (nouvelles instances à chaque appel). */
+    public static List<Item> items() {
+        List<Item> items = read("items.json", new TypeToken<List<Item>>() { }.getType());
+        Set<String> seen = new HashSet<>();
+        for (int i = 0; i < items.size(); i++) {
+            Item item = items.get(i);
+            String where = "items.json : objet n°" + (i + 1);
+            if (item == null) throw new IllegalStateException(where + " : vide");
+            if (item.getId() == null || item.getId().isEmpty()) throw new IllegalStateException(where + " : \"id\" manquant");
+            where += " (" + item.getId() + ")";
+            if (!seen.add(item.getId())) throw new IllegalStateException(where + " : \"id\" en double");
+            if (item.getName() == null || item.getName().isEmpty()) throw new IllegalStateException(where + " : \"name\" manquant");
+            if (item.getPoids() <= 0) throw new IllegalStateException(where + " : \"poids\" doit etre > 0");
+            if (item.getPrix() < 0) throw new IllegalStateException(where + " : \"prix\" doit etre >= 0");
+        }
+        return items;
+    }
+
+    private static Set<String> itemIds() {
+        Set<String> ids = new HashSet<>();
+        for (Item item : items()) {
+            ids.add(item.getId());
+        }
+        return ids;
+    }
+
+    /** Une nouvelle instance de l'objet {@code id} du catalogue, ou {@code null} s'il n'existe pas. */
+    public static Item newItem(String id) {
+        for (Item item : items()) {
+            if (item.getId().equals(id)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /** La boutique {@code shopId} (« forge », « guild »...). @throws IllegalStateException si elle n'existe pas ou est invalide. */
+    public static ShopData shop(String shopId) {
+        Map<String, ShopData> shops = shops();
+        ShopData shop = shops.get(shopId);
+        if (shop == null) {
+            throw new IllegalStateException("shops.json : boutique inconnue \"" + shopId + "\"");
+        }
+        return shop;
+    }
+
+    private static Map<String, ShopData> shops() {
+        Map<String, ShopData> shops = read("shops.json", new TypeToken<Map<String, ShopData>>() { }.getType());
+        Set<String> itemIds = itemIds();
+        for (Map.Entry<String, ShopData> e : shops.entrySet()) {
+            ShopData shop = e.getValue();
+            String where = "shops.json : boutique \"" + e.getKey() + "\"";
+            if (shop == null) throw new IllegalStateException(where + " : vide");
+            if (shop.title == null || shop.title.isEmpty()) throw new IllegalStateException(where + " : \"title\" manquant");
+            if (shop.sellPercent < 0 || shop.sellPercent > 100) throw new IllegalStateException(where + " : \"sellPercent\" doit etre entre 0 et 100");
+            if (shop.stock == null) shop.stock = new ArrayList<>();
+            for (String id : shop.stock) {
+                if (!itemIds.contains(id)) throw new IllegalStateException(where + " : objet inconnu \"" + id + "\" (voir items.json)");
+            }
+        }
+        return shops;
     }
 
     /** La ville (nom et bâtiments). */
@@ -119,15 +210,11 @@ public final class GameContent {
         quests();
         skillsFor("Caserne");
         maxWeight("normale");
+        shop("forge");
+        shop("guild");
         town();
         calendar();
         agingStages();
-    }
-
-    /** Une difficulté telle qu'écrite dans {@code difficulties.json}. */
-    static class DifficultyData {
-        String label;
-        double maxWeight;
     }
 
     // ------------------------------------------------------------------ lecture

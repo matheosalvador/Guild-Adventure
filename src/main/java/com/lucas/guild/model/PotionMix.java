@@ -1,6 +1,6 @@
 package com.lucas.guild.model;
 
-public class PotionMix implements Item {
+public class PotionMix extends BaseItem {
     private String name = "Potion Mixte";
     private String description = "Restaure 15 PV au joueur et inflige 15 dégâts au monstre.";
     private int soin = 15;
@@ -33,7 +33,7 @@ public class PotionMix implements Item {
     }
 
     @Override
-    public double getPoids() {
+    protected double defaultPoids() {
         return 1.0;
     }
 }

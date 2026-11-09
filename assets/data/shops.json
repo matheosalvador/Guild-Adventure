@@ -1,0 +1,12 @@
+{
+  "forge": {
+    "title": "La Forge du Nain Grincheux",
+    "sellPercent": 50,
+    "stock": ["dagger", "short_sword", "battle_axe", "long_sword", "leather_armor", "chain_mail", "plate_armor"]
+  },
+  "guild": {
+    "title": "Matériel de la Guilde",
+    "sellPercent": 50,
+    "stock": ["healing_potion", "greater_healing_potion", "damage_potion", "mixed_potion", "pouch", "backpack", "travel_bag"]
+  }
+}

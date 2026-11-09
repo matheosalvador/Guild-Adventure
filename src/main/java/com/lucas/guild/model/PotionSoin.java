@@ -1,6 +1,6 @@
 package com.lucas.guild.model;
 
-public class PotionSoin implements Item {
+public class PotionSoin extends BaseItem {
     private String name = "Potion de Soin";
     private String description = "Restaure 25 points de vie.";
     private int soin = 25;
@@ -27,7 +27,12 @@ public class PotionSoin implements Item {
     }
 
     @Override
-    public double getPoids() {
+    public boolean estUtilisableHorsCombat() {
+        return true;
+    }
+
+    @Override
+    protected double defaultPoids() {
         return 0.5;
     }
 }

@@ -67,6 +67,11 @@ public class GuildScreen extends InteriorScreen {
             toggleQuestBoard();
         });
 
+        addDialogButton("Acheter du matériel", () -> showShop("guild", () -> {
+            dialogTable.clear();
+            buildDialog(GUILD_MASTER);
+        }));
+
         addLeaveButton();
     }
 
