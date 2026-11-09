@@ -41,7 +41,7 @@ import com.lucas.guild.model.Inventaire;
 import com.lucas.guild.model.Item;
 import com.lucas.guild.model.Quest;
 import com.lucas.guild.game.SaveManager;
-import com.lucas.guild.model.GameData;
+import com.lucas.guild.game.GameSession;
 
 import java.util.List;
 
@@ -94,23 +94,12 @@ public class GuildScreen extends InputAdapter implements Screen {
     public void show() {
         Bullet.init();
         
-        // Attempt to load a saved game; fall back to new game if none exists
+        // L'état de la partie vient de la session en mémoire (jamais relu depuis le disque ici)
         saveManager = new SaveManager();
-        GameData savedData = saveManager.loadGame();
-        if (savedData != null && savedData.playerData != null) {
-            player = savedData.playerData;
-            gameClock = new GameClock(player);
-            gameClock.setCurrentHour(savedData.currentHour);
-            gameClock.setCurrentDay(savedData.currentDay);
-            Gdx.app.log("SAVE", "Sauvegarde chargée : " + player.getName() + " (Niv " + player.getLevel() + ", HP " + player.getHealth() + "/" + player.getMaxHealth() + ")");
-        } else {
-            player = new Adventurer("Lucas", "Guilde");
-            Inventaire inventaire = new Inventaire();
-            inventaire.setPoidsMax(difficulty);
-            player.setInventory(inventaire);
-            gameClock = new GameClock(player);
-        }
-        
+        GameSession session = game.getSession();
+        player = session.getPlayer();
+        gameClock = session.getClock();
+
         guild = new Guild();
 
         setup3DEnvironment();
@@ -120,14 +109,8 @@ public class GuildScreen extends InputAdapter implements Screen {
 
         createGuildHall();
 
-        // Use saved position or default spawn point
-        Vector3 spawnPos;
-        if (savedData != null && savedData.playerData != null) {
-            spawnPos = new Vector3(savedData.playerX, savedData.playerY, savedData.playerZ);
-        } else {
-            spawnPos = new Vector3(0, 2, -8);
-        }
-        playerController = new PlayerController(camera, dynamicsWorld, player, spawnPos);
+        // On arrive toujours devant la porte de la guilde
+        playerController = new PlayerController(camera, dynamicsWorld, player, new Vector3(0, 2, -8));
     }
 
     private void setup3DEnvironment() {
@@ -429,11 +412,11 @@ public class GuildScreen extends InputAdapter implements Screen {
                     toggleDialog("GuildMaster");
                     return true;
                 } else if ("Door".equals(objectInView.userData)) {
-                    // Auto-save before leaving
-                    Vector3 playerPos = playerController.getPlayerBody().getCenterOfMassPosition();
-                    saveManager.saveGame(player, gameClock, difficulty, playerPos.x, playerPos.y, playerPos.z, "Town");
+                    // Auto-save before leaving : position DANS LA VILLE (devant la porte)
+                    Vector3 townSpawn = new Vector3(-20, 2, 5);
+                    saveManager.saveGame(player, gameClock, difficulty, townSpawn.x, townSpawn.y, townSpawn.z, "Town");
                     Gdx.app.log("SAVE", "Sauvegarde automatique en quittant la guilde");
-                    game.setScreen(new TownScreen(game, difficulty, new Vector3(-20, 2, 5)));
+                    game.setScreen(new TownScreen(game, difficulty, townSpawn));
                     return true;
                 }
             }

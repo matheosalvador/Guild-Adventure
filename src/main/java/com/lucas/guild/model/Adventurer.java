@@ -91,6 +91,10 @@ public class Adventurer extends Entite {
         return skillTree;
     }
 
+    public void setSkillTree(SkillTree skillTree) {
+        this.skillTree = skillTree;
+    }
+
     public boolean hasLearnedSkill(String skillName) {
         for (Skill skill : skillTree.getSkills()) {
             if (skill.getName().equals(skillName) && skill.isLearned()) {

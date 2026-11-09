@@ -42,11 +42,11 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.game.Forge;
+import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.Building;
 import com.lucas.guild.model.GameClock;
-import com.lucas.guild.model.GameData;
 import com.lucas.guild.model.Inventaire;
 import com.lucas.guild.model.Item;
 import com.lucas.guild.model.Town;
@@ -106,24 +106,11 @@ public class TownScreen extends InputAdapter implements Screen {
     public void show() {
         Bullet.init();
 
-        // Attempt to load a saved game; fall back to new game if none exists
+        // L'état de la partie vient de la session en mémoire (jamais relu depuis le disque ici)
         saveManager = new SaveManager();
-        GameData savedData = saveManager.loadGame();
-        if (savedData != null && savedData.playerData != null) {
-            player = savedData.playerData;
-            gameClock = new GameClock(player);
-            gameClock.setCurrentHour(savedData.currentHour);
-            gameClock.setCurrentDay(savedData.currentDay);
-            // Update spawn point with saved position
-            spawnPoint.set(savedData.playerX, savedData.playerY, savedData.playerZ);
-            Gdx.app.log("SAVE", "Sauvegarde chargée : " + player.getName() + " (Niv " + player.getLevel() + ", HP " + player.getHealth() + "/" + player.getMaxHealth() + ") Position: " + savedData.playerX + ", " + savedData.playerY + ", " + savedData.playerZ);
-        } else {
-            player = new Adventurer("Lucas", "Ville");
-            Inventaire inventaire = new Inventaire();
-            inventaire.setPoidsMax(difficulty);
-            player.setInventory(inventaire);
-            gameClock = new GameClock(player);
-        }
+        GameSession session = game.getSession();
+        player = session.getPlayer();
+        gameClock = session.getClock();
 
         setup3DEnvironment();
         setupPhysics();
@@ -344,15 +331,27 @@ public class TownScreen extends InputAdapter implements Screen {
         // Quick Save (F5) — always available, even when paused
         if (keycode == Input.Keys.F5) {
             Vector3 playerPos = playerController.getPlayerBody().getCenterOfMassPosition();
-            saveManager.saveGame(player, gameClock, difficulty, playerPos.x, playerPos.y, playerPos.z, "Town");
-            Gdx.app.log("SAVE", "Partie sauvegardée ! Niveau: " + player.getLevel() + ", XP: " + player.getExperience() + ", Items: " + player.getInventoryItems().size());
+            boolean saved = saveManager.saveGame(player, gameClock, difficulty, playerPos.x, playerPos.y, playerPos.z, "Town");
+            if (saved) {
+                Gdx.app.log("SAVE", "Partie sauvegardée ! Niveau: " + player.getLevel() + ", XP: " + player.getExperience() + ", Items: " + player.getInventoryItems().size());
+            } else {
+                Gdx.app.error("SAVE", "ÉCHEC de la sauvegarde (voir la console)");
+            }
             return true;
         }
 
-        // Quick Load (F9) — restarts the screen to reload from save
+        // Quick Load (F9) — recharge la sauvegarde disque dans la session puis relance la ville
         if (keycode == Input.Keys.F9) {
-            Gdx.app.log("SAVE", "Chargement de la sauvegarde...");
-            game.setScreen(new TownScreen(game, difficulty));
+            if (game.loadSavedGame()) {
+                GameSession loaded = game.getSession();
+                Vector3 pos = loaded.hasSavedPosition()
+                        ? new Vector3(loaded.getSavedX(), loaded.getSavedY(), loaded.getSavedZ())
+                        : new Vector3(0, 2, 0);
+                Gdx.app.log("SAVE", "Sauvegarde chargée : " + loaded.getPlayer().getName());
+                game.setScreen(new TownScreen(game, loaded.getDifficulty(), pos));
+            } else {
+                Gdx.app.error("SAVE", "Aucune sauvegarde utilisable à charger");
+            }
             return true;
         }
 

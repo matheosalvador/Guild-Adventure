@@ -2,15 +2,21 @@ package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.lucas.guild.game.GameSession;
+import com.lucas.guild.game.SaveManager;
 
 public class MainMenuScreen implements Screen {
 
@@ -21,6 +27,7 @@ public class MainMenuScreen implements Screen {
 
     // Tables pour les bouttons
     private Table mainTable;
+    private Table startTable;
     private Table difficultyTable;
 
     public MainMenuScreen(MainGame game) {
@@ -40,6 +47,9 @@ public class MainMenuScreen implements Screen {
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
         textButtonStyle.font = skin.getFont("default-font");
         skin.add("default", textButtonStyle);
+        skin.add("default", new Label.LabelStyle(font, Color.WHITE));
+
+        boolean hasSave = new SaveManager().hasSave();
 
         // Table Menu P
         mainTable = new Table();
@@ -56,6 +66,29 @@ public class MainMenuScreen implements Screen {
         mainTable.add(creditsButton).pad(10).row();
         mainTable.add(exitButton).pad(10).row();
 
+        // Table Nouvelle partie / Continuer
+        startTable = new Table();
+        startTable.setFillParent(true);
+        startTable.setVisible(false);
+        stage.addActor(startTable);
+
+        TextButton newGameButton = new TextButton("Nouvelle partie", skin);
+        TextButton continueButton = new TextButton("Continuer", skin);
+        TextButton startBackButton = new TextButton("Retour", skin);
+        final Label startMessage = new Label("", skin);
+        startMessage.setColor(Color.SALMON);
+
+        if (!hasSave) {
+            // Pas de sauvegarde : le bouton est grisé et non cliquable
+            continueButton.setColor(Color.GRAY);
+            continueButton.setTouchable(Touchable.disabled);
+        }
+
+        startTable.add(newGameButton).pad(10).row();
+        startTable.add(continueButton).pad(10).row();
+        startTable.add(startMessage).pad(5).row();
+        startTable.add(startBackButton).pad(20).row();
+
         // Table Difficulté
         difficultyTable = new Table();
         difficultyTable.setFillParent(true);
@@ -67,6 +100,11 @@ public class MainMenuScreen implements Screen {
         TextButton realisticButton = new TextButton("Realiste", skin);
         TextButton backButton = new TextButton("Retour", skin);
 
+        if (hasSave) {
+            Label warning = new Label("Une sauvegarde existe : elle sera remplacee a la premiere sauvegarde.", skin);
+            warning.setColor(Color.ORANGE);
+            difficultyTable.add(warning).pad(10).row();
+        }
         difficultyTable.add(easyButton).pad(10).row();
         difficultyTable.add(normalButton).pad(10).row();
         difficultyTable.add(realisticButton).pad(10).row();
@@ -74,41 +112,75 @@ public class MainMenuScreen implements Screen {
 
         // Clikeable Boutton logique
 
-        // Bouton Start to Affiche le menu de difficulté
+        // Bouton Start : affiche le choix Nouvelle partie / Continuer
         startButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                startMessage.setText("");
                 mainTable.setVisible(false);
+                startTable.setVisible(true);
+            }
+        });
+
+        // Nouvelle partie : affiche le choix de difficulté
+        newGameButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                startTable.setVisible(false);
                 difficultyTable.setVisible(true);
             }
         });
 
-        // Boutons de difficulté real start a intergrer la save qui Lancent le jeu
+        // Continuer : charge la sauvegarde disque puis reprend la ville à la position sauvegardée
+        continueButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (game.loadSavedGame()) {
+                    GameSession session = game.getSession();
+                    Vector3 spawn = session.hasSavedPosition()
+                            ? new Vector3(session.getSavedX(), session.getSavedY(), session.getSavedZ())
+                            : new Vector3(0, 2, 0);
+                    game.setScreen(new TownScreen(game, session.getDifficulty(), spawn));
+                } else {
+                    startMessage.setText("Sauvegarde illisible ou introuvable (voir la console).");
+                }
+            }
+        });
+
+        startBackButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                startTable.setVisible(false);
+                mainTable.setVisible(true);
+            }
+        });
+
+        // Boutons de difficulté : démarrent une partie NEUVE (aucune sauvegarde n'est lue)
         easyButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new TownScreen(game, "facile"));
+                startNewGame("facile");
             }
         });
         normalButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new TownScreen(game, "normale"));
+                startNewGame("normale");
             }
         });
         realisticButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new TownScreen(game, "realiste"));
+                startNewGame("realiste");
             }
         });
 
-        // Bouton Retour qui Affiche le menu principal
+        // Bouton Retour : revient au choix Nouvelle partie / Continuer
         backButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 difficultyTable.setVisible(false);
-                mainTable.setVisible(true);
+                startTable.setVisible(true);
             }
         });
         
@@ -133,6 +205,11 @@ public class MainMenuScreen implements Screen {
                 Gdx.app.exit();
             }
         });
+    }
+
+    private void startNewGame(String difficulty) {
+        game.startNewGame(difficulty);
+        game.setScreen(new TownScreen(game, difficulty));
     }
 
     @Override

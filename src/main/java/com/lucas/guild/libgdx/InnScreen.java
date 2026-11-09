@@ -37,7 +37,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.GameClock;
-import com.lucas.guild.model.GameData;
+import com.lucas.guild.game.GameSession;
 import com.lucas.guild.model.Inventaire;
 import com.lucas.guild.model.Item;
 
@@ -86,21 +86,11 @@ public class InnScreen extends InputAdapter implements Screen {
     public void show() {
         Bullet.init();
         
+        // L'état de la partie vient de la session en mémoire (jamais relu depuis le disque ici)
         saveManager = new SaveManager();
-        GameData savedData = saveManager.loadGame();
-        if (savedData != null && savedData.playerData != null) {
-            player = savedData.playerData;
-            gameClock = new GameClock(player);
-            gameClock.setCurrentHour(savedData.currentHour);
-            gameClock.setCurrentDay(savedData.currentDay);
-            Gdx.app.log("SAVE", "Sauvegarde chargée : " + player.getName() + " (Niv " + player.getLevel() + ", HP " + player.getHealth() + "/" + player.getMaxHealth() + ")");
-        } else {
-            player = new Adventurer("Lucas", "Auberge");
-            Inventaire inventaire = new Inventaire();
-            inventaire.setPoidsMax(difficulty);
-            player.setInventory(inventaire);
-            gameClock = new GameClock(player);
-        }
+        GameSession session = game.getSession();
+        player = session.getPlayer();
+        gameClock = session.getClock();
 
         setup3DEnvironment();
         setupPhysics();
@@ -420,11 +410,11 @@ public class InnScreen extends InputAdapter implements Screen {
                     toggleDialog("Innkeeper");
                     return true;
                 } else if ("Door".equals(objectInView.userData)) {
-                    // Auto-save before leaving
-                    Vector3 playerPos = playerController.getPlayerBody().getCenterOfMassPosition();
-                    saveManager.saveGame(player, gameClock, difficulty, playerPos.x, playerPos.y, playerPos.z, "Town");
+                    // Auto-save before leaving : position DANS LA VILLE (devant la porte)
+                    Vector3 townSpawn = new Vector3(20, 2, 5);
+                    saveManager.saveGame(player, gameClock, difficulty, townSpawn.x, townSpawn.y, townSpawn.z, "Town");
                     Gdx.app.log("SAVE", "Sauvegarde automatique en quittant l'auberge");
-                    game.setScreen(new TownScreen(game, difficulty, new Vector3(20, 2, 5)));
+                    game.setScreen(new TownScreen(game, difficulty, townSpawn));
                     return true;
                 } else if ("Bed".equals(objectInView.userData)) {
                     Gdx.app.log("Auberge", "Le joueur va dormir");
