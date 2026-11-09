@@ -1,6 +1,8 @@
 package com.lucas.guild.game;
 
 import com.lucas.guild.model.Adventurer;
+import com.lucas.guild.data.CalendarData;
+import com.lucas.guild.model.GameCalendar;
 import com.lucas.guild.model.GameClock;
 import com.lucas.guild.model.GameData;
 import com.lucas.guild.model.Inventaire;
@@ -58,7 +60,17 @@ public class GameSession {
             }
         }
 
-        return new GameSession(player, new GameClock(player), diff, false, 0, 0, 0);
+        // Date, heure et âge de départ (calendar.json)
+        GameCalendar calendar = GameCalendar.standard();
+        CalendarData.NewGameData start = calendar.newGame();
+        GameClock clock = new GameClock(player);
+        clock.setCurrentDay(start.day);
+        clock.setCurrentHour(start.hour);
+        clock.setCurrentMinute(start.minute);
+        player.setBirthDay(start.day - start.startingAge * calendar.daysPerYear());
+        player.refreshAging(start.day);
+
+        return new GameSession(player, clock, diff, false, 0, 0, 0);
     }
 
     /** Reconstruit une session depuis une sauvegarde, en réparant les champs manquants. */
@@ -77,7 +89,16 @@ public class GameSession {
 
         GameClock clock = new GameClock(player);
         clock.setCurrentHour(Math.max(0, Math.min(23, data.currentHour)));
+        clock.setCurrentMinute(data.currentMinute);
         clock.setCurrentDay(Math.max(1, data.currentDay));
+
+        // Les sauvegardes d'avant la version 2 n'ont pas de date de naissance : on donne l'âge de départ.
+        GameCalendar calendar = GameCalendar.standard();
+        if (data.version < 2) {
+            player.setBirthDay(clock.getCurrentDay() - calendar.newGame().startingAge * calendar.daysPerYear());
+        }
+        // Les effets de l'âge ne sont pas sauvegardés : on les recalcule.
+        player.refreshAging(clock.getCurrentDay());
 
         // currentScreen n'est renseigné que par les sauvegardes qui contiennent une position
         boolean hasPosition = data.currentScreen != null;

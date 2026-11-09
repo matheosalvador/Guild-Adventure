@@ -13,6 +13,7 @@ import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.TownData;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.model.Building;
+import com.lucas.guild.model.DayNightCycle;
 
 /**
  * La ville. Le sol est fixe ; les bâtiments (nom, position, couleur, intérieur à ouvrir)
@@ -35,6 +36,9 @@ public class TownScreen extends BaseWorldScreen {
 
     private final Vector3 spawnPoint;
 
+    /** Couleur du ciel, mise à jour à chaque image selon l'heure. */
+    private final Color sky = new Color(0.5f, 0.8f, 1f, 1f);
+
     public TownScreen(MainGame game, String difficulty) {
         this(game, difficulty, new Vector3(0, 2, 0));
     }
@@ -51,7 +55,20 @@ public class TownScreen extends BaseWorldScreen {
 
     @Override
     protected Color getBackgroundColor() {
-        return new Color(0.5f, 0.8f, 1f, 1f);
+        return sky;
+    }
+
+    /** Jour et nuit : le ciel, le soleil (puis la lune) et la lumière ambiante suivent l'heure et la saison. */
+    @Override
+    protected void updateEnvironment() {
+        DayNightCycle.Light light = DayNightCycle.compute(
+                gameClock.getTimeOfDay(), gameClock.getSunrise(), gameClock.getSunset(), getAmbientLight());
+
+        sky.set(light.sky[0], light.sky[1], light.sky[2], 1f);
+
+        ambientLight.color.set(light.ambient[0], light.ambient[1], light.ambient[2], 1f);
+        sunLight.color.set(light.lightColor[0], light.lightColor[1], light.lightColor[2], 1f);
+        sunLight.direction.set(light.lightDirection[0], light.lightDirection[1], light.lightDirection[2]).nor();
     }
 
     @Override

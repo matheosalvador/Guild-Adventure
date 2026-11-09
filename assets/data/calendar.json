@@ -1,0 +1,13 @@
+{
+  "secondsPerGameHour": 60,
+  "daysPerSeason": 28,
+  "wakeHour": 7,
+  "weekdays": ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"],
+  "seasons": [
+    { "name": "Printemps", "sunrise": 6.0, "sunset": 19.5 },
+    { "name": "Été",       "sunrise": 5.0, "sunset": 21.0 },
+    { "name": "Automne",   "sunrise": 6.5, "sunset": 18.5 },
+    { "name": "Hiver",     "sunrise": 8.0, "sunset": 17.0 }
+  ],
+  "newGame": { "day": 1, "hour": 8, "minute": 0, "startingAge": 20 }
+}

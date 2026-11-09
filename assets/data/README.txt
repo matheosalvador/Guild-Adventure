@@ -23,3 +23,15 @@ town.json
     La ville : ses batiments (nom, type, position x/z, couleur LibGDX comme DARK_GRAY, BROWN, TAN),
     l'ecran d'interieur a ouvrir ("forge", "guild" ou "inn") et "exit", la position du joueur en
     ville quand il sort du batiment.
+
+calendar.json
+    Le temps. 1 heure de jeu = secondsPerGameHour secondes reelles. Une saison dure daysPerSeason jours,
+    une annee = 4 saisons. Les jours de la semaine tournent sur la liste "weekdays".
+    Pour chaque saison : sunrise / sunset = heures de lever et coucher du soleil (le jeu les adoucit d'une
+    saison a l'autre). wakeHour = heure du reveil apres une nuit a l'auberge.
+    newGame = date, heure et age du personnage au debut d'une nouvelle partie.
+
+aging.json
+    Paliers de vieillesse, du plus jeune au plus vieux (le premier doit commencer a l'age 0).
+    A partir de fromAge ans, les pourcentages s'appliquent a la vie max, a la charge portee et a la vitesse.
+

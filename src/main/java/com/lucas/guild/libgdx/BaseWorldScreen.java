@@ -77,6 +77,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected PerspectiveCamera camera;
     protected ModelBatch modelBatch;
     protected Environment environment;
+    /** Lumière ambiante et lumière directionnelle (soleil) : modifiables à chaque image par {@link #updateEnvironment()}. */
+    protected ColorAttribute ambientLight;
+    protected DirectionalLight sunLight;
     protected PlayerController playerController;
 
     // Physique
@@ -95,6 +98,11 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected BitmapFont font;
     protected final GlyphLayout layout = new GlyphLayout();
     private final StringBuilder hudText = new StringBuilder();
+
+    // Message d'événement affiché quelques secondes (saison, anniversaire, réveil...)
+    private static final float TOAST_SECONDS = 5f;
+    private String toast;
+    private float toastTimer;
 
     // Interface (menus)
     protected Stage stage;
@@ -167,6 +175,10 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         return false;
     }
 
+    /** Appelé à chaque image avant le dessin : permet de faire varier l'éclairage (ex. jour et nuit en ville). */
+    protected void updateEnvironment() {
+    }
+
     /** Ajoute des acteurs à l'interface, après les menus de base. */
     protected void setupExtraUI() {
     }
@@ -206,8 +218,10 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
         float ambient = getAmbientLight();
         environment = new Environment();
-        environment.set(new ColorAttribute(ColorAttribute.AmbientLight, ambient, ambient, ambient, 1f));
-        environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
+        ambientLight = new ColorAttribute(ColorAttribute.AmbientLight, ambient, ambient, ambient, 1f);
+        environment.set(ambientLight);
+        sunLight = new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f);
+        environment.add(sunLight);
 
         spriteBatch = new SpriteBatch();
         font = new BitmapFont();
@@ -329,6 +343,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     @Override
     public void render(float delta) {
         update(delta);
+        updateEnvironment();
 
         Color bg = getBackgroundColor();
         Gdx.gl.glClearColor(bg.r, bg.g, bg.b, 1);
@@ -339,7 +354,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         modelBatch.end();
 
         spriteBatch.begin();
-        drawHud();
+        drawHud(delta);
         spriteBatch.end();
 
         if (isOverlayOpen()) {
@@ -362,7 +377,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         }
     }
 
-    private void drawHud() {
+    private void drawHud(float delta) {
         if (isOverlayOpen()) {
             return;
         }
@@ -373,10 +388,13 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
         hudText.setLength(0);
         hudText.append("FPS: ").append(Gdx.graphics.getFramesPerSecond()).append("\n");
-        hudText.append("Player: ").append(player.getName()).append("\n");
+        hudText.append("Player: ").append(player.getName())
+                .append(" (").append(player.getAge(gameClock.getCurrentDay())).append(" ans)\n");
         hudText.append("HP: ").append(player.getHealth()).append(" / ").append(player.getMaxHealth()).append("\n");
-        hudText.append("Time: ").append(gameClock.getCurrentHour()).append("h, Day ").append(gameClock.getCurrentDay());
+        hudText.append(gameClock.getDate()).append(" - ").append(gameClock.formatTime());
         font.draw(spriteBatch, hudText, 10, h - 10);
+
+        drawToast(delta, w, h);
 
         btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
         if (objectInView != null) {
@@ -385,6 +403,24 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
                 layout.setText(font, text);
                 font.draw(spriteBatch, layout, w / 2f - layout.width / 2f, h / 2f - 30);
             }
+        }
+    }
+
+    /** Affiche le prochain message d'événement en haut de l'écran pendant quelques secondes. */
+    private void drawToast(float delta, float w, float h) {
+        if (toast != null) {
+            toastTimer -= delta;
+            if (toastTimer <= 0f) {
+                toast = null;
+            }
+        }
+        if (toast == null) {
+            toast = gameClock.pollMessage(); // un message arrivé est affiché tout de suite
+            toastTimer = TOAST_SECONDS;
+        }
+        if (toast != null) {
+            layout.setText(font, toast);
+            font.draw(spriteBatch, layout, w / 2f - layout.width / 2f, h - 20);
         }
     }
 

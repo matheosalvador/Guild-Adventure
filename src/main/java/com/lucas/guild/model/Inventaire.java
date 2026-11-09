@@ -11,6 +11,9 @@ public class Inventaire {
     private final List<PotionMix> potionsMix = new ArrayList<>();
     private double poidsMax = 25.0; // Poids de base pour un chevalier
 
+    // Dépend de l'âge du personnage, recalculé à chaque chargement : pas sauvegardé
+    private transient double capacityFactor = 1.0;
+
     public Inventaire() {
     }
 
@@ -30,12 +33,18 @@ public class Inventaire {
         return poidsActuel;
     }
 
+    /** Poids maximum réellement portable (poids de base selon la difficulté, réduit par l'âge). */
     public double getPoidsMax() {
-        return poidsMax;
+        return poidsMax * capacityFactor;
+    }
+
+    /** Applique l'effet de l'âge sur la charge portable (1.0 = aucun effet). */
+    public void setCapacityFactor(double capacityFactor) {
+        this.capacityFactor = capacityFactor;
     }
 
     public boolean ajouterItem(Item item) {
-        if (getPoidsActuel() + item.getPoids() <= poidsMax) {
+        if (getPoidsActuel() + item.getPoids() <= getPoidsMax()) {
             if (item instanceof PotionSoin) {
                 potionsSoin.add((PotionSoin) item);
             } else if (item instanceof PotionDps) {

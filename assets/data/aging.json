@@ -1,0 +1,7 @@
+[
+  { "fromAge": 0,  "label": "Jeunesse",       "maxHealthPercent": 100, "carryPercent": 100, "speedPercent": 100 },
+  { "fromAge": 45, "label": "Maturité",       "maxHealthPercent": 95,  "carryPercent": 95,  "speedPercent": 98  },
+  { "fromAge": 60, "label": "Vieillesse",     "maxHealthPercent": 85,  "carryPercent": 85,  "speedPercent": 92  },
+  { "fromAge": 70, "label": "Grand âge",      "maxHealthPercent": 70,  "carryPercent": 70,  "speedPercent": 82  },
+  { "fromAge": 80, "label": "Très grand âge", "maxHealthPercent": 55,  "carryPercent": 55,  "speedPercent": 70  }
+]

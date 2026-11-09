@@ -7,12 +7,13 @@ package com.lucas.guild.model;
 public class GameData {
 
     /** Version du format de sauvegarde. 0 = anciennes sauvegardes sans ce champ. */
-    public static final int CURRENT_VERSION = 1;
+    public static final int CURRENT_VERSION = 2;
 
     // Pas d'initialiseur : Gson laisse 0 quand le champ est absent du fichier (ancienne sauvegarde)
     public int version;
     public Adventurer playerData;
     public int currentHour;
+    public int currentMinute; // absent avant la version 2 (donc 0)
     public int currentDay;
     public String difficulty;
     public float playerX;
@@ -25,6 +26,7 @@ public class GameData {
         this.version = CURRENT_VERSION;
         this.playerData = player;
         this.currentHour = clock.getCurrentHour();
+        this.currentMinute = clock.getCurrentMinute();
         this.currentDay = clock.getCurrentDay();
     }
 
@@ -43,6 +45,7 @@ public class GameData {
         this.version = CURRENT_VERSION;
         this.playerData = player;
         this.currentHour = clock.getCurrentHour();
+        this.currentMinute = clock.getCurrentMinute();
         this.currentDay = clock.getCurrentDay();
         this.difficulty = difficulty;
         this.playerX = playerX;

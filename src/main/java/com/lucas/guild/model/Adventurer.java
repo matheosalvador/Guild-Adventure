@@ -15,6 +15,14 @@ public class Adventurer extends Entite {
     private Arme equippedWeapon;
     private Armure equippedArmor;
 
+    /** Numéro de jour de la naissance (zéro ou négatif pour un personnage né avant le début de la partie). */
+    private int birthDay;
+
+    // Effets de l'âge : recalculés à chaque chargement (refreshAging), donc pas sauvegardés
+    private transient double healthFactor = 1.0;
+    private transient double speedFactor = 1.0;
+    private transient String agingLabel;
+
 
     // No-arg constructor for Gson deserialization
     public Adventurer() {
@@ -119,7 +127,7 @@ public class Adventurer extends Entite {
             level++;
             experience = 0;
             maxHealth += 10;
-            health = maxHealth;
+            health = getMaxHealth();
             skillPoints++;
             System.out.println(name + " est monté au niveau " + level + " !");
         }
@@ -138,6 +146,60 @@ public class Adventurer extends Entite {
             }
         }
         return attaques;
+    }
+
+    // ------------------------------------------------------------------ âge
+
+    public int getBirthDay() {
+        return birthDay;
+    }
+
+    public void setBirthDay(int birthDay) {
+        this.birthDay = birthDay;
+    }
+
+    /** Âge en années entières au jour {@code currentDay}. */
+    public int getAge(int currentDay) {
+        return Math.max(0, Math.floorDiv(currentDay - birthDay, GameCalendar.standard().daysPerYear()));
+    }
+
+    /** Vrai si le personnage fête un anniversaire ce jour-là. */
+    public boolean isBirthday(int currentDay) {
+        int sinceBirth = currentDay - birthDay;
+        return sinceBirth > 0 && Math.floorMod(sinceBirth, GameCalendar.standard().daysPerYear()) == 0;
+    }
+
+    /**
+     * Applique les effets de l'âge (vie max, charge, vitesse) au jour {@code currentDay}.
+     * À appeler à chaque nouveau jour et après un chargement.
+     *
+     * @return un message si le personnage vient de passer à un palier de vieillesse plus avancé, sinon null
+     */
+    public String refreshAging(int currentDay) {
+        AgingStage stage = AgingStage.forAge(getAge(currentDay));
+        String message = null;
+        if (agingLabel != null && !agingLabel.equals(stage.label)) {
+            message = "Les années se font sentir : " + stage.label + ".";
+        }
+        agingLabel = stage.label;
+        healthFactor = stage.healthFactor();
+        speedFactor = stage.speedFactor();
+        if (inventory != null) {
+            inventory.setCapacityFactor(stage.carryFactor());
+        }
+        health = Math.min(health, getMaxHealth());
+        return message;
+    }
+
+    /** Multiplicateur de vitesse de déplacement dû à l'âge (1.0 = pleine vitesse). */
+    public double getSpeedFactor() {
+        return speedFactor;
+    }
+
+    /** Vie max réelle : la vie de base réduite par l'âge. */
+    @Override
+    public int getMaxHealth() {
+        return Math.max(1, (int) Math.round(maxHealth * healthFactor));
     }
 
     public void updateVitalSigns() {

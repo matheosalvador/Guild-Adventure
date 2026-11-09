@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
+import com.lucas.guild.model.AgingStage;
 import com.lucas.guild.model.Quest;
 import com.lucas.guild.model.Skill;
 
@@ -78,6 +79,36 @@ public final class GameContent {
         return town;
     }
 
+    /** Le calendrier (saisons, lever/coucher du soleil, début de partie...). */
+    public static CalendarData calendar() {
+        CalendarData calendar = read("calendar.json", CalendarData.class);
+        calendar.validate("calendar.json");
+        return calendar;
+    }
+
+    /** Les paliers de vieillesse, triés du plus jeune au plus vieux. */
+    public static List<AgingStage> agingStages() {
+        List<AgingStage> stages = read("aging.json", new TypeToken<List<AgingStage>>() { }.getType());
+        if (stages.isEmpty()) {
+            throw new IllegalStateException("aging.json : aucun palier");
+        }
+        for (int i = 0; i < stages.size(); i++) {
+            AgingStage s = stages.get(i);
+            String where = "aging.json : palier n°" + (i + 1);
+            if (s == null || s.label == null || s.label.isEmpty()) throw new IllegalStateException(where + " : \"label\" manquant");
+            if (s.maxHealthPercent <= 0 || s.carryPercent <= 0 || s.speedPercent <= 0) {
+                throw new IllegalStateException(where + " (" + s.label + ") : les pourcentages doivent etre > 0");
+            }
+            if (i > 0 && s.fromAge <= stages.get(i - 1).fromAge) {
+                throw new IllegalStateException(where + " (" + s.label + ") : \"fromAge\" doit etre croissant");
+            }
+        }
+        if (stages.get(0).fromAge != 0) {
+            throw new IllegalStateException("aging.json : le premier palier doit commencer a l'age 0");
+        }
+        return stages;
+    }
+
     /**
      * Lit et vérifie tous les fichiers de données. À appeler au lancement du jeu pour qu'une erreur
      * dans un fichier apparaisse tout de suite plutôt qu'au milieu d'une partie.
@@ -89,6 +120,8 @@ public final class GameContent {
         skillsFor("Caserne");
         maxWeight("normale");
         town();
+        calendar();
+        agingStages();
     }
 
     /** Une difficulté telle qu'écrite dans {@code difficulties.json}. */
