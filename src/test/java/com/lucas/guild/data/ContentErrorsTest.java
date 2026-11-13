@@ -184,4 +184,24 @@ class ContentErrorsTest {
     void difficultyUnknownStartingItem() throws IOException {
         expectError("difficulties.json", "\"healing_potion\", \"healing_potion\"", "\"epee_magique\"", "difficulties.json", "epee_magique");
     }
+
+    // ---------------------------------------------------------------- town.json
+
+    @Test
+    void townPartWithZeroWidth() throws IOException {
+        expectError("town.json", "\"w\": 12,", "\"w\": 0,", "town.json", "Forge", "\"w\"");
+    }
+
+    @Test
+    void townPartWithoutColor() throws IOException {
+        expectError("town.json", "\"color\": \"#2B2B2B\"", "\"colour\": \"#2B2B2B\"", "town.json", "color");
+    }
+
+    @Test
+    void townHasDecor() {
+        GameContent.overrideDataDirForTests(null);
+        TownData town = GameContent.town();
+        assertTrue(town.decor.size() > 50, "la ville a un decor (rues, maisons, arbres...)");
+        assertTrue(town.buildings.stream().allMatch(b -> !b.parts.isEmpty()), "chaque batiment a des details");
+    }
 }

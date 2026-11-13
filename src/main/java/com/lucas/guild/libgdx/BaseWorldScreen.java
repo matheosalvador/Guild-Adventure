@@ -353,9 +353,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
      * @return l'instance 3D créée
      */
     protected ModelInstance addBox(float w, float h, float d, Color color, float x, float y, float z, Object userData) {
-        ModelInstance instance = new ModelInstance(boxModel(w, h, d, color));
-        instance.transform.setTranslation(x, y, z);
-        instances.add(instance);
+        ModelInstance instance = addVisualBox(w, h, d, color, x, y, z);
 
         btBoxShape shape = new btBoxShape(new Vector3(w / 2f, h / 2f, d / 2f));
         disposables.add(shape);
@@ -366,6 +364,14 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         body.userData = userData;
         dynamicsWorld.addRigidBody(body);
 
+        return instance;
+    }
+
+    /** Une boîte seulement visible : le joueur la traverse (rues, eau, marquages au sol). */
+    protected ModelInstance addVisualBox(float w, float h, float d, Color color, float x, float y, float z) {
+        ModelInstance instance = new ModelInstance(boxModel(w, h, d, color));
+        instance.transform.setTranslation(x, y, z);
+        instances.add(instance);
         return instance;
     }
 

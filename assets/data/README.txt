@@ -40,9 +40,15 @@ difficulties.json
     startingGold = or de depart ; startingItems = identifiants (items.json) des objets de depart.
 
 town.json
-    La ville : ses batiments (nom, type, position x/z, couleur LibGDX comme DARK_GRAY, BROWN, TAN),
-    l'ecran d'interieur a ouvrir ("forge", "guild" ou "inn") et "exit", la position du joueur en
-    ville quand il sort du batiment.
+    La ville. "ground" = couleur du sol. Chaque batiment : nom, type, position x/z (centre, au sol),
+    couleur, l'ecran d'interieur a ouvrir ("forge", "guild" ou "inn"), "exit" (ou le joueur reapparait
+    en ville quand il sort) et "parts" (details du batiment : toit, porte, enseigne...).
+    "decor" = tout le reste (rues, place, maisons, arbres, murs...), en coordonnees absolues.
+    Une partie est une boite : x, z = centre ; y = hauteur du bas au-dessus du sol ; w, h, d = largeur,
+    hauteur, profondeur (en metres) ; color = nom LibGDX (DARK_GRAY, BROWN, TAN...) ou "#RRGGBB" ;
+    decal = true pour du visuel seulement (rues, eau) : on marche dessus au lieu de la heurter.
+    Pour les "parts" d'un batiment, x/z sont relatifs a son centre. Viser une partie d'un batiment
+    (la porte, l'enseigne) permet d'y entrer, comme pour le batiment lui-meme.
 
 calendar.json
     Le temps. 1 heure de jeu = secondsPerGameHour secondes reelles. Une saison dure daysPerSeason jours,

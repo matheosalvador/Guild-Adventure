@@ -10,7 +10,28 @@ import java.util.List;
 public class TownData {
 
     public String name;
+    /** Couleur du sol : nom LibGDX (GREEN, GRAY...) ou code « #RRGGBB ». Gris si absente. */
+    public String ground;
     public List<BuildingData> buildings = new ArrayList<>();
+    /** Décor de la ville (rues, maisons, arbres, murs...), en coordonnées absolues. */
+    public List<PartData> decor = new ArrayList<>();
+
+    /**
+     * Une boîte du décor. {@code x} et {@code z} sont le centre (relatif au bâtiment pour les
+     * {@code parts} d'un bâtiment) ; {@code y} est la hauteur du bas de la boîte au-dessus du sol.
+     */
+    public static class PartData {
+        public float x;
+        public float z;
+        public float y;
+        public float w;
+        public float h;
+        public float d;
+        /** Nom de couleur LibGDX ou « #RRGGBB ». */
+        public String color;
+        /** Visuel seulement : on marche dessus sans la heurter (rues, eau...). */
+        public boolean decal;
+    }
 
     /** Un bâtiment de la ville. */
     public static class BuildingData {
@@ -26,6 +47,8 @@ public class TownData {
         public String color;
         /** Où réapparaît le joueur en ville quand il sort du bâtiment. */
         public Point3 exit;
+        /** Détails du bâtiment (toit, porte, enseigne...), positions relatives à son centre. */
+        public List<PartData> parts = new ArrayList<>();
     }
 
     public static class Point3 {
@@ -44,6 +67,19 @@ public class TownData {
         return null;
     }
 
+    private static void validateParts(List<PartData> parts, String where) {
+        if (parts == null) {
+            return;
+        }
+        for (int i = 0; i < parts.size(); i++) {
+            PartData p = parts.get(i);
+            String at = where + " n°" + (i + 1);
+            if (p == null) throw new IllegalStateException(at + " : vide");
+            if (p.color == null) throw new IllegalStateException(at + " : \"color\" manquant");
+            if (p.w <= 0 || p.h <= 0 || p.d <= 0) throw new IllegalStateException(at + " : \"w\", \"h\" et \"d\" doivent etre > 0");
+        }
+    }
+
     /** Vérifie que tous les champs obligatoires sont présents. @throws IllegalStateException sinon. */
     void validate(String file) {
         if (name == null || name.isEmpty()) {
@@ -60,6 +96,8 @@ public class TownData {
             if (b.interior == null) throw new IllegalStateException(where + " : \"interior\" manquant");
             if (b.color == null) throw new IllegalStateException(where + " : \"color\" manquant");
             if (b.exit == null) throw new IllegalStateException(where + " : \"exit\" manquant");
+            validateParts(b.parts, where + " : \"parts\"");
         }
+        validateParts(decor, file + " : \"decor\"");
     }
 }

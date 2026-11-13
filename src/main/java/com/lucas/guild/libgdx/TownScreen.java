@@ -85,25 +85,56 @@ public class TownScreen extends BaseWorldScreen {
 
     @Override
     protected void buildWorld() {
-        addBox(200f, 1f, 200f, Color.GRAY, 0, 0, 0, null); // sol
-
         TownData town = GameContent.town();
+        Color ground = town.ground != null ? parseColor(town.ground, "le sol") : Color.GRAY;
+        addBox(200f, 1f, 200f, ground, 0, 0, 0, null); // sol
+
         for (TownData.BuildingData data : town.buildings) {
             addBuilding(data);
+        }
+        for (TownData.PartData part : town.decor) {
+            addPart(part, 0, 0, "decor", null);
+        }
+    }
+
+    /** Couleur par son nom LibGDX (« BROWN ») ou en hexadécimal (« #5B8C3A »). */
+    private static Color parseColor(String name, String where) {
+        Color color = null;
+        try {
+            color = name.startsWith("#") ? Color.valueOf(name) : Colors.get(name);
+        } catch (RuntimeException e) {
+            // couleur hexadécimale invalide : message ci-dessous
+        }
+        if (color == null) {
+            throw new IllegalStateException("town.json : " + where + " : couleur inconnue \"" + name + "\"");
+        }
+        return color;
+    }
+
+    /** Une boîte du décor ; (ox, oz) est le centre du bâtiment pour ses détails, {@code userData} ce qu'on obtient en la visant. */
+    private void addPart(TownData.PartData part, float ox, float oz, String where, Object userData) {
+        Color color = parseColor(part.color, where);
+        float x = ox + part.x;
+        float z = oz + part.z;
+        float centerY = 0.5f + part.y + part.h / 2f;   // le sol est une boîte d'1 m dont le dessus est à 0,5
+        if (part.decal) {
+            addVisualBox(part.w, part.h, part.d, color, x, centerY, z);
+        } else {
+            addBox(part.w, part.h, part.d, color, x, centerY, z, userData);
         }
     }
 
     private void addBuilding(TownData.BuildingData data) {
-        Color color = Colors.get(data.color);
-        if (color == null) {
-            throw new IllegalStateException("town.json : batiment \"" + data.name + "\" : couleur inconnue \"" + data.color + "\"");
-        }
+        Color color = parseColor(data.color, "batiment \"" + data.name + "\"");
         if (!KNOWN_INTERIORS.contains(data.interior)) {
             throw new IllegalStateException("town.json : batiment \"" + data.name + "\" : interieur inconnu \"" + data.interior
                     + "\" (attendu : " + KNOWN_INTERIORS + ")");
         }
         TownBuilding building = new TownBuilding(data.name, data.type, data.interior);
         addBox(10f, 10f, 10f, color, data.x, 5.5f, data.z, building).userData = building;
+        for (TownData.PartData part : data.parts) {
+            addPart(part, data.x, data.z, "batiment \"" + data.name + "\" (details)", building); // viser la porte ou l'enseigne ouvre aussi le batiment
+        }
     }
 
     // ------------------------------------------------------------------ interactions
