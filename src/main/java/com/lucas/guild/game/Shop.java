@@ -39,25 +39,35 @@ public class Shop {
         return stock;
     }
 
+    /** Prix de l'objet dans cette boutique : le catalogue, ajusté par le {@code priceFactor} de la boutique (de la ville). */
+    private int shopPrice(Item item) {
+        return (int) Math.round(item.getPrix() * data.priceFactor / 100.0);
+    }
+
     /** Prix de base payé quand on revend {@code item} à la boutique (sans le talent du vendeur). */
     public int sellPrice(Item item) {
-        return item.getPrix() * data.sellPercent / 100;
+        return shopPrice(item) * data.sellPercent / 100;
+    }
+
+    /** Prix affiché de l'objet (avant la réduction due au Marchandage). */
+    public int listPrice(Item item) {
+        return shopPrice(item);
     }
 
     /** Prix que {@code player} paie pour {@code item} : le prix affiché, réduit par sa compétence Marchandage. */
     public int buyPrice(Adventurer player, Item item) {
-        if (item.getPrix() <= 0) {
+        if (shopPrice(item) <= 0) {
             return 0;
         }
         int discount = (int) Math.round(player.getSkillBonus("buyDiscountPercent"));
         // arrondi au plus proche : une réduction de 2 % ne doit pas faire perdre 1 Po sur un objet à 10 Po
-        return Math.max(1, (int) Math.round(item.getPrix() * (100 - Math.min(discount, 90)) / 100.0));
+        return Math.max(1, (int) Math.round(shopPrice(item) * (100 - Math.min(discount, 90)) / 100.0));
     }
 
     /** Prix que {@code player} reçoit pour {@code item} : la part de base, augmentée par son Marchandage. */
     public int sellPrice(Adventurer player, Item item) {
         int percent = data.sellPercent + (int) Math.round(player.getSkillBonus("sellBonusPercent"));
-        return item.getPrix() * Math.min(percent, 100) / 100;
+        return shopPrice(item) * Math.min(percent, 100) / 100;
     }
 
     /** Le joueur achète l'objet {@code wanted} (un élément de {@link #getStock()}). */

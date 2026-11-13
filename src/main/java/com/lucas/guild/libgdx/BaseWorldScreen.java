@@ -130,6 +130,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected boolean isDebugOpen = false;
 
     private boolean deathPending = false;
+    private String townName = "";
 
     // Dernière position du joueur, pour mesurer la distance marchée (compétences Endurance et Portage)
     private float lastX;
@@ -217,6 +218,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         GameSession session = game.getSession();
         player = session.getPlayer();
         gameClock = session.getClock();
+        townName = com.lucas.guild.data.GameContent.world().place(player.getTownId()).name;   // lu une fois : le HUD le redessine à chaque image
 
         setup3DEnvironment();
         setupPhysics();
@@ -504,7 +506,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         hudText.append("Player: ").append(player.getName())
                 .append(" (").append(player.getAge(gameClock.getCurrentDay())).append(" ans)\n");
         hudText.append("HP: ").append(player.getHealth()).append(" / ").append(player.getMaxHealth()).append("\n");
-        hudText.append(gameClock.getDate()).append(" - ").append(gameClock.formatTime()).append("\n");
+        hudText.append(gameClock.getDate()).append(" - ").append(gameClock.formatTime())
+                .append(" - ").append(townName).append("\n");
         if (DebugMode.isEnabled()) {
             com.badlogic.gdx.math.Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
             hudText.append(String.format("[DEBUG] x %.1f  y %.1f  z %.1f  jour %d  temps x%.0f  vitesse x%.0f  (F10)\n",

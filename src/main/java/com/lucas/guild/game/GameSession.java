@@ -67,6 +67,8 @@ public class GameSession {
         String playerName = name != null && !name.trim().isEmpty() ? name.trim() : DEFAULT_NAME;
 
         Adventurer player = new Adventurer(playerName, "Ville");
+        player.setTownId(GameContent.world().startPlace);
+        player.markVisited(player.getTownId());
         player.chooseProfile(classId, backgroundId);
         Inventaire inventaire = new Inventaire();
         inventaire.applyDifficulty(diff);
@@ -128,6 +130,7 @@ public class GameSession {
 
         // Bonus de classe, d'origine et de compétence (charge portable...) : pas sauvegardés, on les recalcule.
         player.refreshBonuses();
+        player.markVisited(player.getTownId());   // le lieu de la sauvegarde (ou celui de départ, pour une ancienne)
 
         GameClock clock = new GameClock(player);
         clock.setCurrentHour(Math.max(0, Math.min(23, data.currentHour)));

@@ -103,6 +103,18 @@ class DebugPanel {
                     return "Invincible : " + (!invincible ? "oui" : "non") + ".";
                 }));
 
+        section(list, "Voyager (sans durée)");
+        java.util.List<Object[]> places = new java.util.ArrayList<>();
+        for (final com.lucas.guild.data.WorldData.PlaceData place : GameContent.world().places) {
+            places.add(action(place.name, () -> {
+                session.getPlayer().setTownId(place.id);
+                session.getPlayer().markVisited(place.id);
+                com.lucas.guild.data.TownData.Point3 a = GameContent.town(place.id).arrival;
+                return go(new TownScreen(game, difficulty, a != null ? new com.badlogic.gdx.math.Vector3(a.x, a.y, a.z) : new com.badlogic.gdx.math.Vector3(0, 2, 50)));
+            }));
+        }
+        buttons(list, places.toArray());
+
         section(list, "Aller à");
         buttons(list,
                 action("Ville", () -> go(new TownScreen(game, difficulty))),

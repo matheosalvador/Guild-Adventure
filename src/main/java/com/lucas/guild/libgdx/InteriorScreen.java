@@ -26,7 +26,7 @@ public abstract class InteriorScreen extends BaseWorldScreen {
      */
     protected InteriorScreen(MainGame game, String difficulty, String interiorId, String placeName) {
         super(game, difficulty);
-        TownData.BuildingData building = GameContent.town().findByInterior(interiorId);
+        TownData.BuildingData building = GameContent.town(game.getSession().getPlayer().getTownId()).findByInterior(interiorId);
         if (building == null) {
             throw new IllegalStateException("town.json : aucun batiment n'a \"interior\": \"" + interiorId + "\"");
         }

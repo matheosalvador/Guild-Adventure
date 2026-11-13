@@ -1,6 +1,7 @@
 {
   "name": "Aethelgard",
   "ground": "#5B8C3A",
+  "arrival": {"x": 0, "y": 2, "z": 52},
   "buildings": [
     {
       "name": "La Forge du Nain Grincheux",
@@ -150,6 +151,6 @@
     {"x": 32, "z": 60, "y": 0, "w": 56, "h": 3, "d": 2, "color": "#6E6E64"},
     {"x": -4.5, "z": 60, "y": 0, "w": 1, "h": 5, "d": 1.4, "color": "#4A3A28"},
     {"x": 4.5, "z": 60, "y": 0, "w": 1, "h": 5, "d": 1.4, "color": "#4A3A28"},
-    {"x": 0, "z": 60, "y": 0, "w": 8, "h": 4, "d": 0.8, "color": "BROWN"}
+    {"x": 0, "z": 60, "y": 0, "w": 8, "h": 4, "d": 0.8, "color": "BROWN", "action": "gate"}
   ]
 }

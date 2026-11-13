@@ -52,14 +52,24 @@ difficulties.json
     minSpeedPercent = vitesse (en %) quand on est charge au maximum ;
     startingGold = or de depart ; startingItems = identifiants (items.json) des objets de depart.
 
-town.json
-    La ville. "ground" = couleur du sol. Chaque batiment : nom, type, position x/z (centre, au sol),
-    couleur, l'ecran d'interieur a ouvrir ("forge", "guild" ou "inn"), "exit" (ou le joueur reapparait
-    en ville quand il sort) et "parts" (details du batiment : toit, porte, enseigne...).
+world.json
+    Le monde : les lieux (villes) et les routes. Chaque lieu : id, name, townFile (le fichier de sa ville :
+    town.json, town_portbrume.json...) et sa position x/z sur la carte du monde, EN KM. Les routes sont des
+    paires d'identifiants. La duree d'un trajet n'est pas ecrite : elle vient de la distance et de
+    walkingKmh (vitesse de marche, km/h), et elle s'allonge si le personnage est charge ou age.
+    startPlace = ou commence une nouvelle partie. Pour ajouter une ville : une ligne dans "places", une ou
+    plusieurs dans "links", et son fichier de ville.
+
+town.json, town_portbrume.json, town_hautevigne.json (un fichier par ville)
+    La ville. "ground" = couleur du sol. "arrival" = ou on apparait en arrivant par la route (devant la porte).
+    Chaque batiment : nom, type, position x/z (centre, au sol), couleur, l'ecran d'interieur a ouvrir
+    ("forge", "guild", "inn" ou "store"), "exit" (ou le joueur reapparait en ville quand il sort), "parts"
+    (details du batiment : toit, porte, enseigne...) et, pour un "store", "shop" (la boutique, dans shops.json).
     "decor" = tout le reste (rues, place, maisons, arbres, murs...), en coordonnees absolues.
     Une partie est une boite : x, z = centre ; y = hauteur du bas au-dessus du sol ; w, h, d = largeur,
     hauteur, profondeur (en metres) ; color = nom LibGDX (DARK_GRAY, BROWN, TAN...) ou "#RRGGBB" ;
-    decal = true pour du visuel seulement (rues, eau) : on marche dessus au lieu de la heurter.
+    decal = true pour du visuel seulement (rues, eau) : on marche dessus au lieu de la heurter ;
+    action = "gate" pour la porte de la ville (E ouvre la carte du monde).
     Pour les "parts" d'un batiment, x/z sont relatifs a son centre. Viser une partie d'un batiment
     (la porte, l'enseigne) permet d'y entrer, comme pour le batiment lui-meme.
 
@@ -82,4 +92,6 @@ items.json
 
 shops.json
     Les boutiques ("forge", "guild") : title, sellPercent (% du prix paye quand on leur revend un objet)
-    et stock = identifiants (items.json) des objets en vente.
+    stock = identifiants (items.json) des objets en vente, et priceFactor = prix de la boutique par rapport au
+    catalogue, en % (100 par defaut ; 90 = 10 % moins cher, 115 = 15 % plus cher : c'est ce qui fait varier
+    les prix d'une ville a l'autre).

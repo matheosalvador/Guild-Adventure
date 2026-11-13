@@ -310,6 +310,7 @@ public final class GameContent {
             if (shop == null) throw new IllegalStateException(where + " : vide");
             if (shop.title == null || shop.title.isEmpty()) throw new IllegalStateException(where + " : \"title\" manquant");
             if (shop.sellPercent < 0 || shop.sellPercent > 100) throw new IllegalStateException(where + " : \"sellPercent\" doit etre entre 0 et 100");
+            if (shop.priceFactor < 10 || shop.priceFactor > 500) throw new IllegalStateException(where + " : \"priceFactor\" doit etre entre 10 et 500 (en %)");
             if (shop.stock == null) shop.stock = new ArrayList<>();
             for (String id : shop.stock) {
                 if (!itemIds.contains(id)) throw new IllegalStateException(where + " : objet inconnu \"" + id + "\" (voir items.json)");
@@ -318,11 +319,40 @@ public final class GameContent {
         return shops;
     }
 
-    /** La ville (nom et bâtiments). */
+    /** La ville de départ, Aethelgard (town.json). */
     public static TownData town() {
-        TownData town = read("town.json", TownData.class);
-        town.validate("town.json");
+        return townFile("town.json");
+    }
+
+    /** La ville du lieu {@code placeId} (voir world.json). */
+    public static TownData town(String placeId) {
+        WorldData.PlaceData place = world().place(placeId);
+        if (place == null) {
+            throw new IllegalStateException("world.json : lieu inconnu \"" + placeId + "\"");
+        }
+        return townFile(place.townFile);
+    }
+
+    private static TownData townFile(String file) {
+        TownData town = read(file, TownData.class);
+        town.validate(file);
+        for (TownData.BuildingData b : town.buildings) {
+            if (b.shop != null) {
+                try {
+                    shop(b.shop);
+                } catch (IllegalStateException e) {
+                    throw new IllegalStateException(file + " : batiment \"" + b.name + "\" : " + e.getMessage(), e);
+                }
+            }
+        }
         return town;
+    }
+
+    /** Le monde : lieux, positions et routes (world.json). */
+    public static WorldData world() {
+        WorldData world = read("world.json", WorldData.class);
+        world.validate("world.json");
+        return world;
     }
 
     /** Le calendrier (saisons, lever/coucher du soleil, début de partie...). */
@@ -371,6 +401,9 @@ public final class GameContent {
         shop("forge");
         shop("guild");
         town();
+        for (WorldData.PlaceData place : world().places) {
+            town(place.id);
+        }
         calendar();
         agingStages();
     }

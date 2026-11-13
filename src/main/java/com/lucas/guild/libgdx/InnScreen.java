@@ -100,7 +100,8 @@ public class InnScreen extends InteriorScreen {
         if (!INNKEEPER.equals(dialogType)) {
             return;
         }
-        dialogTable.add("Bienvenue à La Pinte qui Chante ! Que désirez-vous ?").row();
+        dialogTable.add("Bienvenue à " + com.lucas.guild.data.GameContent.town(player.getTownId()).findByInterior("inn").name
+                + " ! Que désirez-vous ?").row();
 
         addDialogButton("Manger un repas (" + MEAL_PRICE + " Po)", () -> {
             toggleDialog(null);

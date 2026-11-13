@@ -22,17 +22,22 @@ import com.lucas.guild.model.DayNightCycle;
 public class TownScreen extends BaseWorldScreen {
 
     /** Identifiants d'intérieur reconnus (voir {@link #interiorScreen(String)}). */
-    private static final Set<String> KNOWN_INTERIORS = new HashSet<>(Arrays.asList("forge", "guild", "inn"));
+    private static final Set<String> KNOWN_INTERIORS = new HashSet<>(Arrays.asList("forge", "guild", "inn", "store"));
 
     /** Un bâtiment de la ville, avec l'intérieur qu'il ouvre. */
     private static class TownBuilding extends Building {
         final String interior;
+        final String shop;
 
-        TownBuilding(String name, String type, String interior) {
+        TownBuilding(String name, String type, String interior, String shop) {
             super(name, type);
             this.interior = interior;
+            this.shop = shop;
         }
     }
+
+    /** Ce qu'on obtient en visant la porte de la ville (action « gate » de town.json). */
+    private static final String GATE = "Gate";
 
     private final Vector3 spawnPoint;
 
@@ -85,7 +90,7 @@ public class TownScreen extends BaseWorldScreen {
 
     @Override
     protected void buildWorld() {
-        TownData town = GameContent.town();
+        TownData town = GameContent.town(player.getTownId());
         Color ground = town.ground != null ? parseColor(town.ground, "le sol") : Color.GRAY;
         addBox(200f, 1f, 200f, ground, 0, 0, 0, null); // sol
 
@@ -93,7 +98,7 @@ public class TownScreen extends BaseWorldScreen {
             addBuilding(data);
         }
         for (TownData.PartData part : town.decor) {
-            addPart(part, 0, 0, "decor", null);
+            addPart(part, 0, 0, "decor", "gate".equals(part.action) ? GATE : null);
         }
     }
 
@@ -121,7 +126,7 @@ public class TownScreen extends BaseWorldScreen {
             throw new IllegalStateException("town.json : batiment \"" + data.name + "\" : interieur inconnu \"" + data.interior
                     + "\" (attendu : " + KNOWN_INTERIORS + ")");
         }
-        TownBuilding building = new TownBuilding(data.name, data.type, data.interior);
+        TownBuilding building = new TownBuilding(data.name, data.type, data.interior, data.shop);
         addBox(10f, 10f, 10f, color, data.x, 5.5f, data.z, building).userData = building;
         for (TownData.PartData part : data.parts) {
             addPart(part, data.x, data.z, "batiment \"" + data.name + "\" (details)", building); // viser la porte ou l'enseigne ouvre aussi le batiment
@@ -135,29 +140,38 @@ public class TownScreen extends BaseWorldScreen {
         if (userData instanceof Building) {
             return "Entrer dans: " + ((Building) userData).getName() + " (E)";
         }
+        if (GATE.equals(userData)) {
+            return "Prendre la route (E)";
+        }
         return null;
     }
 
     @Override
     protected boolean onInteract(Object userData) {
+        if (GATE.equals(userData)) {
+            game.setScreen(new WorldMapScreen(game, difficulty));
+            return true;
+        }
         if (!(userData instanceof TownBuilding)) {
             return false;
         }
-        game.setScreen(interiorScreen(((TownBuilding) userData).interior));
+        game.setScreen(interiorScreen((TownBuilding) userData));
         return true;
     }
 
     /** L'écran d'intérieur correspondant à un identifiant de town.json. */
-    private com.badlogic.gdx.Screen interiorScreen(String interiorId) {
-        switch (interiorId) {
+    private com.badlogic.gdx.Screen interiorScreen(TownBuilding building) {
+        switch (building.interior) {
             case "forge":
                 return new ForgeScreen(game, difficulty);
             case "guild":
                 return new GuildScreen(game, difficulty);
             case "inn":
                 return new InnScreen(game, difficulty);
+            case "store":
+                return new StoreScreen(game, difficulty, building.getName(), building.shop);
             default:
-                throw new IllegalStateException("interieur inconnu : " + interiorId);
+                throw new IllegalStateException("interieur inconnu : " + building.interior);
         }
     }
 

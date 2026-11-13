@@ -8,5 +8,17 @@
     "title": "Matériel de la Guilde",
     "sellPercent": 50,
     "stock": ["healing_potion", "greater_healing_potion", "damage_potion", "mixed_potion", "pouch", "backpack", "travel_bag"]
+  },
+  "portbrume_store": {
+    "title": "Comptoir du Port",
+    "sellPercent": 55,
+    "priceFactor": 90,
+    "stock": ["healing_potion", "greater_healing_potion", "damage_potion", "dagger", "leather_armor", "pouch", "backpack", "travel_bag"]
+  },
+  "hautevigne_store": {
+    "title": "Épicerie du Mineur",
+    "sellPercent": 45,
+    "priceFactor": 115,
+    "stock": ["healing_potion", "mixed_potion", "short_sword", "battle_axe", "chain_mail", "pouch", "backpack"]
   }
 }

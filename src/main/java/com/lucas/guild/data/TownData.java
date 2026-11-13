@@ -13,6 +13,8 @@ public class TownData {
     /** Couleur du sol : nom LibGDX (GREEN, GRAY...) ou code « #RRGGBB ». Gris si absente. */
     public String ground;
     public List<BuildingData> buildings = new ArrayList<>();
+    /** Où le joueur apparaît quand il arrive par la route (devant la porte de la ville). */
+    public Point3 arrival;
     /** Décor de la ville (rues, maisons, arbres, murs...), en coordonnées absolues. */
     public List<PartData> decor = new ArrayList<>();
 
@@ -31,6 +33,8 @@ public class TownData {
         public String color;
         /** Visuel seulement : on marche dessus sans la heurter (rues, eau...). */
         public boolean decal;
+        /** Action quand on vise cette partie (E) : « gate » = la porte de la ville, qui mène à la carte du monde. */
+        public String action;
     }
 
     /** Un bâtiment de la ville. */
@@ -47,6 +51,8 @@ public class TownData {
         public String color;
         /** Où réapparaît le joueur en ville quand il sort du bâtiment. */
         public Point3 exit;
+        /** Boutique (shops.json) d'un bâtiment de type « store ». */
+        public String shop;
         /** Détails du bâtiment (toit, porte, enseigne...), positions relatives à son centre. */
         public List<PartData> parts = new ArrayList<>();
     }
@@ -76,6 +82,7 @@ public class TownData {
             String at = where + " n°" + (i + 1);
             if (p == null) throw new IllegalStateException(at + " : vide");
             if (p.color == null) throw new IllegalStateException(at + " : \"color\" manquant");
+            if (p.action != null && !"gate".equals(p.action)) throw new IllegalStateException(at + " : \"action\" inconnue \"" + p.action + "\" (attendu : gate)");
             if (p.w <= 0 || p.h <= 0 || p.d <= 0) throw new IllegalStateException(at + " : \"w\", \"h\" et \"d\" doivent etre > 0");
         }
     }
@@ -96,6 +103,9 @@ public class TownData {
             if (b.interior == null) throw new IllegalStateException(where + " : \"interior\" manquant");
             if (b.color == null) throw new IllegalStateException(where + " : \"color\" manquant");
             if (b.exit == null) throw new IllegalStateException(where + " : \"exit\" manquant");
+            if ("store".equals(b.interior) && (b.shop == null || b.shop.isEmpty())) {
+                throw new IllegalStateException(where + " : un batiment \"store\" doit avoir une \"shop\" (voir shops.json)");
+            }
             validateParts(b.parts, where + " : \"parts\"");
         }
         validateParts(decor, file + " : \"decor\"");

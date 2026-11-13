@@ -24,6 +24,11 @@ public class Adventurer extends Entite {
     private String classId;
     private String backgroundId;
 
+    /** Le lieu (la ville) où se trouve le personnage : identifiant dans world.json ; null pour une ancienne sauvegarde. */
+    private String townId;
+    /** Les lieux déjà visités. */
+    private List<String> visitedPlaces = new ArrayList<>();
+
     /** Titres des quêtes acceptées et pas encore rendues, puis des quêtes terminées. */
     private List<String> activeQuests = new ArrayList<>();
     private List<String> doneQuests = new ArrayList<>();
@@ -159,6 +164,34 @@ public class Adventurer extends Entite {
         List<Attaque> attaques = new ArrayList<>();
         attaques.add(new AttaqueMelee("Attaque de base", getAttackDamage()));
         return attaques;
+    }
+
+    // ------------------------------------------------------------------ lieu
+
+    /** Où se trouve le personnage (la ville de départ pour une ancienne sauvegarde ou un lieu supprimé des données). */
+    public String getTownId() {
+        if (townId == null || GameContent.world().place(townId) == null) {
+            townId = GameContent.world().startPlace;
+        }
+        return townId;
+    }
+
+    public void setTownId(String townId) {
+        this.townId = townId;
+    }
+
+    /** Les lieux déjà visités. Jamais null. */
+    public List<String> getVisitedPlaces() {
+        if (visitedPlaces == null) {
+            visitedPlaces = new ArrayList<>();
+        }
+        return visitedPlaces;
+    }
+
+    public void markVisited(String placeId) {
+        if (!getVisitedPlaces().contains(placeId)) {
+            getVisitedPlaces().add(placeId);
+        }
     }
 
     // ------------------------------------------------------------------ quêtes

@@ -1,0 +1,14 @@
+{
+  "startPlace": "aethelgard",
+  "walkingKmh": 5,
+  "places": [
+    { "id": "aethelgard", "name": "Aethelgard", "townFile": "town.json", "x": 0, "z": 0 },
+    { "id": "portbrume", "name": "Port-Brume", "townFile": "town_portbrume.json", "x": 30, "z": -14 },
+    { "id": "hautevigne", "name": "Hautevigne", "townFile": "town_hautevigne.json", "x": -22, "z": -18 }
+  ],
+  "links": [
+    ["aethelgard", "portbrume"],
+    ["aethelgard", "hautevigne"],
+    ["portbrume", "hautevigne"]
+  ]
+}
