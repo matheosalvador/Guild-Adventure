@@ -46,6 +46,15 @@ public final class GameContent {
     private GameContent() {
     }
 
+    /** Pour les tests : lire les fichiers dans ce dossier (et lui seul) au lieu du classpath. */
+    private static volatile Path overrideDir;
+
+    /** Pour les tests : {@code null} remet la lecture normale. Vide aussi le cache des fichiers lus. */
+    static void overrideDataDirForTests(Path dir) {
+        overrideDir = dir;
+        TEXT_CACHE.clear();
+    }
+
     // ------------------------------------------------------------------ contenu
 
     /** Toutes les quêtes du jeu (le filtrage par rang se fait dans {@code Guild}). */
@@ -350,6 +359,17 @@ public final class GameContent {
     }
 
     private static String load(String file) {
+        if (overrideDir != null) {
+            Path path = overrideDir.resolve(file);
+            if (!Files.isRegularFile(path)) {
+                throw new IllegalStateException("Fichier de donnees introuvable : " + file + " (cherche dans " + path.toAbsolutePath() + ")");
+            }
+            try {
+                return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                throw new IllegalStateException(file + " : lecture impossible (" + e.getMessage() + ")", e);
+            }
+        }
         // 1) classpath (Maven : le dossier assets est une ressource)
         try (InputStream in = GameContent.class.getClassLoader().getResourceAsStream(RESOURCE_DIR + file)) {
             if (in != null) {
