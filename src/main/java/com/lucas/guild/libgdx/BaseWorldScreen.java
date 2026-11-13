@@ -50,6 +50,7 @@ import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.SaveManager;
+import com.lucas.guild.game.DebugMode;
 import com.lucas.guild.game.Shop;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.GameClock;
@@ -121,6 +122,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected boolean inDialog = false;
     protected boolean isInventoryOpen = false;
     protected boolean isSkillsOpen = false;
+    protected Table debugTable;
+    private DebugPanel debugPanel;
+    protected boolean isDebugOpen = false;
 
     // Dernière position du joueur, pour mesurer la distance marchée (compétences Endurance et Portage)
     private float lastX;
@@ -292,6 +296,13 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         skillsTable.setBackground(panelBackground);
         skillsPanel = new SkillsPanel(skillsTable, skin, player, gameClock);
 
+        debugTable = new Table(skin);
+        debugTable.setFillParent(true);
+        debugTable.setVisible(false);
+        stage.addActor(debugTable);
+        debugTable.setBackground(panelBackground);
+        debugPanel = new DebugPanel(debugTable, skin, game, game.getSession(), difficulty);
+
         // Menu pause
         pauseTable = new Table(skin);
         pauseTable.setFillParent(true);
@@ -398,7 +409,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     /** Vrai quand un menu (pause, inventaire, dialogue, menu supplémentaire) bloque le jeu. */
     protected boolean isOverlayOpen() {
-        return inDialog || isInventoryOpen || isSkillsOpen || isPaused || isExtraOverlayOpen();
+        return inDialog || isInventoryOpen || isSkillsOpen || isDebugOpen || isPaused || isExtraOverlayOpen();
     }
 
     private void update(float delta) {
@@ -448,6 +459,11 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
                 .append(" (").append(player.getAge(gameClock.getCurrentDay())).append(" ans)\n");
         hudText.append("HP: ").append(player.getHealth()).append(" / ").append(player.getMaxHealth()).append("\n");
         hudText.append(gameClock.getDate()).append(" - ").append(gameClock.formatTime()).append("\n");
+        if (DebugMode.isEnabled()) {
+            com.badlogic.gdx.math.Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
+            hudText.append(String.format("[DEBUG] x %.1f  y %.1f  z %.1f  jour %d  temps x%.0f  vitesse x%.0f  (F10)\n",
+                    p.x, p.y, p.z, gameClock.getCurrentDay(), gameClock.getTimeScale(), DebugMode.getSpeedMultiplier()));
+        }
         hudText.append("Or : ").append(player.getGold()).append(" Po - ").append(UiKit.loadLine(player));
         font.draw(spriteBatch, hudText, 10, h - 10);
 
@@ -508,7 +524,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         }
 
         if (keycode == Input.Keys.ESCAPE) {
-            if (isSkillsOpen) {
+            if (isDebugOpen) {
+                toggleDebug();
+            } else if (isSkillsOpen) {
                 toggleSkills();
             } else if (isInventoryOpen) {
                 toggleInventory();
@@ -516,6 +534,12 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
                 toggleDialog(null);
             } else if (!closeExtraOverlay()) {
                 togglePause();
+            }
+            return true;
+        }
+        if (keycode == Input.Keys.F10 && DebugMode.isEnabled()) {
+            if (isDebugOpen || !isOverlayOpen()) {
+                toggleDebug();
             }
             return true;
         }
@@ -575,6 +599,15 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         Gdx.input.setCursorCatched(!isInventoryOpen);
         if (isInventoryOpen) {
             drawInventory();
+        }
+    }
+
+    protected void toggleDebug() {
+        isDebugOpen = !isDebugOpen;
+        debugTable.setVisible(isDebugOpen);
+        Gdx.input.setCursorCatched(!isDebugOpen);
+        if (isDebugOpen) {
+            debugPanel.rebuild(null);
         }
     }
 

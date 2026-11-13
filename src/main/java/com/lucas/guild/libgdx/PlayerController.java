@@ -136,7 +136,7 @@ public class PlayerController implements Disposable {
         moveDirection.y = 0;
         float vy = playerBody.getLinearVelocity().y;
         if (!moveDirection.isZero()) {
-            moveDirection.nor().scl(moveSpeed * (float) player.getSpeedFactor());
+            moveDirection.nor().scl(moveSpeed * (float) player.getSpeedFactor() * com.lucas.guild.game.DebugMode.getSpeedMultiplier());
             playerBody.setLinearVelocity(tmp.set(moveDirection.x, vy, moveDirection.z));
         } else {
             playerBody.setLinearVelocity(tmp.set(0, vy, 0));

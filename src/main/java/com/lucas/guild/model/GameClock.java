@@ -26,6 +26,9 @@ public class GameClock {
     private float minuteFraction = 0f;
     private final Deque<String> messages = new ArrayDeque<>();
 
+    /** Vitesse du temps (1 = normale). Réservé au mode debug ; jamais sauvegardé. */
+    private transient float timeScale = 1f;
+
     public GameClock(Adventurer player) {
         this.player = player;
     }
@@ -43,7 +46,7 @@ public class GameClock {
      */
     public void update(float deltaTime) {
         float minutesPerSecond = 60f / GameCalendar.standard().secondsPerGameHour();
-        minuteFraction += deltaTime * minutesPerSecond;
+        minuteFraction += deltaTime * timeScale * minutesPerSecond;
         while (minuteFraction >= 1f) {
             minuteFraction -= 1f;
             stepMinute();
@@ -107,6 +110,15 @@ public class GameClock {
                 postMessage(aging);
             }
         }
+    }
+
+    public float getTimeScale() {
+        return timeScale;
+    }
+
+    /** Accélère (ou ralentit) le temps réel : 60 = une heure de jeu par seconde. */
+    public void setTimeScale(float timeScale) {
+        this.timeScale = Math.max(0f, timeScale);
     }
 
     // ------------------------------------------------------------------ lecture
