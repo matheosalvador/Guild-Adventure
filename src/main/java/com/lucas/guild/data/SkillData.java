@@ -18,6 +18,8 @@ public class SkillData {
         EFFECTS.put("sellBonusPercent", new String[] {"Bonus à la revente", " %"});
         EFFECTS.put("healBonusPercent", new String[] {"Soins des potions", " %"});
         EFFECTS.put("healthBonus", new String[] {"Vie maximale", " PV"});
+        EFFECTS.put("meleePercent", new String[] {"Dégâts de mêlée", " %"});
+        EFFECTS.put("defenseBonus", new String[] {"Défense", ""});
     }
 
     public String id;

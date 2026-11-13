@@ -43,5 +43,23 @@
     "unit": "points",
     "thresholds": [4, 15, 40, 90, 180],
     "effects": { "healthBonus": 5 }
+  },
+  {
+    "id": "melee",
+    "label": "Mêlée",
+    "description": "À force de frapper, les coups deviennent plus sûrs.",
+    "trainedBy": "Frapper des monstres (1 point par coup porté)",
+    "unit": "coups",
+    "thresholds": [10, 40, 100, 220, 450],
+    "effects": { "meleePercent": 3 }
+  },
+  {
+    "id": "robustness",
+    "label": "Robustesse",
+    "description": "Encaisser apprend à encaisser mieux.",
+    "trainedBy": "Encaisser des coups (1 point par coup reçu)",
+    "unit": "coups",
+    "thresholds": [8, 30, 80, 180, 380],
+    "effects": { "defenseBonus": 0.5 }
   }
 ]

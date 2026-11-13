@@ -26,7 +26,16 @@ skills.json
     healthBonus (PV max).
     Ce qui donne de la pratique est dans le code : marcher (1 par metre, Endurance), marcher avec au moins
     la moitie de sa charge max (Portage), 1 par Po echange en boutique (Marchandage), 1 par potion de soin
-    utilisee (Soins), manger a l'auberge (1) et y dormir (2) (Vigueur).
+    utilisee (Soins), manger a l'auberge (1) et y dormir (2) (Vigueur), 1 par coup porte (Melee), 1 par coup
+    recu (Robustesse). Effets supplementaires : meleePercent (% de degats), defenseBonus (points de defense).
+
+monsters.json
+    Les monstres, par identifiant. health = PV ; damage = degats d'un coup (avant la defense du joueur) ;
+    speed = vitesse de course (m/s) ; aggroRange = distance a laquelle il repere le joueur (m) ;
+    attackRange = distance de frappe (m, <= aggroRange) ; attackCooldown = secondes entre deux coups ;
+    goldMin/goldMax = or lache a la mort ; lootItem = objet de quete lache SI une quete active le demande
+    comme preuve (proofItem) ; color = nom LibGDX ou "#RRGGBB" ; w/h/d = taille de la boite qui le represente.
+    Pour qu'un monstre apparaisse : Monster.spawn("giant_rat", x, z) dans un ecran (voir CellarScreen).
 
 classes.json et backgrounds.json
     Les choix de la creation du personnage (4 classes, 4 origines). Chaque choix a des avantages et des

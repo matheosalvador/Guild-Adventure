@@ -50,6 +50,7 @@ import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.SaveManager;
+import com.lucas.guild.game.DeathPenalty;
 import com.lucas.guild.game.DebugMode;
 import com.lucas.guild.game.Shop;
 import com.lucas.guild.model.Adventurer;
@@ -122,9 +123,13 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected boolean inDialog = false;
     protected boolean isInventoryOpen = false;
     protected boolean isSkillsOpen = false;
+    /** Les monstres de l'écran (aucun dans la plupart des lieux). */
+    protected CombatScene combat;
     protected Table debugTable;
     private DebugPanel debugPanel;
     protected boolean isDebugOpen = false;
+
+    private boolean deathPending = false;
 
     // Dernière position du joueur, pour mesurer la distance marchée (compétences Endurance et Portage)
     private float lastX;
@@ -218,6 +223,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         setupUI();
         setupInput();
 
+        combat = new CombatScene(instances);
+        disposables.add(combat);
         buildWorld();
 
         playerController = new PlayerController(camera, dynamicsWorld, player, getSpawnPoint());
@@ -301,7 +308,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         debugTable.setVisible(false);
         stage.addActor(debugTable);
         debugTable.setBackground(panelBackground);
-        debugPanel = new DebugPanel(debugTable, skin, game, game.getSession(), difficulty);
+        debugPanel = new DebugPanel(debugTable, skin, game, this, game.getSession(), difficulty);
 
         // Menu pause
         pauseTable = new Table(skin);
@@ -411,6 +418,12 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             stage.act(delta);
             stage.draw();
         }
+
+        if (deathPending) {
+            deathPending = false;
+            gameClock.postMessage(DeathPenalty.apply(game.getSession()));
+            game.setScreen(new InnScreen(game, difficulty));
+        }
     }
 
     /** Vrai quand un menu (pause, inventaire, dialogue, menu supplémentaire) bloque le jeu. */
@@ -425,7 +438,34 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             playerController.updateCamera();
             gameClock.update(delta);
             trainWalking();
+            Vector3 position = playerController.getPlayerBody().getCenterOfMassPosition();
+            if (combat.update(delta, player, position)) {
+                onPlayerDeath();
+            }
         }
+    }
+
+    /** Debug : fait apparaître un monstre à 6 m devant le joueur. */
+    String debugSpawn(String monsterId) {
+        Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
+        Vector3 d = new Vector3(camera.direction.x, 0, camera.direction.z);
+        if (d.isZero()) {
+            d.set(0, 0, -1);
+        }
+        d.nor().scl(6f);
+        com.lucas.guild.game.Monster m = combat.spawn(monsterId, p.x + d.x, p.z + d.z);
+        return m.getName() + " apparaît.";
+    }
+
+    /** Debug : retire tous les monstres. */
+    String debugKillAll() {
+        return combat.clearAll() + " monstre(s) retiré(s).";
+    }
+
+    /** Le joueur est tombé à 0 PV : il se réveille à l'auberge, plus pauvre (voir {@link DeathPenalty}). */
+    protected void onPlayerDeath() {
+        // On ne change pas d'écran en plein milieu d'une image : celui-ci serait libéré avant la fin du dessin
+        deathPending = true;
     }
 
     /** La marche entraîne l'Endurance, et le Portage quand on porte au moins la moitié de sa charge maximale. */
@@ -473,8 +513,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         hudText.append("Or : ").append(player.getGold()).append(" Po - ").append(UiKit.loadLine(player));
         font.draw(spriteBatch, hudText, 10, h - 10);
 
-        font.draw(spriteBatch, "I : inventaire   K : personnage   Échap : pause", 10, 24);
+        font.draw(spriteBatch, "I : inventaire   K : personnage   Q : potion   Échap : pause", 10, 24);
 
+        combat.drawHud(spriteBatch, font, w, h, camera.position, camera.direction);
         drawToast(delta, w, h);
 
         btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
@@ -571,6 +612,11 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             return false;
         }
 
+        if (keycode == Input.Keys.Q) {
+            gameClock.postMessage(player.drinkHealingPotion());
+            return true;
+        }
+
         if (keycode == Input.Keys.E) {
             btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
             if (objectInView != null && onInteract(objectInView.userData)) {
@@ -588,7 +634,15 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        return playerController.touchDown(screenX, screenY, pointer, button);
+        if (button == Input.Buttons.LEFT && !isOverlayOpen()) {
+            // clic gauche : un coup (sans effet s'il n'y a pas de monstre à portée)
+            String loot = combat.attack(player, camera.position, camera.direction);
+            if (loot != null) {
+                gameClock.postMessage(loot);
+            }
+            return true;
+        }
+        return false;
     }
 
     // ================================================================== menus

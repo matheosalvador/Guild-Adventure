@@ -125,7 +125,8 @@ public class Adventurer extends Entite {
     /** Réduction de dégâts de l'armure portée. */
     public int getDefense() {
         Armure armor = inventory != null ? inventory.getArmor() : null;
-        return armor != null ? armor.getReductionDegats() : 0;
+        int fromArmor = armor != null ? armor.getReductionDegats() : 0;
+        return fromArmor + (int) Math.floor(getSkillBonus("defenseBonus"));
     }
 
     // ------------------------------------------------------------------ or
@@ -149,9 +150,14 @@ public class Adventurer extends Entite {
         return true;
     }
 
+    /** Dégâts d'un coup : 10 de base plus l'arme, augmentés par la compétence Mêlée. */
+    public int getAttackDamage() {
+        return (int) Math.round((10 + getBonusDegats()) * (1 + getSkillBonus("meleePercent") / 100.0));
+    }
+
     public List<Attaque> getAttaques() {
         List<Attaque> attaques = new ArrayList<>();
-        attaques.add(new AttaqueMelee("Attaque de base", 10 + getBonusDegats()));
+        attaques.add(new AttaqueMelee("Attaque de base", getAttackDamage()));
         return attaques;
     }
 
@@ -171,6 +177,16 @@ public class Adventurer extends Entite {
             doneQuests = new ArrayList<>();
         }
         return doneQuests;
+    }
+
+    /** Boit la première potion de soin de l'inventaire (touche Q). @return la phrase à afficher */
+    public String drinkHealingPotion() {
+        for (Item item : inventory.getItems()) {
+            if (item.estUtilisableHorsCombat()) {
+                return useHealingItem(item);
+            }
+        }
+        return "Vous n'avez pas de potion de soin.";
     }
 
     // ------------------------------------------------------------------ classe, origine, compétences

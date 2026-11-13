@@ -7,7 +7,7 @@
     "carryBonus": 5,
     "goldBonus": -10,
     "startingItems": ["short_sword"],
-    "practiceBonusPercent": { "haggling": -30 }
+    "practiceBonusPercent": { "haggling": -30, "melee": 50 }
   },
   {
     "id": "scout",
@@ -38,6 +38,6 @@
     "goldBonus": -10,
     "startingItems": ["healing_potion", "healing_potion"],
     "skillStart": { "healing": 1 },
-    "practiceBonusPercent": { "healing": 50 }
+    "practiceBonusPercent": { "healing": 50, "melee": -30 }
   }
 ]

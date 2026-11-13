@@ -221,4 +221,42 @@ class ContentErrorsTest {
     void questWithoutProof() throws IOException {
         expectError("quests.json", "\"proofItem\": \"Queue de rat\"", "\"proofItem\": \"\"", "quests.json", "proofItem");
     }
+
+    // ---------------------------------------------------------------- monsters.json
+
+    @Test
+    void monsterNoHealth() throws IOException {
+        expectError("monsters.json", "\"health\": 20", "\"health\": 0", "monsters.json", "giant_rat", "health");
+    }
+
+    @Test
+    void monsterAttackRangeBeyondAggro() throws IOException {
+        expectError("monsters.json", "\"attackRange\": 1.6", "\"attackRange\": 30", "monsters.json", "attackRange", "aggroRange");
+    }
+
+    @Test
+    void monsterGoldRangeInverted() throws IOException {
+        expectError("monsters.json", "\"goldMax\": 5", "\"goldMax\": 0", "monsters.json", "goldMax");
+    }
+
+    @Test
+    void monsterBadNumber() throws IOException {
+        expectError("monsters.json", "\"speed\": 3.5", "\"speed\": \"vite\"", "monsters.json", "invalide");
+    }
+
+    @Test
+    void monsterWithoutName() throws IOException {
+        expectError("monsters.json", "\"name\": \"Rat géant\",", "", "monsters.json", "name");
+    }
+
+    @Test
+    void unknownMonsterIsRefused() {
+        GameContent.overrideDataDirForTests(null);
+        try {
+            GameContent.monster("dragon");
+            assertTrue(false, "monstre inconnu : une erreur etait attendue");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("dragon"), e.getMessage());
+        }
+    }
 }

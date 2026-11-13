@@ -95,14 +95,6 @@ public class PlayerController implements Disposable {
         return true;
     }
 
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        if (button == Input.Buttons.LEFT) {
-            attack();
-            return true;
-        }
-        return false;
-    }
-
     public void update() {
         handleRotation();
         handleMovement();
@@ -168,16 +160,6 @@ public class PlayerController implements Disposable {
         }
     }
 
-    private void attack() {
-        btCollisionObject body = getBodyInView(5f);
-        if (body != null && body.userData instanceof Enemy) {
-            Enemy enemy = (Enemy) body.userData;
-            if (enemy.isActive) {
-                enemy.takeDamage(player.getBonusDegats());
-            }
-        }
-    }
-    
     public btCollisionObject getBodyInView(float maxDistance) {
         rayFrom.set(camera.position);
         rayTo.set(camera.direction).scl(maxDistance).add(rayFrom);

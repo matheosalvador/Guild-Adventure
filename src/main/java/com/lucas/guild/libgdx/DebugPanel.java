@@ -25,8 +25,10 @@ class DebugPanel {
     private final DebugActions actions;
     private final MainGame game;
     private final String difficulty;
+    private final BaseWorldScreen screen;
 
-    DebugPanel(Table table, Skin skin, MainGame game, GameSession session, String difficulty) {
+    DebugPanel(Table table, Skin skin, MainGame game, BaseWorldScreen screen, GameSession session, String difficulty) {
+        this.screen = screen;
         this.table = table;
         this.skin = skin;
         this.game = game;
@@ -91,19 +93,30 @@ class DebugPanel {
         }
         buttons(list, row.toArray());
 
-        section(list, "Objets");
-        java.util.List<Object[]> items = new java.util.ArrayList<>();
-        for (final Item item : GameContent.items()) {
-            items.add(action("+ " + item.getName(), () -> actions.giveItem(item.getId())));
-        }
-        buttons(list, items.toArray());
+        section(list, "Combat");
+        boolean invincible = DebugMode.isInvincible();
+        buttons(list,
+                action("Rat devant moi", () -> screen.debugSpawn("giant_rat")),
+                action("Tuer tout", screen::debugKillAll),
+                action("Invincible : " + (invincible ? "OUI" : "non"), () -> {
+                    DebugMode.setInvincible(!invincible);
+                    return "Invincible : " + (!invincible ? "oui" : "non") + ".";
+                }));
 
         section(list, "Aller à");
         buttons(list,
                 action("Ville", () -> go(new TownScreen(game, difficulty))),
                 action("Forge", () -> go(new ForgeScreen(game, difficulty))),
                 action("Guilde", () -> go(new GuildScreen(game, difficulty))),
-                action("Auberge", () -> go(new InnScreen(game, difficulty))));
+                action("Auberge", () -> go(new InnScreen(game, difficulty))),
+                action("Cave", () -> go(new CellarScreen(game, difficulty))));
+
+        section(list, "Objets");
+        java.util.List<Object[]> items = new java.util.ArrayList<>();
+        for (final Item item : GameContent.items()) {
+            items.add(action("+ " + item.getName(), () -> actions.giveItem(item.getId())));
+        }
+        buttons(list, items.toArray());
 
         UiKit.addScrollable(table, list, 1, 90);
     }

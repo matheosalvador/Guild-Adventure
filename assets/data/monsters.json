@@ -1,0 +1,18 @@
+{
+  "giant_rat": {
+    "name": "Rat géant",
+    "health": 20,
+    "damage": 5,
+    "speed": 3.5,
+    "aggroRange": 12,
+    "attackRange": 1.6,
+    "attackCooldown": 1.2,
+    "goldMin": 1,
+    "goldMax": 5,
+    "lootItem": "Queue de rat",
+    "color": "#6B5B4B",
+    "w": 0.9,
+    "h": 0.7,
+    "d": 1.5
+  }
+}

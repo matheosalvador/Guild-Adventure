@@ -28,7 +28,7 @@ class CreationTest {
     static void logic() throws Exception {
         System.out.println("--- 1. donnees");
         List<SkillData> skills = GameContent.skills();
-        check("5 competences", skills.size() == 5);
+        check("7 competences", skills.size() == 7);
         check("4 classes, 4 origines", GameContent.characterClasses().size() == 4 && GameContent.backgrounds().size() == 4);
         check("toutes les competences ont des effets connus", skills.stream().allMatch(s -> SkillData.EFFECTS.keySet().containsAll(s.effects.keySet())));
         SkillData haggling = skills.stream().filter(s -> s.id.equals("haggling")).findFirst().get();

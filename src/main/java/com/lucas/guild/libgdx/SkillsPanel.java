@@ -22,12 +22,15 @@ class SkillsPanel {
     private final Skin skin;
     private final Adventurer player;
     private final GameClock clock;
+    /** Où s'écrivent les lignes de compétences : la zone qui défile pendant la construction. */
+    private Table out;
 
     SkillsPanel(Table table, Skin skin, Adventurer player, GameClock clock) {
         this.table = table;
         this.skin = skin;
         this.player = player;
         this.clock = clock;
+        this.out = table;
     }
 
     void rebuild() {
@@ -46,11 +49,18 @@ class SkillsPanel {
         table.add(UiKit.label(skin, age + " - PV " + player.getHealth() + " / " + player.getMaxHealth()
                 + String.format(Locale.FRANCE, " - vitesse %.0f %%", player.getSpeedFactor() * 100))).left().padLeft(10).row();
 
+        table.add(UiKit.label(skin, "Dégâts par coup : " + player.getAttackDamage() + " - Défense : " + player.getDefense())).left().padLeft(10).row();
+
         table.add(UiKit.label(skin, "-- Compétences --")).left().pad(10).row();
         Skills skills = player.getSkills();
+        Table list = new Table(skin);
+        list.top().left();
+        out = list;
         for (SkillData def : skills.definitions()) {
             skillRows(skills, def);
         }
+        out = table;
+        UiKit.addScrollable(table, list, 1, 200);
         table.add(UiKit.label(skin, "Les compétences progressent en les pratiquant. (K ou Échap pour fermer)")).left().pad(10).row();
     }
 
@@ -68,7 +78,7 @@ class SkillsPanel {
         if (level == 0) {
             titleLabel.setColor(Color.GRAY);
         }
-        table.add(titleLabel).left().padLeft(10).padTop(6).row();
+        out.add(titleLabel).left().padLeft(10).padTop(6).row();
 
         // progression vers le niveau suivant
         String progress;
@@ -78,7 +88,7 @@ class SkillsPanel {
             progress = String.format(Locale.FRANCE, "Prochain niveau : %s / %s %s", number(practice),
                     number(def.thresholds.get(level)), def.unit);
         }
-        table.add(UiKit.label(skin, "   " + def.trainedBy + " - " + progress)).left().padLeft(10).row();
+        out.add(UiKit.label(skin, "   " + def.trainedBy + " - " + progress)).left().padLeft(10).row();
 
         // effets : ceux gagnés maintenant, ou ceux que donnera le premier niveau
         StringBuilder effects = new StringBuilder();
@@ -90,7 +100,7 @@ class SkillsPanel {
         }
         Label effectLabel = UiKit.label(skin, "   " + (level == 0 ? "Au niveau 1 : " : "Effet : ") + effects);
         effectLabel.setColor(level == 0 ? Color.GRAY : Color.LIGHT_GRAY);
-        table.add(effectLabel).left().padLeft(10).row();
+        out.add(effectLabel).left().padLeft(10).row();
     }
 
     private static String number(double value) {

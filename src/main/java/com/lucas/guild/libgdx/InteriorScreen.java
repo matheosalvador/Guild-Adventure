@@ -48,7 +48,7 @@ public abstract class InteriorScreen extends BaseWorldScreen {
         if (npcPrompt != null) {
             return npcPrompt;
         }
-        return "Door".equals(userData) ? "Sortir (E)" : null;
+        return "Door".equals(userData) ? getDoorPrompt() : null;
     }
 
     @Override
@@ -57,10 +57,20 @@ public abstract class InteriorScreen extends BaseWorldScreen {
             return true;
         }
         if ("Door".equals(userData)) {
-            leaveToTown();
+            leave();
             return true;
         }
         return false;
+    }
+
+    /** Texte affiché quand on vise la porte de sortie. */
+    protected String getDoorPrompt() {
+        return "Sortir (E)";
+    }
+
+    /** Ce que fait la porte : par défaut, retour en ville avec sauvegarde automatique. */
+    protected void leave() {
+        leaveToTown();
     }
 
     /** Texte à afficher quand on vise un PNJ ou un objet propre à ce lieu, sinon null. */

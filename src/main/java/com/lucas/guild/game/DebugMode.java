@@ -15,6 +15,9 @@ public final class DebugMode {
     /** Multiplicateur de la vitesse de déplacement du joueur (1 = normal). */
     private static float speedMultiplier = 1f;
 
+    /** Le joueur ne perd plus de vie (combat). */
+    private static boolean invincible = false;
+
     private DebugMode() {
     }
 
@@ -26,7 +29,17 @@ public final class DebugMode {
         enabled = value;
         if (!value) {
             speedMultiplier = 1f;
+            invincible = false;
         }
+    }
+
+    /** Invincible : seulement si le mode debug est allumé. */
+    public static boolean isInvincible() {
+        return enabled && invincible;
+    }
+
+    public static void setInvincible(boolean value) {
+        invincible = value;
     }
 
     /** Allume le mode debug si {@code --debug} figure parmi les arguments du programme. */

@@ -99,16 +99,7 @@ public class TownScreen extends BaseWorldScreen {
 
     /** Couleur par son nom LibGDX (« BROWN ») ou en hexadécimal (« #5B8C3A »). */
     private static Color parseColor(String name, String where) {
-        Color color = null;
-        try {
-            color = name.startsWith("#") ? Color.valueOf(name) : Colors.get(name);
-        } catch (RuntimeException e) {
-            // couleur hexadécimale invalide : message ci-dessous
-        }
-        if (color == null) {
-            throw new IllegalStateException("town.json : " + where + " : couleur inconnue \"" + name + "\"");
-        }
-        return color;
+        return ColorNames.parse(name, "town.json", where);
     }
 
     /** Une boîte du décor ; (ox, oz) est le centre du bâtiment pour ses détails, {@code userData} ce qu'on obtient en la visant. */

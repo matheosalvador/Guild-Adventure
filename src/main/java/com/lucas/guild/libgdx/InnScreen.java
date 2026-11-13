@@ -8,6 +8,7 @@ public class InnScreen extends InteriorScreen {
 
     private static final String INNKEEPER = "Innkeeper";
     private static final String BED = "Bed";
+    private static final String CELLAR = "Cellar";
 
     // Prix en Po
     private static final int MEAL_PRICE = 5;
@@ -32,6 +33,9 @@ public class InnScreen extends InteriorScreen {
 
         // Aubergiste (PNJ)
         addBox(1f, 2f, 1f, Color.ORANGE, 0, 1.5f, 5f, INNKEEPER);
+
+        // Trappe de la cave
+        addBox(3f, 0.2f, 3f, new Color(0.23f, 0.14f, 0.07f, 1f), 6f, 0.6f, -4f, CELLAR);
 
         // Étage : deux planchers, le lit
         addBox(12f, 1f, 20f, floor, 4, 10f, 0, null);
@@ -58,6 +62,9 @@ public class InnScreen extends InteriorScreen {
         if (INNKEEPER.equals(userData)) {
             return "Parler à l'aubergiste (E)";
         }
+        if (CELLAR.equals(userData)) {
+            return "Descendre à la cave (E)";
+        }
         if (BED.equals(userData)) {
             return "Dormir (" + BED_PRICE + " Po) (E)";
         }
@@ -68,6 +75,10 @@ public class InnScreen extends InteriorScreen {
     protected boolean onNpcInteract(Object userData) {
         if (INNKEEPER.equals(userData)) {
             toggleDialog(INNKEEPER);
+            return true;
+        }
+        if (CELLAR.equals(userData)) {
+            game.setScreen(new CellarScreen(game, difficulty));
             return true;
         }
         if (BED.equals(userData)) {

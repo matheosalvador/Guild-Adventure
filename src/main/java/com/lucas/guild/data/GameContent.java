@@ -116,6 +116,37 @@ public final class GameContent {
         return skills;
     }
 
+    /** Tous les types de monstres (identifiant -> données), nouvelles instances à chaque appel. */
+    public static Map<String, MonsterData> monsters() {
+        Map<String, MonsterData> all = read("monsters.json", new TypeToken<Map<String, MonsterData>>() { }.getType());
+        for (Map.Entry<String, MonsterData> e : all.entrySet()) {
+            MonsterData m = e.getValue();
+            String where = "monsters.json : \"" + e.getKey() + "\"";
+            if (m == null) throw new IllegalStateException(where + " : vide");
+            m.id = e.getKey();
+            if (m.name == null || m.name.isEmpty()) throw new IllegalStateException(where + " : \"name\" manquant");
+            if (m.health <= 0) throw new IllegalStateException(where + " : \"health\" doit etre > 0");
+            if (m.damage < 0) throw new IllegalStateException(where + " : \"damage\" doit etre >= 0");
+            if (m.speed <= 0) throw new IllegalStateException(where + " : \"speed\" doit etre > 0");
+            if (m.aggroRange <= 0 || m.attackRange <= 0) throw new IllegalStateException(where + " : \"aggroRange\" et \"attackRange\" doivent etre > 0");
+            if (m.attackRange > m.aggroRange) throw new IllegalStateException(where + " : \"attackRange\" ne peut pas depasser \"aggroRange\"");
+            if (m.attackCooldown <= 0) throw new IllegalStateException(where + " : \"attackCooldown\" doit etre > 0");
+            if (m.goldMin < 0 || m.goldMax < m.goldMin) throw new IllegalStateException(where + " : \"goldMin\" >= 0 et \"goldMax\" >= \"goldMin\" attendus");
+            if (m.color == null) throw new IllegalStateException(where + " : \"color\" manquant");
+            if (m.w <= 0 || m.h <= 0 || m.d <= 0) throw new IllegalStateException(where + " : \"w\", \"h\" et \"d\" doivent etre > 0");
+        }
+        return all;
+    }
+
+    /** Le monstre {@code id}. @throws IllegalStateException s'il n'existe pas. */
+    public static MonsterData monster(String id) {
+        MonsterData m = monsters().get(id);
+        if (m == null) {
+            throw new IllegalStateException("monsters.json : monstre inconnu \"" + id + "\"");
+        }
+        return m;
+    }
+
     /** Les classes de personnage proposées à la création (classes.json). */
     public static List<ProfileData> characterClasses() {
         return profiles("classes.json");
@@ -335,6 +366,7 @@ public final class GameContent {
         skills();
         characterClasses();
         backgrounds();
+        monsters();
         maxWeight("normale");
         shop("forge");
         shop("guild");
