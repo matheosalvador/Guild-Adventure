@@ -451,6 +451,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         hudText.append("Or : ").append(player.getGold()).append(" Po - ").append(UiKit.loadLine(player));
         font.draw(spriteBatch, hudText, 10, h - 10);
 
+        font.draw(spriteBatch, "I : inventaire   K : personnage   Échap : pause", 10, 24);
+
         drawToast(delta, w, h);
 
         btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());

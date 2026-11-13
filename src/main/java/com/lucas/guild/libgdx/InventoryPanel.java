@@ -19,11 +19,14 @@ class InventoryPanel {
     private final Table table;
     private final Skin skin;
     private final Adventurer player;
+    /** Où s'écrivent les lignes : la zone qui défile pendant la construction, sinon le panneau. */
+    private Table out;
 
     InventoryPanel(Table table, Skin skin, Adventurer player) {
         this.table = table;
         this.skin = skin;
         this.player = player;
+        this.out = table;
     }
 
     /** (Re)construit le panneau. {@code message} est affiché en bas (résultat de la dernière action), ou null. */
@@ -50,21 +53,26 @@ class InventoryPanel {
                     .colspan(4).left().padLeft(10).row();
         }
 
+        Table list = new Table(skin);
+        out = list;
         // --- équipement porté
-        table.add(UiKit.label(skin, "-- Équipement --")).colspan(4).left().pad(10).row();
+        out.add(UiKit.label(skin, "-- Équipement --")).colspan(4).left().pad(10).row();
         equipmentRow(Inventaire.Slot.WEAPON, inventory.getWeapon());
         equipmentRow(Inventaire.Slot.ARMOR, inventory.getArmor());
         equipmentRow(Inventaire.Slot.BAG, inventory.getBag());
 
         // --- objets transportés, regroupés
-        table.add(UiKit.label(skin, "-- Objets --")).colspan(4).left().pad(10).row();
+        out.add(UiKit.label(skin, "-- Objets --")).colspan(4).left().pad(10).row();
         List<Item> items = inventory.getItems();
         if (items.isEmpty()) {
-            table.add(UiKit.label(skin, "Rien.")).colspan(4).left().padLeft(10).row();
+            out.add(UiKit.label(skin, "Rien.")).colspan(4).left().padLeft(10).row();
         }
         for (Map.Entry<String, List<Item>> stack : UiKit.stacks(items).entrySet()) {
             itemRow(stack.getValue());
         }
+
+        out = table;
+        UiKit.addScrollable(table, list, 4, 230);
 
         if (message != null) {
             table.add(UiKit.message(skin, message)).colspan(4).left().pad(10).row();
@@ -73,50 +81,50 @@ class InventoryPanel {
 
     private void equipmentRow(final Inventaire.Slot slot, Item equipped) {
         String text = slot.getLabel() + " : " + (equipped != null ? equipped.getName() + " (" + UiKit.kg(equipped.getPoids()) + ")" : "aucun(e)");
-        table.add(UiKit.label(skin, text)).left().pad(3).padLeft(10);
+        out.add(UiKit.label(skin, text)).left().pad(3).padLeft(10);
         if (equipped != null) {
-            table.add(UiKit.button(skin, "Retirer", new Runnable() {
+            out.add(UiKit.button(skin, "Retirer", new Runnable() {
                 @Override
                 public void run() {
                     rebuild(player.unequip(slot));
                 }
             })).pad(3);
         }
-        table.row();
+        out.row();
     }
 
     private void itemRow(List<Item> stack) {
         final Item item = stack.get(0);
         String count = stack.size() > 1 ? " x" + stack.size() : "";
         String text = item.getName() + count + " - " + item.getDescription() + " (" + UiKit.kg(item.getPoids() * stack.size()) + ")";
-        table.add(UiKit.label(skin, text)).left().pad(3).padLeft(10);
+        out.add(UiKit.label(skin, text)).left().pad(3).padLeft(10);
 
         if (item.estUtilisableHorsCombat()) {
-            table.add(UiKit.button(skin, "Utiliser", new Runnable() {
+            out.add(UiKit.button(skin, "Utiliser", new Runnable() {
                 @Override
                 public void run() {
                     rebuild(player.useHealingItem(item));
                 }
             })).pad(3);
         } else if (isEquipment(item)) {
-            table.add(UiKit.button(skin, "Équiper", new Runnable() {
+            out.add(UiKit.button(skin, "Équiper", new Runnable() {
                 @Override
                 public void run() {
                     rebuild(player.equip(item));
                 }
             })).pad(3);
         } else {
-            table.add(UiKit.label(skin, "")).pad(3);
+            out.add(UiKit.label(skin, "")).pad(3);
         }
 
-        table.add(UiKit.button(skin, "Jeter", new Runnable() {
+        out.add(UiKit.button(skin, "Jeter", new Runnable() {
             @Override
             public void run() {
                 player.removeItem(item);
                 rebuild(item.getName() + " jeté(e).");
             }
         })).pad(3);
-        table.row();
+        out.row();
     }
 
     private static boolean isEquipment(Item item) {

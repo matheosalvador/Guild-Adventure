@@ -36,25 +36,26 @@ class ShopPanel {
         table.add(UiKit.label(skin, shop.getTitle())).colspan(5).pad(10).row();
         table.add(UiKit.label(skin, "Or : " + player.getGold() + " Po    " + UiKit.loadLine(player))).colspan(5).padBottom(10).row();
 
+        Table list = new Table(skin);
         // --- acheter
-        table.add(UiKit.label(skin, "-- Acheter --")).colspan(5).pad(5).row();
+        list.add(UiKit.label(skin, "-- Acheter --")).colspan(5).pad(5).row();
         for (final Item wanted : shop.getStock()) {
-            table.add(UiKit.label(skin, wanted.getName())).left().pad(3);
-            table.add(UiKit.label(skin, wanted.getDescription())).left().pad(3);
-            table.add(UiKit.label(skin, UiKit.kg(wanted.getPoids()))).pad(3);
-            table.add(UiKit.label(skin, shop.buyPrice(player, wanted) + " Po")).pad(3);
-            table.add(UiKit.button(skin, "Acheter", new Runnable() {
+            list.add(UiKit.label(skin, wanted.getName())).left().pad(3);
+            list.add(UiKit.label(skin, wanted.getDescription())).left().pad(3);
+            list.add(UiKit.label(skin, UiKit.kg(wanted.getPoids()))).pad(3);
+            list.add(UiKit.label(skin, shop.buyPrice(player, wanted) + " Po")).pad(3);
+            list.add(UiKit.button(skin, "Acheter", new Runnable() {
                 @Override
                 public void run() {
                     String error = shop.buy(player, wanted);
                     rebuild(error != null ? error : wanted.getName() + " acheté(e).");
                 }
             })).pad(3);
-            table.row();
+            list.row();
         }
 
         // --- vendre (objets transportés, pas l'équipement porté)
-        table.add(UiKit.label(skin, "-- Vendre --")).colspan(5).pad(5).row();
+        list.add(UiKit.label(skin, "-- Vendre --")).colspan(5).pad(5).row();
         boolean any = false;
         for (Map.Entry<String, List<Item>> stack : UiKit.stacks(player.getInventoryItems()).entrySet()) {
             final Item item = stack.getValue().get(0);
@@ -64,22 +65,24 @@ class ShopPanel {
             }
             any = true;
             String count = stack.getValue().size() > 1 ? " x" + stack.getValue().size() : "";
-            table.add(UiKit.label(skin, item.getName() + count)).left().pad(3);
-            table.add(UiKit.label(skin, "")).pad(3);
-            table.add(UiKit.label(skin, UiKit.kg(item.getPoids()))).pad(3);
-            table.add(UiKit.label(skin, price + " Po")).pad(3);
-            table.add(UiKit.button(skin, "Vendre", new Runnable() {
+            list.add(UiKit.label(skin, item.getName() + count)).left().pad(3);
+            list.add(UiKit.label(skin, "")).pad(3);
+            list.add(UiKit.label(skin, UiKit.kg(item.getPoids()))).pad(3);
+            list.add(UiKit.label(skin, price + " Po")).pad(3);
+            list.add(UiKit.button(skin, "Vendre", new Runnable() {
                 @Override
                 public void run() {
                     String error = shop.sell(player, item);
                     rebuild(error != null ? error : item.getName() + " vendu(e).");
                 }
             })).pad(3);
-            table.row();
+            list.row();
         }
         if (!any) {
-            table.add(UiKit.label(skin, "Vous n'avez rien à vendre.")).colspan(5).pad(3).row();
+            list.add(UiKit.label(skin, "Vous n'avez rien à vendre.")).colspan(5).pad(3).row();
         }
+
+        UiKit.addScrollable(table, list, 5, 260);
 
         table.add(UiKit.button(skin, "Retour", onBack)).colspan(5).pad(10).row();
 

@@ -7,7 +7,11 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -19,6 +23,30 @@ import com.lucas.guild.model.Item;
 final class UiKit {
 
     private UiKit() {
+    }
+
+    /**
+     * Met un contenu dans une zone qui défile à la molette quand il dépasse l'écran
+     * (listes longues : boutiques, inventaire). La molette agit quand la souris est dessus.
+     *
+     * @param reservedHeight hauteur d'écran gardée pour le reste du panneau (titre, boutons...)
+     */
+    static void addScrollable(Table parent, Table content, int colspan, float reservedHeight) {
+        final ScrollPane pane = new ScrollPane(content, new ScrollPane.ScrollPaneStyle());
+        pane.setScrollingDisabled(true, false);
+        pane.setFadeScrollBars(false);
+        pane.addListener(new InputListener() {
+            @Override
+            public void enter(InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
+                if (event.getStage() != null) {
+                    event.getStage().setScrollFocus(pane);
+                }
+            }
+        });
+        float max = Math.max(150f, Gdx.graphics.getHeight() - reservedHeight);
+        // hauteur = celle du contenu, plafonnée : un contenu court n'est pas étiré
+        float height = Math.min(max, content.getPrefHeight());
+        parent.add(pane).colspan(colspan).height(height).row();
     }
 
     static Label label(Skin skin, String text) {
