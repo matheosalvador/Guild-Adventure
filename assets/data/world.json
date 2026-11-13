@@ -4,11 +4,18 @@
   "places": [
     { "id": "aethelgard", "name": "Aethelgard", "townFile": "town.json", "x": 0, "z": 0 },
     { "id": "portbrume", "name": "Port-Brume", "townFile": "town_portbrume.json", "x": 30, "z": -14 },
-    { "id": "hautevigne", "name": "Hautevigne", "townFile": "town_hautevigne.json", "x": -22, "z": -18 }
+    { "id": "hautevigne", "name": "Hautevigne", "townFile": "town_hautevigne.json", "x": -22, "z": -18 },
+    { "id": "foret_loups", "name": "Forêt des Loups", "zoneFile": "zone_foret.json", "x": -9, "z": -12 },
+    { "id": "ruines_gobelines", "name": "Ruines gobelines", "zoneFile": "zone_ruines.json", "x": 17, "z": 6 }
   ],
   "links": [
     ["aethelgard", "portbrume"],
     ["aethelgard", "hautevigne"],
-    ["portbrume", "hautevigne"]
-  ]
+    ["portbrume", "hautevigne"],
+    ["aethelgard", "foret_loups"],
+    ["foret_loups", "hautevigne"],
+    ["aethelgard", "ruines_gobelines"],
+    ["ruines_gobelines", "portbrume"]
+  ],
+  "ambush": { "zoneFile": "zone_route.json", "monsters": ["wolf", "goblin"], "min": 1, "max": 2 }
 }

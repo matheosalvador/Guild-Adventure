@@ -11,9 +11,7 @@ import com.badlogic.gdx.graphics.Colors;
 import com.badlogic.gdx.math.Vector3;
 import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.TownData;
-import com.lucas.guild.game.GameSession;
 import com.lucas.guild.model.Building;
-import com.lucas.guild.model.DayNightCycle;
 
 /**
  * La ville. Le sol est fixe ; les bâtiments (nom, position, couleur, intérieur à ouvrir)
@@ -66,14 +64,7 @@ public class TownScreen extends BaseWorldScreen {
     /** Jour et nuit : le ciel, le soleil (puis la lune) et la lumière ambiante suivent l'heure et la saison. */
     @Override
     protected void updateEnvironment() {
-        DayNightCycle.Light light = DayNightCycle.compute(
-                gameClock.getTimeOfDay(), gameClock.getSunrise(), gameClock.getSunset(), getAmbientLight());
-
-        sky.set(light.sky[0], light.sky[1], light.sky[2], 1f);
-
-        ambientLight.color.set(light.ambient[0], light.ambient[1], light.ambient[2], 1f);
-        sunLight.color.set(light.lightColor[0], light.lightColor[1], light.lightColor[2], 1f);
-        sunLight.direction.set(light.lightDirection[0], light.lightDirection[1], light.lightDirection[2]).nor();
+        applyDayNight(sky);
     }
 
     @Override
@@ -194,12 +185,8 @@ public class TownScreen extends BaseWorldScreen {
         // Quick Load (F9) — recharge la sauvegarde disque dans la session puis relance la ville
         if (keycode == Input.Keys.F9) {
             if (game.loadSavedGame()) {
-                GameSession loaded = game.getSession();
-                Vector3 pos = loaded.hasSavedPosition()
-                        ? new Vector3(loaded.getSavedX(), loaded.getSavedY(), loaded.getSavedZ())
-                        : new Vector3(0, 2, 0);
-                Gdx.app.log("SAVE", "Sauvegarde chargée : " + loaded.getPlayer().getName());
-                game.setScreen(new TownScreen(game, loaded.getDifficulty(), pos));
+                Gdx.app.log("SAVE", "Sauvegarde chargée : " + game.getSession().getPlayer().getName());
+                game.setScreen(game.resumeScreen());
             } else {
                 Gdx.app.error("SAVE", "Aucune sauvegarde utilisable à charger");
             }

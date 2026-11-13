@@ -2,6 +2,7 @@ package com.lucas.guild.game;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.WorldData;
@@ -58,6 +59,56 @@ public final class World {
             return m + " min";
         }
         return m == 0 ? h + " h" : h + " h " + String.format("%02d", m);
+    }
+
+    /**
+     * Une embuscade attend-elle le joueur sur cette route ? Seulement entre deux villes (les zones
+     * sauvages sont déjà dangereuses), si le monde en prévoit, selon la difficulté de la partie.
+     */
+    public static boolean shouldAmbush(GameSession session, String placeId, Random random) {
+        WorldData world = GameContent.world();
+        WorldData.PlaceData from = world.place(session.getPlayer().getTownId());
+        WorldData.PlaceData to = world.place(placeId);
+        if (world.ambush == null || from == null || to == null || from.zoneFile != null || to.zoneFile != null) {
+            return false;
+        }
+        if (DebugMode.isForceAmbush()) {
+            return true;
+        }
+        return random.nextInt(100) < GameContent.ambushPercent(session.getDifficulty());
+    }
+
+    /**
+     * Début d'un voyage coupé par une embuscade : la moitié du trajet passe, le reste attend que le
+     * joueur ait vaincu ses agresseurs ({@link #finishTravel}).
+     *
+     * @return la phrase à afficher, ou {@code null} si aucune route ne mène à ce lieu
+     */
+    public static String startAmbushedTravel(GameSession session, String placeId) {
+        for (Route route : routesFrom(session.getPlayer())) {
+            if (route.place.id.equals(placeId)) {
+                int before = (route.minutes / 2) / 5 * 5;
+                session.getClock().advanceMinutes(before);
+                session.setPendingTravel(placeId, route.minutes - before);
+                return "Embuscade ! On vous attaque sur la route.";
+            }
+        }
+        return null;
+    }
+
+    /** La fin du trajet interrompu : le temps restant passe et le joueur arrive. @return la phrase d'arrivée, ou null s'il n'y a pas de voyage en cours */
+    public static String finishTravel(GameSession session) {
+        String placeId = session.getPendingDestination();
+        if (placeId == null) {
+            return null;
+        }
+        int minutes = session.getPendingMinutes();
+        session.clearPendingTravel();
+        Adventurer player = session.getPlayer();
+        session.getClock().advanceMinutes(minutes);
+        player.setTownId(placeId);
+        player.markVisited(placeId);
+        return "Vous arrivez à " + GameContent.world().place(placeId).name + ". Il est " + session.getClock().formatTime() + ".";
     }
 
     /**

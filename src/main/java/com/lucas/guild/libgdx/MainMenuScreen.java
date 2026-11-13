@@ -136,11 +136,7 @@ public class MainMenuScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 if (game.loadSavedGame()) {
-                    GameSession session = game.getSession();
-                    Vector3 spawn = session.hasSavedPosition()
-                            ? new Vector3(session.getSavedX(), session.getSavedY(), session.getSavedZ())
-                            : new Vector3(0, 2, 0);
-                    game.setScreen(new TownScreen(game, session.getDifficulty(), spawn));
+                    game.setScreen(game.resumeScreen());
                 } else {
                     startMessage.setText("Sauvegarde illisible ou introuvable (voir la console).");
                 }

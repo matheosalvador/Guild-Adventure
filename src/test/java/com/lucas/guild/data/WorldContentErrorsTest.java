@@ -98,6 +98,62 @@ class WorldContentErrorsTest {
     }
 
     @Test
+    void placeWithTownAndZone() throws IOException {
+        expectError("world.json", "\"zoneFile\": \"zone_foret.json\"", "\"zoneFile\": \"zone_foret.json\", \"townFile\": \"town.json\"",
+                "world.json", "foret_loups", "townFile", "zoneFile");
+    }
+
+    @Test
+    void placeWithoutAnyFile() throws IOException {
+        expectError("world.json", "\"zoneFile\": \"zone_foret.json\", ", "", "world.json", "foret_loups", "zoneFile");
+    }
+
+    @Test
+    void zoneMissingFile() throws IOException {
+        expectError("world.json", "zone_ruines.json", "zone_fantome.json", "zone_fantome.json", "introuvable");
+    }
+
+    @Test
+    void zoneUnknownMonster() throws IOException {
+        expectError("zone_foret.json", "\"id\": \"wolf\"", "\"id\": \"dragon\"", "zone_foret.json", "dragon", "monsters.json");
+    }
+
+    @Test
+    void zoneChestUnknownItem() throws IOException {
+        expectError("zone_foret.json", "\"healing_potion\"", "\"potion_magique\"", "zone_foret.json", "potion_magique", "items.json");
+    }
+
+    @Test
+    void zoneWithoutExit() throws IOException {
+        expectError("zone_foret.json", "\"exit\"", "\"sortie\"", "zone_foret.json", "exit");
+    }
+
+    @Test
+    void zoneBadChestRespawn() throws IOException {
+        expectError("zone_foret.json", "\"respawnDays\": 7", "\"respawnDays\": 0", "zone_foret.json", "respawnDays");
+    }
+
+    @Test
+    void monsterDropUnknownItem() throws IOException {
+        expectError("monsters.json", "\"wolf_pelt\"", "\"peau_magique\"", "monsters.json", "wolf", "peau_magique");
+    }
+
+    @Test
+    void monsterDropBadChance() throws IOException {
+        expectError("monsters.json", "\"chance\": 80", "\"chance\": 0", "monsters.json", "wolf_pelt", "chance");
+    }
+
+    @Test
+    void ambushUnknownMonster() throws IOException {
+        expectError("world.json", "[\"wolf\", \"goblin\"]", "[\"wolf\", \"dragon\"]", "world.json", "ambush", "dragon");
+    }
+
+    @Test
+    void difficultyBadAmbushPercent() throws IOException {
+        expectError("difficulties.json", "\"ambushPercent\": 20", "\"ambushPercent\": 200", "difficulties.json", "normale", "ambushPercent");
+    }
+
+    @Test
     void shopBadPriceFactor() throws IOException {
         expectError("shops.json", "\"priceFactor\": 90", "\"priceFactor\": 0", "shops.json", "portbrume_store", "priceFactor");
     }

@@ -34,8 +34,8 @@ class WorldTest {
     void worldData() {
         WorldData world = GameContent.world();
         assertEquals("aethelgard", world.startPlace);
-        assertEquals(3, world.places.size());
-        assertEquals(List.of("portbrume", "hautevigne"), world.neighbors("aethelgard").stream().map(p -> p.id).collect(Collectors.toList()));
+        assertEquals(5, world.places.size(), "3 villes et 2 zones sauvages");
+        assertEquals(List.of("portbrume", "hautevigne", "foret_loups", "ruines_gobelines"), world.neighbors("aethelgard").stream().map(p -> p.id).collect(Collectors.toList()));
         assertTrue(world.neighbors("portbrume").stream().anyMatch(p -> p.id.equals("aethelgard")), "les routes vont dans les deux sens");
         assertEquals(Math.hypot(30, 14), world.distanceKm("aethelgard", "portbrume"), 1e-6);
     }
@@ -57,7 +57,7 @@ class WorldTest {
         Adventurer p = s.getPlayer();
         assertEquals("aethelgard", p.getTownId());
         assertEquals(List.of("aethelgard"), p.getVisitedPlaces());
-        assertEquals(List.of("portbrume", "hautevigne"), names(World.routesFrom(p)));
+        assertEquals(List.of("portbrume", "hautevigne", "foret_loups", "ruines_gobelines"), names(World.routesFrom(p)));
 
         int start = s.getClock().getCurrentDay() * 1440 + s.getClock().getCurrentHour() * 60 + s.getClock().getCurrentMinute();
         String message = World.travel(s, "portbrume");
@@ -67,7 +67,7 @@ class WorldTest {
         assertEquals(395, end - start);
         assertEquals("portbrume", p.getTownId());
         assertEquals(List.of("aethelgard", "portbrume"), p.getVisitedPlaces());
-        assertEquals(List.of("aethelgard", "hautevigne"), names(World.routesFrom(p)));
+        assertEquals(List.of("aethelgard", "hautevigne", "ruines_gobelines"), names(World.routesFrom(p)));
     }
 
     @Test
@@ -112,6 +112,9 @@ class WorldTest {
     @Test
     void everyTownIsComplete() {
         for (WorldData.PlaceData place : GameContent.world().places) {
+            if (place.zoneFile != null) {
+                continue;
+            }
             TownData town = GameContent.town(place.id);
             assertTrue(town.buildings.stream().anyMatch(b -> "inn".equals(b.interior)), place.id + " : une auberge");
             assertNotNull(town.arrival, place.id + " : un point d'arrivee");

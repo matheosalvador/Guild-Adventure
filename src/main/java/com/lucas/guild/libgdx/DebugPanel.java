@@ -101,6 +101,12 @@ class DebugPanel {
                 action("Invincible : " + (invincible ? "OUI" : "non"), () -> {
                     DebugMode.setInvincible(!invincible);
                     return "Invincible : " + (!invincible ? "oui" : "non") + ".";
+                }),
+                action("Loup devant moi", () -> screen.debugSpawn("wolf")),
+                action("Gobelin devant moi", () -> screen.debugSpawn("goblin")),
+                action("Embuscade à chaque voyage : " + (DebugMode.isForceAmbush() ? "OUI" : "non"), () -> {
+                    DebugMode.setForceAmbush(!DebugMode.isForceAmbush());
+                    return "Embuscade à chaque voyage : " + (DebugMode.isForceAmbush() ? "oui" : "non") + ".";
                 }));
 
         section(list, "Voyager (sans durée)");
@@ -109,8 +115,7 @@ class DebugPanel {
             places.add(action(place.name, () -> {
                 session.getPlayer().setTownId(place.id);
                 session.getPlayer().markVisited(place.id);
-                com.lucas.guild.data.TownData.Point3 a = GameContent.town(place.id).arrival;
-                return go(new TownScreen(game, difficulty, a != null ? new com.badlogic.gdx.math.Vector3(a.x, a.y, a.z) : new com.badlogic.gdx.math.Vector3(0, 2, 50)));
+                return go(game.screenAt(place.id, difficulty));
             }));
         }
         buttons(list, places.toArray());

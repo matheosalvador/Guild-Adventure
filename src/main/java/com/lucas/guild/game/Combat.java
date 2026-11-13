@@ -72,6 +72,17 @@ public final class Combat {
         return message.append(".").toString();
     }
 
+    /** Les objets qui tombent au sol quand {@code monster} meurt (chacun selon sa chance). */
+    public static java.util.List<com.lucas.guild.model.Item> rollDrops(Monster monster, Random random) {
+        java.util.List<com.lucas.guild.model.Item> drops = new java.util.ArrayList<>();
+        for (com.lucas.guild.data.MonsterData.Drop drop : monster.data.drops) {
+            if (random.nextInt(100) < drop.chance) {
+                drops.add(GameContent.newItem(drop.item));
+            }
+        }
+        return drops;
+    }
+
     private static boolean wantedByActiveQuest(Adventurer player, String item) {
         for (Quest quest : GameContent.quests()) {
             if (item.equals(quest.getProofItem()) && player.getActiveQuests().contains(quest.getTitle())) {

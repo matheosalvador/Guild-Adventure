@@ -91,6 +91,9 @@ public class WorldMapScreen implements Screen {
         for (final World.Route route : routes) {
             String text = String.format(Locale.FRANCE, "%s - %.0f km - %s", route.place.name, route.km, World.formatDuration(route.minutes));
             int arrival = (session.getClock().getCurrentHour() * 60 + session.getClock().getCurrentMinute() + route.minutes) / 60 % 24;
+            if (WorldData.isZone(route.place)) {
+                text += " [zone sauvage]";
+            }
             if (arrival < 6 || arrival >= 20) {
                 text += " (arrivée de nuit)";
             }
@@ -101,7 +104,7 @@ public class WorldMapScreen implements Screen {
                 }
             })).pad(5).row();
         }
-        side.add(UiKit.button(skin, "Retour à la ville", new Runnable() {
+        side.add(UiKit.button(skin, WorldData.isZone(world.place(here)) ? "Retour à la zone" : "Retour à la ville", new Runnable() {
             @Override
             public void run() {
                 backToTown();
@@ -121,26 +124,29 @@ public class WorldMapScreen implements Screen {
     }
 
     private void backToTown() {
-        game.setScreen(new TownScreen(game, difficulty, arrivalOf(player.getTownId())));
+        game.setScreen(game.screenAt(player.getTownId(), difficulty));
     }
 
     private void travel(String placeId) {
         GameSession session = game.getSession();
+        if (World.shouldAmbush(session, placeId, new java.util.Random())) {
+            String warning = World.startAmbushedTravel(session, placeId);
+            if (warning != null) {
+                session.getClock().postMessage(warning);
+                game.setScreen(ZoneScreen.ambush(game, difficulty));
+                return;
+            }
+        }
         String message = World.travel(session, placeId);
         if (message == null) {
             return;
         }
         session.getClock().postMessage(message);
-        Vector3 spawn = arrivalOf(placeId);
-        // sauvegarde automatique à l'arrivée, devant la porte de la nouvelle ville
-        new SaveManager().saveGame(player, session.getClock(), difficulty, spawn.x, spawn.y, spawn.z, "Town");
-        game.setScreen(new TownScreen(game, difficulty, spawn));
-    }
-
-    /** Où on apparaît en arrivant dans la ville du lieu {@code placeId} : devant sa porte. */
-    private static Vector3 arrivalOf(String placeId) {
-        TownData.Point3 a = GameContent.town(placeId).arrival;
-        return a != null ? new Vector3(a.x, a.y, a.z) : new Vector3(0, 2, 50);
+        TownData.Point3 a = GameContent.arrival(placeId);
+        boolean zone = WorldData.isZone(world.place(placeId));
+        // sauvegarde automatique à l'arrivée : devant la porte de la ville, ou au bord de la route de la zone
+        new SaveManager().saveGame(player, session.getClock(), difficulty, a.x, a.y, a.z, zone ? "Zone" : "Town");
+        game.setScreen(game.screenAt(placeId, difficulty));
     }
 
     // ------------------------------------------------------------------ dessin
@@ -194,8 +200,15 @@ public class WorldMapScreen implements Screen {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (WorldData.PlaceData p : world.places) {
             float[] xy = project(p);
-            shapes.setColor(p.id.equals(here) ? Color.YELLOW : player.getVisitedPlaces().contains(p.id) ? Color.WHITE : Color.GRAY);
-            shapes.circle(xy[0], xy[1], p.id.equals(here) ? 11f : 8f);
+            boolean zone = WorldData.isZone(p);
+            shapes.setColor(p.id.equals(here) ? Color.YELLOW
+                    : player.getVisitedPlaces().contains(p.id) ? (zone ? Color.LIME : Color.WHITE)
+                    : zone ? Color.FOREST : Color.GRAY);
+            if (zone) {
+                shapes.rect(xy[0] - 7f, xy[1] - 7f, 14f, 14f);   // une zone sauvage : un carré ; une ville : un rond
+            } else {
+                shapes.circle(xy[0], xy[1], p.id.equals(here) ? 11f : 8f);
+            }
         }
         shapes.end();
 

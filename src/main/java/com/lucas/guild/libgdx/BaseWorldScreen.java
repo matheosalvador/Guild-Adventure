@@ -49,6 +49,14 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.game.GameSession;
+import com.lucas.guild.game.GroundItems;
+import com.lucas.guild.model.Arme;
+import com.lucas.guild.model.Armure;
+import com.lucas.guild.model.Butin;
+import com.lucas.guild.model.DayNightCycle;
+import com.lucas.guild.model.Item;
+import com.lucas.guild.model.ObjetDeQuete;
+import com.lucas.guild.model.Sac;
 import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.game.DeathPenalty;
 import com.lucas.guild.game.DebugMode;
@@ -98,6 +106,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected final Array<Disposable> disposables = new Array<>();
     protected final Array<ModelInstance> instances = new Array<>();
     private final Map<String, Model> boxModels = new HashMap<>();
+    private final Map<GroundItems.Drop, ModelInstance> groundViews = new HashMap<>();
 
     // HUD
     protected SpriteBatch spriteBatch;
@@ -130,7 +139,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected boolean isDebugOpen = false;
 
     private boolean deathPending = false;
-    private String townName = "";
+    /** Le lieu affiché sur le HUD (le nom de la ville ou de la zone). */
+    protected String townName = "";
 
     // Dernière position du joueur, pour mesurer la distance marchée (compétences Endurance et Portage)
     private float lastX;
@@ -226,8 +236,12 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         setupInput();
 
         combat = new CombatScene(instances);
+        combat.setDropSink(this::dropOnGround);
         disposables.add(combat);
         buildWorld();
+        for (GroundItems.Drop drop : game.getSession().getGround().in(sceneKey())) {
+            addGroundView(drop);
+        }
 
         playerController = new PlayerController(camera, dynamicsWorld, player, getSpawnPoint());
     }
@@ -286,6 +300,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         inventoryTable.setVisible(false);
         stage.addActor(inventoryTable);
         inventoryPanel = new InventoryPanel(inventoryTable, skin, player);
+        inventoryPanel.setDropHandler(this::dropInFront);
 
         skillsTable = new Table(skin);
         skillsTable.setFillParent(true);
@@ -447,6 +462,73 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         }
     }
 
+    // ================================================================== objets au sol
+
+    /** Identifie ce lieu pour les objets posés au sol : les objets jetés ici sont retrouvés ici. */
+    protected String sceneKey() {
+        return getClass().getSimpleName() + "@" + player.getTownId();
+    }
+
+    private static Color colorOfItem(Item item) {
+        if (item instanceof ObjetDeQuete) return Color.GOLD;
+        if (item instanceof Butin) return Color.TAN;
+        if (item instanceof Arme) return Color.LIGHT_GRAY;
+        if (item instanceof Armure || item instanceof Sac) return Color.BROWN;
+        if (item.estUtilisableHorsCombat()) return Color.SCARLET;
+        return Color.ORANGE;
+    }
+
+    private void addGroundView(GroundItems.Drop drop) {
+        groundViews.put(drop, addVisualBox(0.5f, 0.3f, 0.5f, colorOfItem(drop.item), drop.x, 0.65f, drop.z));
+    }
+
+    /** Pose un objet au sol (butin d'un monstre, objet jeté, trop-plein d'un coffre). */
+    protected void dropOnGround(Item item, float x, float z) {
+        addGroundView(game.getSession().getGround().drop(sceneKey(), item, x, z));
+    }
+
+    /** Le joueur jette {@code item} : il tombe devant lui, et on peut le ramasser. */
+    private void dropInFront(Item item) {
+        Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
+        Vector3 d = new Vector3(camera.direction.x, 0, camera.direction.z);
+        if (d.isZero()) {
+            d.set(0, 0, -1);
+        }
+        d.nor().scl(1.5f);
+        dropOnGround(item, p.x + d.x, p.z + d.z);
+    }
+
+    private GroundItems.Drop nearestGroundItem() {
+        Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
+        return game.getSession().getGround().nearest(sceneKey(), p.x, p.z);
+    }
+
+    /** Ramasse l'objet au sol le plus proche (E). @return false s'il n'y en a aucun à portée. */
+    private boolean pickUpNearest() {
+        GroundItems.Drop drop = nearestGroundItem();
+        if (drop == null) {
+            return false;
+        }
+        if (!player.addItem(drop.item)) {
+            gameClock.postMessage("Trop lourd pour ramasser : " + drop.item.getName() + ".");
+            return true;
+        }
+        game.getSession().getGround().remove(sceneKey(), drop);
+        instances.removeValue(groundViews.remove(drop), true);
+        gameClock.postMessage("Vous ramassez : " + drop.item.getName() + ".");
+        return true;
+    }
+
+    /** Applique le ciel, le soleil (puis la lune) et la lumière ambiante de l'heure et de la saison : à appeler dans {@link #updateEnvironment()}. */
+    protected void applyDayNight(Color sky) {
+        DayNightCycle.Light light = DayNightCycle.compute(
+                gameClock.getTimeOfDay(), gameClock.getSunrise(), gameClock.getSunset(), getAmbientLight());
+        sky.set(light.sky[0], light.sky[1], light.sky[2], 1f);
+        ambientLight.color.set(light.ambient[0], light.ambient[1], light.ambient[2], 1f);
+        sunLight.color.set(light.lightColor[0], light.lightColor[1], light.lightColor[2], 1f);
+        sunLight.direction.set(light.lightDirection[0], light.lightDirection[1], light.lightDirection[2]).nor();
+    }
+
     /** Debug : fait apparaître un monstre à 6 m devant le joueur. */
     String debugSpawn(String monsterId) {
         Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
@@ -521,13 +603,20 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         combat.drawHud(spriteBatch, font, w, h, camera.position, camera.direction);
         drawToast(delta, w, h);
 
+        String text = null;
         btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
         if (objectInView != null) {
-            String text = getInteractionPrompt(objectInView.userData);
-            if (text != null) {
-                layout.setText(font, text);
-                font.draw(spriteBatch, layout, w / 2f - layout.width / 2f, h / 2f - 30);
+            text = getInteractionPrompt(objectInView.userData);
+        }
+        if (text == null) {
+            GroundItems.Drop drop = nearestGroundItem();
+            if (drop != null) {
+                text = "Ramasser : " + drop.item.getName() + " (E)";
             }
+        }
+        if (text != null) {
+            layout.setText(font, text);
+            font.draw(spriteBatch, layout, w / 2f - layout.width / 2f, h / 2f - 30);
         }
     }
 
@@ -623,6 +712,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         if (keycode == Input.Keys.E) {
             btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
             if (objectInView != null && onInteract(objectInView.userData)) {
+                return true;
+            }
+            if (pickUpNearest()) {
                 return true;
             }
         }
@@ -751,6 +843,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         disposables.clear();
         instances.clear();
         boxModels.clear();
+        groundViews.clear();
         skin.dispose();
     }
 }

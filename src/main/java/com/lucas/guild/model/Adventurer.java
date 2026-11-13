@@ -28,6 +28,10 @@ public class Adventurer extends Entite {
     private String townId;
     /** Les lieux déjà visités. */
     private List<String> visitedPlaces = new ArrayList<>();
+    /** La dernière ville où le personnage a mis les pieds : c'est là qu'il se réveille s'il tombe en route. */
+    private String homeTownId;
+    /** Coffres ouverts : identifiant du coffre -> jour de l'ouverture (ils se remplissent de nouveau plus tard). */
+    private java.util.Map<String, Integer> openedChests = new java.util.HashMap<>();
 
     /** Titres des quêtes acceptées et pas encore rendues, puis des quêtes terminées. */
     private List<String> activeQuests = new ArrayList<>();
@@ -178,6 +182,31 @@ public class Adventurer extends Entite {
 
     public void setTownId(String townId) {
         this.townId = townId;
+        com.lucas.guild.data.WorldData.PlaceData place = GameContent.world().place(townId);
+        if (place != null && place.zoneFile == null) {
+            this.homeTownId = townId;
+        }
+    }
+
+    /** La dernière ville visitée (la ville de départ si le personnage n'a pas encore quitté sa première ville). */
+    public String getHomeTownId() {
+        com.lucas.guild.data.WorldData world = GameContent.world();
+        com.lucas.guild.data.WorldData.PlaceData home = homeTownId != null ? world.place(homeTownId) : null;
+        if (home == null || home.zoneFile != null) {
+            home = world.place(getTownId());
+            if (home == null || home.zoneFile != null) {
+                return world.startPlace;
+            }
+        }
+        return home.id;
+    }
+
+    /** Les coffres ouverts. Jamais null, même pour une ancienne sauvegarde. */
+    public java.util.Map<String, Integer> getOpenedChests() {
+        if (openedChests == null) {
+            openedChests = new java.util.HashMap<>();
+        }
+        return openedChests;
     }
 
     /** Les lieux déjà visités. Jamais null. */

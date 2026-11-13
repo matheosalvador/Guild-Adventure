@@ -14,5 +14,37 @@
     "w": 0.9,
     "h": 0.7,
     "d": 1.5
+  },
+  "wolf": {
+    "name": "Loup",
+    "health": 30,
+    "damage": 8,
+    "speed": 5.0,
+    "aggroRange": 14,
+    "attackRange": 1.8,
+    "attackCooldown": 1.0,
+    "goldMin": 0,
+    "goldMax": 2,
+    "drops": [ { "item": "wolf_pelt", "chance": 80 }, { "item": "wolf_fang", "chance": 50 } ],
+    "color": "#7A7A80",
+    "w": 0.8,
+    "h": 0.9,
+    "d": 1.4
+  },
+  "goblin": {
+    "name": "Gobelin",
+    "health": 35,
+    "damage": 7,
+    "speed": 3.8,
+    "aggroRange": 12,
+    "attackRange": 1.6,
+    "attackCooldown": 1.1,
+    "goldMin": 3,
+    "goldMax": 9,
+    "drops": [ { "item": "goblin_ear", "chance": 70 }, { "item": "rusty_blade", "chance": 40 }, { "item": "goblin_trinket", "chance": 15 } ],
+    "color": "#4F8A3C",
+    "w": 0.7,
+    "h": 1.3,
+    "d": 0.7
   }
 }

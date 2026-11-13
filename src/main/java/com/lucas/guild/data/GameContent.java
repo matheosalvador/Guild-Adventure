@@ -134,6 +134,13 @@ public final class GameContent {
             if (m.goldMin < 0 || m.goldMax < m.goldMin) throw new IllegalStateException(where + " : \"goldMin\" >= 0 et \"goldMax\" >= \"goldMin\" attendus");
             if (m.color == null) throw new IllegalStateException(where + " : \"color\" manquant");
             if (m.w <= 0 || m.h <= 0 || m.d <= 0) throw new IllegalStateException(where + " : \"w\", \"h\" et \"d\" doivent etre > 0");
+            if (m.drops == null) m.drops = new ArrayList<>();
+            for (MonsterData.Drop drop : m.drops) {
+                if (drop == null || drop.item == null || newItem(drop.item) == null) {
+                    throw new IllegalStateException(where + " : objet lache inconnu \"" + (drop != null ? drop.item : null) + "\" (voir items.json)");
+                }
+                if (drop.chance < 1 || drop.chance > 100) throw new IllegalStateException(where + " : \"chance\" de \"" + drop.item + "\" doit etre entre 1 et 100");
+            }
         }
         return all;
     }
@@ -246,6 +253,7 @@ public final class GameContent {
             if (d.encumbranceStart <= 0 || d.encumbranceStart > 1) throw new IllegalStateException(where + " : \"encumbranceStart\" doit etre entre 0 (exclu) et 1");
             if (d.minSpeedPercent < 1 || d.minSpeedPercent > 100) throw new IllegalStateException(where + " : \"minSpeedPercent\" doit etre entre 1 et 100");
             if (d.startingGold < 0) throw new IllegalStateException(where + " : \"startingGold\" doit etre >= 0");
+            if (d.ambushPercent < 0 || d.ambushPercent > 100) throw new IllegalStateException(where + " : \"ambushPercent\" doit etre entre 0 et 100");
             if (d.startingItems == null) d.startingItems = new ArrayList<>();
             for (String id : d.startingItems) {
                 if (itemIds == null) itemIds = itemIds();
@@ -330,7 +338,56 @@ public final class GameContent {
         if (place == null) {
             throw new IllegalStateException("world.json : lieu inconnu \"" + placeId + "\"");
         }
+        if (place.townFile == null) {
+            throw new IllegalStateException("world.json : \"" + placeId + "\" est une zone sauvage, pas une ville");
+        }
         return townFile(place.townFile);
+    }
+
+    /** La zone sauvage du lieu {@code placeId} (voir world.json). */
+    public static ZoneData zone(String placeId) {
+        WorldData.PlaceData place = world().place(placeId);
+        if (place == null) {
+            throw new IllegalStateException("world.json : lieu inconnu \"" + placeId + "\"");
+        }
+        if (place.zoneFile == null) {
+            throw new IllegalStateException("world.json : \"" + placeId + "\" est une ville, pas une zone sauvage");
+        }
+        return zoneFile(place.zoneFile);
+    }
+
+    /** Le décor des embuscades sur la route (world.json, « ambush »), ou {@code null} s'il n'y en a pas. */
+    public static ZoneData ambushZone() {
+        WorldData.AmbushData ambush = world().ambush;
+        return ambush != null ? zoneFile(ambush.zoneFile) : null;
+    }
+
+    /** Où on arrive dans le lieu {@code placeId}, ville ou zone : devant la porte ou au bord de la route. */
+    public static TownData.Point3 arrival(String placeId) {
+        WorldData.PlaceData place = world().place(placeId);
+        return place != null && place.zoneFile != null ? zone(placeId).arrival : town(placeId).arrival;
+    }
+
+    private static ZoneData zoneFile(String file) {
+        ZoneData zone = read(file, ZoneData.class);
+        zone.validate(file);
+        for (ZoneData.SpawnData m : zone.monsters) {
+            if (m == null || m.id == null || monsters().get(m.id) == null) {
+                throw new IllegalStateException(file + " : monstre inconnu \"" + (m != null ? m.id : null) + "\" (voir monsters.json)");
+            }
+        }
+        for (ZoneData.ChestData c : zone.chests) {
+            for (String id : c.items) {
+                if (newItem(id) == null) throw new IllegalStateException(file + " : coffre : objet inconnu \"" + id + "\" (voir items.json)");
+            }
+        }
+        return zone;
+    }
+
+    /** Chance, en %, d'une embuscade à chaque voyage entre villes pour cette difficulté (0 si inconnue). */
+    public static int ambushPercent(String difficulty) {
+        DifficultyData d = difficulty(difficulty);
+        return d != null ? d.ambushPercent : 0;
     }
 
     private static TownData townFile(String file) {
@@ -401,8 +458,21 @@ public final class GameContent {
         shop("forge");
         shop("guild");
         town();
-        for (WorldData.PlaceData place : world().places) {
-            town(place.id);
+        WorldData world = world();
+        for (WorldData.PlaceData place : world.places) {
+            if (place.zoneFile != null) {
+                zone(place.id);
+            } else {
+                town(place.id);
+            }
+        }
+        if (world.ambush != null) {
+            ambushZone();
+            for (String id : world.ambush.monsters) {
+                if (monsters().get(id) == null) {
+                    throw new IllegalStateException("world.json : \"ambush\" : monstre inconnu \"" + id + "\" (voir monsters.json)");
+                }
+            }
         }
         calendar();
         agingStages();

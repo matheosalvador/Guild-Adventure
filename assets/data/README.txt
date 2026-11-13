@@ -35,7 +35,10 @@ monsters.json
     attackRange = distance de frappe (m, <= aggroRange) ; attackCooldown = secondes entre deux coups ;
     goldMin/goldMax = or lache a la mort ; lootItem = objet de quete lache SI une quete active le demande
     comme preuve (proofItem) ; color = nom LibGDX ou "#RRGGBB" ; w/h/d = taille de la boite qui le represente.
-    Pour qu'un monstre apparaisse : Monster.spawn("giant_rat", x, z) dans un ecran (voir CellarScreen).
+    drops = objets (identifiants de items.json) qui tombent AU SOL a la mort, chacun avec sa "chance" (1 a 100 %) ;
+    on les ramasse avec E. Ce sont en general des "Butin" (a revendre en boutique).
+    Pour qu'un monstre apparaisse : Monster.spawn("giant_rat", x, z) dans un ecran (voir CellarScreen),
+    ou l'ecrire dans une zone sauvage (zone_*.json).
 
 classes.json et backgrounds.json
     Les choix de la creation du personnage (4 classes, 4 origines). Chaque choix a des avantages et des
@@ -50,7 +53,8 @@ difficulties.json
     maxWeight = poids que le personnage porte sans sac (kg) ;
     encumbranceStart = part de la charge max a partir de laquelle on ralentit (0.5 = la moitie) ;
     minSpeedPercent = vitesse (en %) quand on est charge au maximum ;
-    startingGold = or de depart ; startingItems = identifiants (items.json) des objets de depart.
+    startingGold = or de depart ; startingItems = identifiants (items.json) des objets de depart ;
+    ambushPercent = chance (0 a 100 %) d'une embuscade a chaque voyage entre deux villes (0 = jamais).
 
 world.json
     Le monde : les lieux (villes) et les routes. Chaque lieu : id, name, townFile (le fichier de sa ville :
@@ -59,6 +63,17 @@ world.json
     walkingKmh (vitesse de marche, km/h), et elle s'allonge si le personnage est charge ou age.
     startPlace = ou commence une nouvelle partie. Pour ajouter une ville : une ligne dans "places", une ou
     plusieurs dans "links", et son fichier de ville.
+    Un lieu est une ville (townFile) OU une zone sauvage (zoneFile : zone_foret.json...), jamais les deux.
+    "ambush" (facultatif) = les embuscades entre villes : zoneFile (le decor de la route, zone_route.json),
+    monsters (qui attaque) et min/max (combien d'agresseurs). Le voyage est coupe a la moitie ; on repart
+    en vainquant les agresseurs. Si on tombe, on se reveille a l'auberge de la ville de depart.
+
+zone_foret.json, zone_ruines.json, zone_route.json (une zone sauvage par fichier)
+    Un terrain carre : "ground" (couleur), "size" (cote, en m), "arrival" (ou on arrive), "exit" (la borne de
+    route : la viser ouvre la carte du monde), "decor" (boites, comme pour une ville : arbres, murs...),
+    "monsters" (id de monsters.json + x/z ; ils reapparaissent a chaque visite) et "chests" (x/z, gold, items =
+    identifiants de items.json, respawnDays = jours avant qu'un coffre ouvert se remplisse de nouveau).
+    Les objets jetes ou lacher par les monstres restent au sol tant que la partie tourne (non sauvegardes).
 
 town.json, town_portbrume.json, town_hautevigne.json (un fichier par ville)
     La ville. "ground" = couleur du sol. "arrival" = ou on apparait en arrivant par la route (devant la porte).

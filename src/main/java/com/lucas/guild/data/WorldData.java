@@ -20,15 +20,31 @@ public class WorldData {
     public List<PlaceData> places = new ArrayList<>();
     /** Les routes : des paires d'identifiants de lieux, dans les deux sens. */
     public List<List<String>> links = new ArrayList<>();
+    /** Les embuscades sur les routes entre villes (optionnel) : où elles se jouent et qui attaque. */
+    public AmbushData ambush;
+
+    /** Une embuscade : un décor de route (zoneFile) et les monstres qui attaquent, entre {@code min} et {@code max}. */
+    public static class AmbushData {
+        public String zoneFile;
+        public List<String> monsters = new ArrayList<>();
+        public int min = 1;
+        public int max = 2;
+    }
 
     public static class PlaceData {
         public String id;
         public String name;
-        /** Fichier de la ville dans assets/data (town.json, town_portbrume.json...). */
+        /** Fichier de la ville dans assets/data (town.json, town_portbrume.json...). Un lieu a une ville OU une zone. */
         public String townFile;
+        /** Fichier de la zone sauvage dans assets/data (zone_foret.json...) quand le lieu n'est pas une ville. */
+        public String zoneFile;
         /** Position sur la carte du monde, en km. */
         public float x;
         public float z;
+    }
+
+    public static boolean isZone(PlaceData place) {
+        return place != null && place.zoneFile != null;
     }
 
     public PlaceData place(String id) {
@@ -75,10 +91,18 @@ public class WorldData {
             if (seen.contains(p.id)) throw new IllegalStateException(where + " : \"id\" en double");
             seen.add(p.id);
             if (p.name == null || p.name.isEmpty()) throw new IllegalStateException(where + " : \"name\" manquant");
-            if (p.townFile == null || p.townFile.isEmpty()) throw new IllegalStateException(where + " : \"townFile\" manquant");
+            boolean hasTown = p.townFile != null && !p.townFile.isEmpty();
+            boolean hasZone = p.zoneFile != null && !p.zoneFile.isEmpty();
+            if (!hasTown && !hasZone) throw new IllegalStateException(where + " : \"townFile\" (ville) ou \"zoneFile\" (zone sauvage) manquant");
+            if (hasTown && hasZone) throw new IllegalStateException(where + " : un lieu ne peut pas avoir a la fois \"townFile\" et \"zoneFile\"");
         }
         if (startPlace == null || !seen.contains(startPlace)) {
             throw new IllegalStateException(file + " : \"startPlace\" doit etre l'identifiant d'un lieu (" + startPlace + ")");
+        }
+        if (ambush != null) {
+            if (ambush.zoneFile == null || ambush.zoneFile.isEmpty()) throw new IllegalStateException(file + " : \"ambush\" : \"zoneFile\" manquant");
+            if (ambush.monsters == null || ambush.monsters.isEmpty()) throw new IllegalStateException(file + " : \"ambush\" : \"monsters\" vide");
+            if (ambush.min < 1 || ambush.max < ambush.min) throw new IllegalStateException(file + " : \"ambush\" : \"min\" >= 1 et \"max\" >= \"min\" attendus");
         }
         if (links == null) {
             links = new ArrayList<>();

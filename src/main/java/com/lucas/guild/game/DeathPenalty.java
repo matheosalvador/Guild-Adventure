@@ -19,6 +19,9 @@ public final class DeathPenalty {
     /** Applique la pénalité. @return la phrase à afficher au réveil */
     public static String apply(GameSession session) {
         Adventurer player = session.getPlayer();
+        // On se réveille à l'auberge de la dernière ville visitée ; un voyage interrompu est abandonné
+        session.clearPendingTravel();
+        player.setTownId(player.getHomeTownId());
         int lost = player.getGold() * GOLD_LOSS_PERCENT / 100;
         player.spendGold(lost);
 

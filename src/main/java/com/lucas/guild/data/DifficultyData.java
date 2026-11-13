@@ -14,6 +14,8 @@ public class DifficultyData {
     /** Vitesse, en %, quand la charge est au maximum. */
     public int minSpeedPercent = 100;
     public int startingGold;
+    /** Chance, en %, d'une embuscade à chaque voyage entre deux villes (0 = jamais). */
+    public int ambushPercent;
     /** Identifiants (items.json) des objets de départ. */
     public List<String> startingItems = new ArrayList<>();
 }

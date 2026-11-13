@@ -73,7 +73,7 @@ public class TownData {
         return null;
     }
 
-    private static void validateParts(List<PartData> parts, String where) {
+    static void validateParts(List<PartData> parts, String where) {
         if (parts == null) {
             return;
         }

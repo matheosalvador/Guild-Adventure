@@ -27,6 +27,7 @@ import com.lucas.guild.data.MonsterData;
 import com.lucas.guild.game.Combat;
 import com.lucas.guild.game.Monster;
 import com.lucas.guild.model.Adventurer;
+import com.lucas.guild.model.Item;
 
 /**
  * Les monstres d'un écran : leur dessin (une boîte colorée chacun), leur déplacement, les coups du
@@ -61,6 +62,17 @@ class CombatScene implements Disposable {
     private final GlyphLayout layout = new GlyphLayout();
     private final BoundingBox box = new BoundingBox();
     private final Vector3 hit = new Vector3();
+
+    /** Reçoit les objets qui tombent au sol à la mort d'un monstre. */
+    interface DropSink {
+        void drop(Item item, float x, float z);
+    }
+
+    private DropSink dropSink;
+
+    void setDropSink(DropSink dropSink) {
+        this.dropSink = dropSink;
+    }
 
     private float minX = -1000, maxX = 1000, minZ = -1000, maxZ = 1000;
     private float playerCooldown;
@@ -182,7 +194,19 @@ class CombatScene implements Disposable {
         }
         Combat.playerHit(player, target.monster);
         if (target.monster.isDead()) {
-            String loot = Combat.loot(player, target.monster, random);
+            Monster m = target.monster;
+            String loot = Combat.loot(player, m, random);
+            // le reste du butin tombe au sol, là où le monstre est mort
+            java.util.List<String> fallen = new ArrayList<>();
+            for (Item item : Combat.rollDrops(m, random)) {
+                if (dropSink != null) {
+                    dropSink.drop(item, m.x + (random.nextFloat() - 0.5f), m.z + (random.nextFloat() - 0.5f));
+                    fallen.add(item.getName());
+                }
+            }
+            if (!fallen.isEmpty()) {
+                loot += " Au sol : " + String.join(", ", fallen) + ".";
+            }
             remove(target);
             entries.remove(target);
             return loot;

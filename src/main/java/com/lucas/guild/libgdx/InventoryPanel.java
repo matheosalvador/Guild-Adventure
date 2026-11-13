@@ -21,6 +21,12 @@ class InventoryPanel {
     private final Adventurer player;
     /** Où s'écrivent les lignes : la zone qui défile pendant la construction, sinon le panneau. */
     private Table out;
+    /** Ce que devient un objet jeté (le poser au sol devant le joueur) ; sans lui, l'objet disparaît. */
+    private java.util.function.Consumer<Item> dropHandler;
+
+    void setDropHandler(java.util.function.Consumer<Item> dropHandler) {
+        this.dropHandler = dropHandler;
+    }
 
     InventoryPanel(Table table, Skin skin, Adventurer player) {
         this.table = table;
@@ -121,7 +127,12 @@ class InventoryPanel {
             @Override
             public void run() {
                 player.removeItem(item);
-                rebuild(item.getName() + " jeté(e).");
+                if (dropHandler != null) {
+                    dropHandler.accept(item);
+                    rebuild(item.getName() + " posé(e) au sol.");
+                } else {
+                    rebuild(item.getName() + " jeté(e).");
+                }
             }
         })).pad(3);
         out.row();

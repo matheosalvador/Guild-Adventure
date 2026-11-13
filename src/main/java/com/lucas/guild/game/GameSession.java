@@ -40,6 +40,12 @@ public class GameSession {
     private final float savedY;
     private final float savedZ;
 
+    /** Les objets au sol (en mémoire, pas sauvegardés). */
+    private final GroundItems ground = new GroundItems();
+    /** Voyage coupé par une embuscade : le lieu où l'on va et les minutes qu'il reste (pas sauvegardé). */
+    private String pendingDestination;
+    private int pendingMinutes;
+
     private GameSession(Adventurer player, GameClock clock, String difficulty,
                         boolean hasSavedPosition, float x, float y, float z) {
         this.player = player;
@@ -172,6 +178,28 @@ public class GameSession {
 
     public String getDifficulty() {
         return difficulty;
+    }
+
+    public GroundItems getGround() {
+        return ground;
+    }
+
+    public void setPendingTravel(String placeId, int minutesLeft) {
+        this.pendingDestination = placeId;
+        this.pendingMinutes = minutesLeft;
+    }
+
+    public String getPendingDestination() {
+        return pendingDestination;
+    }
+
+    public int getPendingMinutes() {
+        return pendingMinutes;
+    }
+
+    public void clearPendingTravel() {
+        this.pendingDestination = null;
+        this.pendingMinutes = 0;
     }
 
     public boolean hasSavedPosition() {

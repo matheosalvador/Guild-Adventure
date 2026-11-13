@@ -5,6 +5,7 @@
     "encumbranceStart": 0.75,
     "minSpeedPercent": 85,
     "startingGold": 100,
+    "ambushPercent": 0,
     "startingItems": ["healing_potion", "healing_potion", "pouch"]
   },
   "normale": {
@@ -13,6 +14,7 @@
     "encumbranceStart": 0.6,
     "minSpeedPercent": 75,
     "startingGold": 60,
+    "ambushPercent": 20,
     "startingItems": ["healing_potion"]
   },
   "realiste": {
@@ -21,6 +23,7 @@
     "encumbranceStart": 0.5,
     "minSpeedPercent": 65,
     "startingGold": 30,
+    "ambushPercent": 35,
     "startingItems": []
   }
 }

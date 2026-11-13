@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.lucas.guild.game.RuntimeTypeAdapterFactory;
 import com.lucas.guild.model.Arme;
+import com.lucas.guild.model.Butin;
 import com.lucas.guild.model.Armure;
 import com.lucas.guild.model.Attaque;
 import com.lucas.guild.model.AttaqueDistance;
@@ -38,6 +39,7 @@ public final class GameGson {
                 .registerSubtype(PotionMix.class)
                 .registerSubtype(PotionDeSoin.class)
                 .registerSubtype(ObjetDeQuete.class)
+                .registerSubtype(Butin.class)
                 .registerSubtype(Sac.class);
 
         RuntimeTypeAdapterFactory<Attaque> attaqueAdapter = RuntimeTypeAdapterFactory.of(Attaque.class, "attaqueType")

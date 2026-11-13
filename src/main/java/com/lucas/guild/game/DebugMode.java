@@ -18,6 +18,9 @@ public final class DebugMode {
     /** Le joueur ne perd plus de vie (combat). */
     private static boolean invincible = false;
 
+    /** Chaque voyage entre villes est coupé par une embuscade. */
+    private static boolean forceAmbush = false;
+
     private DebugMode() {
     }
 
@@ -30,7 +33,16 @@ public final class DebugMode {
         if (!value) {
             speedMultiplier = 1f;
             invincible = false;
+            forceAmbush = false;
         }
+    }
+
+    public static boolean isForceAmbush() {
+        return enabled && forceAmbush;
+    }
+
+    public static void setForceAmbush(boolean value) {
+        forceAmbush = value;
     }
 
     /** Invincible : seulement si le mode debug est allumé. */
