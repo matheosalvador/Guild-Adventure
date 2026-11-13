@@ -204,4 +204,21 @@ class ContentErrorsTest {
         assertTrue(town.decor.size() > 50, "la ville a un decor (rues, maisons, arbres...)");
         assertTrue(town.buildings.stream().allMatch(b -> !b.parts.isEmpty()), "chaque batiment a des details");
     }
+
+    // ---------------------------------------------------------------- quests.json
+
+    @Test
+    void questDuplicateTitle() throws IOException {
+        expectError("quests.json", "\"title\": \"Livraison express\"", "\"title\": \"Nettoyage de la cave\"", "quests.json", "en double");
+    }
+
+    @Test
+    void questNegativeReward() throws IOException {
+        expectError("quests.json", "\"goldReward\": 20", "\"goldReward\": -5", "quests.json", "goldReward");
+    }
+
+    @Test
+    void questWithoutProof() throws IOException {
+        expectError("quests.json", "\"proofItem\": \"Queue de rat\"", "\"proofItem\": \"\"", "quests.json", "proofItem");
+    }
 }

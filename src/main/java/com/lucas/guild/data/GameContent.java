@@ -65,6 +65,17 @@ public final class GameContent {
             if (q == null || q.getTitle() == null) {
                 throw new IllegalStateException("quests.json : la quete n°" + (i + 1) + " n'a pas de \"title\"");
             }
+            for (int j = 0; j < i; j++) {
+                if (q.getTitle().equals(quests.get(j).getTitle())) {
+                    throw new IllegalStateException("quests.json : la quete \"" + q.getTitle() + "\" est en double (les titres doivent etre uniques)");
+                }
+            }
+            if (q.getGoldReward() < 0) {
+                throw new IllegalStateException("quests.json : la quete \"" + q.getTitle() + "\" : \"goldReward\" doit etre >= 0");
+            }
+            if (q.getProofItem() == null || q.getProofItem().isEmpty()) {
+                throw new IllegalStateException("quests.json : la quete \"" + q.getTitle() + "\" : \"proofItem\" manquant");
+            }
         }
         return quests;
     }

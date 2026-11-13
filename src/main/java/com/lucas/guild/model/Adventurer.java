@@ -24,6 +24,10 @@ public class Adventurer extends Entite {
     private String classId;
     private String backgroundId;
 
+    /** Titres des quêtes acceptées et pas encore rendues, puis des quêtes terminées. */
+    private List<String> activeQuests = new ArrayList<>();
+    private List<String> doneQuests = new ArrayList<>();
+
     /** Compétences, gagnées par la pratique. */
     private Skills skills = new Skills();
 
@@ -149,6 +153,24 @@ public class Adventurer extends Entite {
         List<Attaque> attaques = new ArrayList<>();
         attaques.add(new AttaqueMelee("Attaque de base", 10 + getBonusDegats()));
         return attaques;
+    }
+
+    // ------------------------------------------------------------------ quêtes
+
+    /** Quêtes en cours (titres). Jamais null, même pour une ancienne sauvegarde. */
+    public List<String> getActiveQuests() {
+        if (activeQuests == null) {
+            activeQuests = new ArrayList<>();
+        }
+        return activeQuests;
+    }
+
+    /** Quêtes terminées (titres). Jamais null, même pour une ancienne sauvegarde. */
+    public List<String> getDoneQuests() {
+        if (doneQuests == null) {
+            doneQuests = new ArrayList<>();
+        }
+        return doneQuests;
     }
 
     // ------------------------------------------------------------------ classe, origine, compétences

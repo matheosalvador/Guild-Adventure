@@ -8,8 +8,12 @@ Ils sont lus d'abord dans le classpath (data/...), puis dans assets/data/ du dos
 donc ca marche avec Maven comme avec run.bat.
 
 quests.json
-    Liste des quetes du tableau de la guilde.
-    rank : rang minimum (0 = F, 1 = E, ...) ; type : COMBAT, DELIVERY ou ESCORT.
+    Les quetes du tableau de la guilde. title = nom UNIQUE (sert d'identifiant dans la sauvegarde).
+    rank : rang minimum (0 = F, 1 = E, ...) ; type : COMBAT, DELIVERY ou ESCORT ;
+    goldReward = or verse quand on rend la quete ; proofItem = objet a rapporter a la guilde pour la rendre
+    (butin d'un monstre, recu de livraison...) ; giveItem = objet remis a l'acceptation (livraison : la lettre
+    a porter) ; target = destinataire d'une livraison (le forgeron : "Forgeron").
+    experienceReward n'est plus utilise.
 
 skills.json
     Les competences. On ne les achete pas : elles progressent quand on fait l'action.

@@ -1,6 +1,8 @@
 package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.graphics.Color;
+import com.lucas.guild.data.GameContent;
+import com.lucas.guild.game.QuestLog;
 
 /** Intérieur de la forge : le forgeron. */
 public class ForgeScreen extends InteriorScreen {
@@ -44,6 +46,15 @@ public class ForgeScreen extends InteriorScreen {
             return;
         }
         dialogTable.add("Que puis-je faire pour vous ?").row();
+
+        final QuestLog questLog = new QuestLog(player);
+        if (questLog.canDeliver("Forgeron", GameContent.quests())) {
+            addDialogButton("Remettre la lettre", () -> {
+                String message = questLog.deliver("Forgeron", GameContent.quests());
+                toggleDialog(null);
+                gameClock.postMessage(message);
+            });
+        }
 
         addDialogButton("Armes et armures", () -> showShop("forge", () -> {
             dialogTable.clear();

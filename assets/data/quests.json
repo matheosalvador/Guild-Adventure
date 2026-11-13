@@ -17,6 +17,7 @@
     "target": "Forgeron",
     "goldReward": 10,
     "experienceReward": 2,
+    "giveItem": "Lettre à livrer",
     "proofItem": "Lettre signée"
   },
   {

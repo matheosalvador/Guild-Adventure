@@ -10,6 +10,8 @@ public class Quest {
     private int goldReward;
     private int experienceReward;
     private String proofItem; // L'objet à ramener pour prouver le succès
+    /** Objet remis au joueur à l'acceptation (livraisons : la lettre à porter), ou null. */
+    private String giveItem;
     private boolean isCompleted;
 
     public Quest(String title, String description, int rank, QuestType type, String target, int goldReward, int experienceReward, String proofItem) {
@@ -56,6 +58,10 @@ public class Quest {
         return proofItem;
     }
 
+    public String getGiveItem() {
+        return giveItem;
+    }
+
     public boolean isCompleted() {
         return isCompleted;
     }
@@ -68,7 +74,7 @@ public class Quest {
     public String toString() {
         return "Quête de Rang " + rank + ": " + title + "\n" +
                "  Description: " + description + "\n" +
-               "  Récompense: " + goldReward + " Or, " + experienceReward + " XP\n" +
+               "  Récompense: " + goldReward + " Po\n" +
                "  Preuve requise: " + proofItem;
     }
 }
