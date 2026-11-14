@@ -1,6 +1,6 @@
 package com.lucas.guild.model;
 
-public class Armure implements Item {
+public class Armure extends BaseItem {
     private String name;
     private int reductionDegats;
 
@@ -32,8 +32,8 @@ public class Armure implements Item {
     }
 
     @Override
-    public double getPoids() {
-        return 5.0; // Poids par défaut pour une armure
+    protected double defaultPoids() {
+        return 5.0;
     }
 
     @Override

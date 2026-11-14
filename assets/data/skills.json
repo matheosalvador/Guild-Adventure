@@ -1,0 +1,65 @@
+[
+  {
+    "id": "athletics",
+    "label": "Endurance",
+    "description": "À force de marcher, le corps s'habitue à l'effort.",
+    "trainedBy": "Marcher",
+    "unit": "m",
+    "thresholds": [500, 2000, 6000, 15000, 40000],
+    "effects": { "speedPercent": 2 }
+  },
+  {
+    "id": "carrying",
+    "label": "Portage",
+    "description": "Porter lourd longtemps rend le dos plus solide.",
+    "trainedBy": "Marcher en portant au moins la moitié de sa charge maximale",
+    "unit": "m",
+    "thresholds": [500, 2000, 6000, 15000, 40000],
+    "effects": { "carryKg": 1 }
+  },
+  {
+    "id": "haggling",
+    "label": "Marchandage",
+    "description": "Savoir discuter les prix, à l'achat comme à la revente.",
+    "trainedBy": "Acheter et vendre en boutique (1 point par Po échangé)",
+    "unit": "Po",
+    "thresholds": [50, 200, 600, 1500, 4000],
+    "effects": { "buyDiscountPercent": 2, "sellBonusPercent": 2 }
+  },
+  {
+    "id": "healing",
+    "label": "Soins",
+    "description": "On apprend à tirer le meilleur d'une potion.",
+    "trainedBy": "Utiliser des potions de soin",
+    "unit": "potions",
+    "thresholds": [3, 10, 25, 60, 120],
+    "effects": { "healBonusPercent": 10 }
+  },
+  {
+    "id": "vigor",
+    "label": "Vigueur",
+    "description": "Bien manger et bien dormir rend plus robuste.",
+    "trainedBy": "Manger à l'auberge (1 point) et y dormir (2 points)",
+    "unit": "points",
+    "thresholds": [4, 15, 40, 90, 180],
+    "effects": { "healthBonus": 5 }
+  },
+  {
+    "id": "melee",
+    "label": "Mêlée",
+    "description": "À force de frapper, les coups deviennent plus sûrs.",
+    "trainedBy": "Frapper des monstres (1 point par coup porté)",
+    "unit": "coups",
+    "thresholds": [10, 40, 100, 220, 450],
+    "effects": { "meleePercent": 3 }
+  },
+  {
+    "id": "robustness",
+    "label": "Robustesse",
+    "description": "Encaisser apprend à encaisser mieux.",
+    "trainedBy": "Encaisser des coups (1 point par coup reçu)",
+    "unit": "coups",
+    "thresholds": [8, 30, 80, 180, 380],
+    "effects": { "defenseBonus": 0.5 }
+  }
+]

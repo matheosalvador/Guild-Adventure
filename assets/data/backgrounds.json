@@ -1,0 +1,36 @@
+[
+  {
+    "id": "farmer",
+    "label": "Fils de paysan",
+    "description": "Une enfance aux champs : dur à la tâche, mais sans un sou.",
+    "healthBonus": 10,
+    "goldBonus": -20,
+    "practiceBonusPercent": { "vigor": 30 }
+  },
+  {
+    "id": "noble",
+    "label": "Noble déchu",
+    "description": "Une famille ruinée, mais de quoi démarrer et le sens des affaires.",
+    "healthBonus": -10,
+    "goldBonus": 50,
+    "speedBonusPercent": -3,
+    "practiceBonusPercent": { "haggling": 20, "athletics": -20 }
+  },
+  {
+    "id": "orphan",
+    "label": "Orphelin des rues",
+    "description": "Il a appris à courir vite et à vivre de peu.",
+    "healthBonus": -5,
+    "goldBonus": -30,
+    "speedBonusPercent": 4,
+    "practiceBonusPercent": { "athletics": 20, "carrying": 20 }
+  },
+  {
+    "id": "veteran",
+    "label": "Ancien soldat",
+    "description": "Il a connu la caserne : endurci, mais sa solde ne l'a pas enrichi.",
+    "healthBonus": 10,
+    "carryBonus": 3,
+    "goldBonus": -30
+  }
+]

@@ -6,6 +6,7 @@ import com.lucas.guild.libgdx.MainGame;
 
 public class GameLauncher {
     public static void main(String[] args) {
+        com.lucas.guild.game.DebugMode.enableFromArgs(args);
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("Guild Adventure - LibGDX");
         config.setWindowedMode(800, 600);

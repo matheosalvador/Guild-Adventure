@@ -1,6 +1,6 @@
 package com.lucas.guild.model;
 
-public class PotionDps implements Item {
+public class PotionDps extends BaseItem {
     private String name = "Potion de Dégâts";
     private String description = "Inflige 20 points de dégâts au monstre.";
     private int degats = 20;
@@ -27,7 +27,7 @@ public class PotionDps implements Item {
     }
 
     @Override
-    public double getPoids() {
+    protected double defaultPoids() {
         return 0.7;
     }
 }

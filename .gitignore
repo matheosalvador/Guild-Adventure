@@ -18,3 +18,9 @@ dependency-reduced-pom.xml
 
 # Classes compilees (compile_check.bat)
 out/
+
+# Fichiers temporaires / mis de cote par la sauvegarde
+save.json.*
+
+# ... sauf les donnees du jeu
+!assets/data/*.json

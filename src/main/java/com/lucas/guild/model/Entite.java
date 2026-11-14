@@ -50,7 +50,7 @@ public abstract class Entite {
      */
     public void ajouterVie(int montant) {
         if (montant <= 0) return;
-        health = Math.min(health + montant, maxHealth);
+        health = Math.min(health + montant, getMaxHealth());
     }
 
     /**
