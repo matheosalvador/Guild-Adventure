@@ -195,6 +195,41 @@ class WorldContentErrorsTest {
     }
 
     @Test
+    void eventUnknownItem() throws IOException {
+        expectError("events.json", "\"wolf_pelt\"", "\"peau_fantome\"", "events.json", "demande_peaux", "peau_fantome");
+    }
+
+    @Test
+    void eventUnknownTown() throws IOException {
+        expectError("events.json", "\"towns\": [\"hautevigne\"]", "\"towns\": [\"atlantide\"]", "events.json", "filon_retrouve", "atlantide");
+    }
+
+    @Test
+    void eventInAWildZone() throws IOException {
+        expectError("events.json", "\"towns\": [\"hautevigne\"]", "\"towns\": [\"foret_loups\"]", "events.json", "foret_loups");
+    }
+
+    @Test
+    void eventBadDuration() throws IOException {
+        expectError("events.json", "\"days\": 2,", "\"days\": 0,", "events.json", "caravane", "days");
+    }
+
+    @Test
+    void eventWithoutAnyEffect() throws IOException {
+        expectError("events.json", "\"buyChangePercent\": -15", "\"buyChangePercent\": 0", "events.json", "fete_marche", "effet");
+    }
+
+    @Test
+    void eventDuplicateId() throws IOException {
+        expectError("events.json", "\"id\": \"caravane\"", "\"id\": \"fete_marche\"", "events.json", "fete_marche", "double");
+    }
+
+    @Test
+    void eventBadDailyChance() throws IOException {
+        expectError("events.json", "\"dailyChance\": 15", "\"dailyChance\": 200", "events.json", "dailyChance");
+    }
+
+    @Test
     void shopBadPriceFactor() throws IOException {
         expectError("shops.json", "\"priceFactor\": 90", "\"priceFactor\": 0", "shops.json", "portbrume_store", "priceFactor");
     }

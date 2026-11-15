@@ -32,6 +32,9 @@ public class Adventurer extends Entite {
     private String homeTownId;
     /** Rumeurs entendues et textes lus (voir game/Lore). */
     private List<String> knownLore = new ArrayList<>();
+    /** Événements du monde en cours (fête, pénurie...) et dernier jour pour lequel on en a tiré (voir game/WorldEvents). */
+    private List<ActiveEvent> activeEvents = new ArrayList<>();
+    private int eventsDay;
     /** Coffres ouverts : identifiant du coffre -> jour de l'ouverture (ils se remplissent de nouveau plus tard). */
     private java.util.Map<String, Integer> openedChests = new java.util.HashMap<>();
 
@@ -201,6 +204,22 @@ public class Adventurer extends Entite {
             }
         }
         return home.id;
+    }
+
+    /** Les événements en cours. Jamais null, même pour une ancienne sauvegarde. */
+    public List<ActiveEvent> getActiveEvents() {
+        if (activeEvents == null) {
+            activeEvents = new ArrayList<>();
+        }
+        return activeEvents;
+    }
+
+    public int getEventsDay() {
+        return eventsDay;
+    }
+
+    public void setEventsDay(int eventsDay) {
+        this.eventsDay = eventsDay;
     }
 
     /** Ce que le personnage sait du monde (rumeurs entendues, textes lus), au format « rumor:id » / « text:id ». Jamais null. */

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.lucas.guild.data.LoreData;
 import com.lucas.guild.game.Lore;
+import com.lucas.guild.game.WorldEvents;
 
 /** Intérieur de l'auberge « La Pinte qui Chante » : l'aubergiste, un lit à l'étage. */
 public class InnScreen extends InteriorScreen {
@@ -144,6 +145,29 @@ public class InnScreen extends InteriorScreen {
             dialogTable.add("L'aubergiste se penche vers vous :").pad(10).row();
             addWrappedText("\"" + rumor.text + "\"");
             dialogTable.add(UiKit.message(skin, "(Ajouté au journal : J)")).pad(5).row();
+            addDialogButton("Merci", () -> {
+                dialogTable.clear();
+                buildDialog(INNKEEPER);
+            });
+        });
+
+        addDialogButton("Demander des nouvelles des autres villes", () -> {
+            dialogTable.clear();
+            dialogTable.add("L'aubergiste réfléchit :").pad(10).row();
+            boolean any = false;
+            for (com.lucas.guild.data.WorldData.PlaceData place : com.lucas.guild.data.GameContent.world().places) {
+                if (place.zoneFile != null || place.id.equals(player.getTownId())) {
+                    continue;
+                }
+                String news = WorldEvents.describeAt(player, place.id);
+                if (news != null) {
+                    addWrappedText(place.name + " : " + news);
+                    any = true;
+                }
+            }
+            if (!any) {
+                addWrappedText("Rien de spécial ailleurs, d'après les voyageurs. Les prix sont normaux.");
+            }
             addDialogButton("Merci", () -> {
                 dialogTable.clear();
                 buildDialog(INNKEEPER);

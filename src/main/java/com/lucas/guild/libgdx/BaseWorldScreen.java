@@ -53,6 +53,8 @@ import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.LoreData;
 import com.lucas.guild.game.GroundItems;
 import com.lucas.guild.game.Lore;
+import com.lucas.guild.game.WorldEvents;
+import com.lucas.guild.model.ActiveEvent;
 import com.lucas.guild.model.Arme;
 import com.lucas.guild.model.Armure;
 import com.lucas.guild.model.Butin;
@@ -290,6 +292,13 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         for (GroundItems.Drop drop : game.getSession().getGround().in(sceneKey())) {
             addGroundView(drop);
         }
+        WorldEvents.update(player, gameClock.getCurrentDay(), eventRandom);
+        if (announcesEvents()) {
+            String market = WorldEvents.describeAt(player, player.getTownId());
+            if (market != null) {
+                gameClock.postMessage(market);
+            }
+        }
 
         playerController = new PlayerController(camera, dynamicsWorld, player, getSpawnPoint());
     }
@@ -509,6 +518,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             dynamicsWorld.stepSimulation(delta, 5, 1 / 60f);
             playerController.updateCamera();
             gameClock.update(delta);
+            advanceWorldEvents();
             trainWalking();
             Vector3 position = playerController.getPlayerBody().getCenterOfMassPosition();
             if (combat.update(delta, player, position)) {
@@ -582,6 +592,25 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         ambientLight.color.set(light.ambient[0], light.ambient[1], light.ambient[2], 1f);
         sunLight.color.set(light.lightColor[0], light.lightColor[1], light.lightColor[2], 1f);
         sunLight.direction.set(light.lightDirection[0], light.lightDirection[1], light.lightDirection[2]).nor();
+    }
+
+    private final java.util.Random eventRandom = new java.util.Random();
+
+    /** Les événements du monde avancent avec les jours ; on prévient quand l'un d'eux démarre dans la ville où l'on se trouve. */
+    private void advanceWorldEvents() {
+        if (gameClock.getCurrentDay() == player.getEventsDay()) {
+            return;
+        }
+        for (ActiveEvent event : WorldEvents.update(player, gameClock.getCurrentDay(), eventRandom)) {
+            if (announcesEvents() && event.placeId.equals(player.getTownId())) {
+                gameClock.postMessage(WorldEvents.describe(event));
+            }
+        }
+    }
+
+    /** Ce lieu prévient-il du marché en cours quand on y arrive ? (la ville, pas les intérieurs) */
+    protected boolean announcesEvents() {
+        return false;
     }
 
     /** Debug : fait apparaître un monstre à 6 m devant le joueur. */

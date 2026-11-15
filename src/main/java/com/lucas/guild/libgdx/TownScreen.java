@@ -77,6 +77,11 @@ public class TownScreen extends BaseWorldScreen {
         return 10f;
     }
 
+    @Override
+    protected boolean announcesEvents() {
+        return true;
+    }
+
     // ------------------------------------------------------------------ décor
 
     @Override

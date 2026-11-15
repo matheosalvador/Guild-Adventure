@@ -11,6 +11,7 @@ import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.LoreData;
 import com.lucas.guild.data.WorldData;
 import com.lucas.guild.game.Lore;
+import com.lucas.guild.game.WorldEvents;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.Quest;
 
@@ -52,6 +53,7 @@ class JournalPanel {
         Table list = new Table(skin);
         list.top().left();
 
+        WorldData world = GameContent.world();
         section(list, "-- Quêtes en cours --");
         if (player.getActiveQuests().isEmpty()) {
             line(list, "Aucune. Le tableau de la guilde en propose.");
@@ -85,8 +87,20 @@ class JournalPanel {
             line(list, text.title + " : " + text.text);
         }
 
+        section(list, "-- Événements connus --");
+        boolean anyEvent = false;
+        for (String id : player.getVisitedPlaces()) {
+            String events = WorldEvents.describeAt(player, id);
+            if (events != null && world.place(id) != null) {
+                line(list, world.place(id).name + " : " + events);
+                anyEvent = true;
+            }
+        }
+        if (!anyEvent) {
+            line(list, "Rien de spécial dans les villes que vous connaissez.");
+        }
+
         section(list, "-- Lieux visités --");
-        WorldData world = GameContent.world();
         List<String> names = new ArrayList<>();
         for (String id : player.getVisitedPlaces()) {
             if (world.place(id) != null) {

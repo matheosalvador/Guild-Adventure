@@ -28,6 +28,20 @@ public final class DebugActions {
         return session.getClock();
     }
 
+    // ------------------------------------------------------------------ événements du monde
+
+    /** Démarre l'événement {@code eventId} dans la ville où se trouve le joueur. */
+    public String startEvent(String eventId) {
+        return WorldEvents.start(player(), eventId, player().getTownId(), clock().getCurrentDay());
+    }
+
+    /** Efface tous les événements en cours. */
+    public String clearEvents() {
+        int n = player().getActiveEvents().size();
+        player().getActiveEvents().clear();
+        return n + " événement(s) effacé(s).";
+    }
+
     // ------------------------------------------------------------------ personnage
 
     public String addGold(int amount) {

@@ -120,3 +120,15 @@ lore.json
     "texts" : les textes a lire (id -> title + text), reliés aux panneaux par action "read" (voir town.json
     et zone_*.json). Tout ce qu'on a entendu ou lu est dans le journal (touche J) et sauvegarde.
     Eviter les guillemets francais « » : la police du jeu ne les dessine pas (utiliser des guillemets droits).
+
+events.json
+    Les evenements du monde. "dailyChance" = chance (%) qu'un evenement demarre chaque jour dans une ville qui
+    n'en a pas deja un. Chaque evenement : id, name, description, days (duree, le jour du debut compte),
+    buyChangePercent (variation en % des prix d'ACHAT : -15 = 15 % moins cher, +40 = 40 % plus cher),
+    sellChangePercent (variation en % de ce que la boutique PAIE quand on lui revend : +20), items
+    (identifiants de items.json concernes ; absent = tous) et towns (villes ou il peut avoir lieu ; absent =
+    toutes). Il faut au moins un effet. L'evenement joue sur TOUTES les boutiques de sa ville (la forge et la
+    guilde d'Aethelgard comprises). Le joueur le voit : message en arrivant en ville, ligne dans la boutique,
+    "Demander des nouvelles" chez l'aubergiste (evenements des AUTRES villes), journal (J, villes connues).
+    L'etat est sauvegarde avec le personnage. Debug (F10) : demarrer un evenement dans la ville courante.
+

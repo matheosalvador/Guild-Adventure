@@ -44,6 +44,17 @@ public class Shop {
         return (int) Math.round(item.getPrix() * data.priceFactor / 100.0);
     }
 
+    /** Prix d'achat de l'objet ici, avec les événements en cours dans la ville (fête, pénurie...). */
+    private int eventPrice(Adventurer player, Item item) {
+        int percent = WorldEvents.buyPercent(player, player.getTownId(), item);
+        return percent == 100 ? shopPrice(item) : (int) Math.round(shopPrice(item) * percent / 100.0);
+    }
+
+    /** Une phrase sur les événements qui jouent sur les prix de cette ville, ou null s'il n'y en a pas. */
+    public String eventLine(Adventurer player) {
+        return WorldEvents.describeAt(player, player.getTownId());
+    }
+
     /** Prix de base payé quand on revend {@code item} à la boutique (sans le talent du vendeur). */
     public int sellPrice(Item item) {
         return shopPrice(item) * data.sellPercent / 100;
@@ -56,18 +67,19 @@ public class Shop {
 
     /** Prix que {@code player} paie pour {@code item} : le prix affiché, réduit par sa compétence Marchandage. */
     public int buyPrice(Adventurer player, Item item) {
-        if (shopPrice(item) <= 0) {
+        int price = eventPrice(player, item);
+        if (price <= 0) {
             return 0;
         }
         int discount = (int) Math.round(player.getSkillBonus("buyDiscountPercent"));
         // arrondi au plus proche : une réduction de 2 % ne doit pas faire perdre 1 Po sur un objet à 10 Po
-        return Math.max(1, (int) Math.round(shopPrice(item) * (100 - Math.min(discount, 90)) / 100.0));
+        return Math.max(1, (int) Math.round(price * (100 - Math.min(discount, 90)) / 100.0));
     }
 
     /** Prix que {@code player} reçoit pour {@code item} : la part de base, augmentée par son Marchandage. */
     public int sellPrice(Adventurer player, Item item) {
         int percent = data.sellPercent + (int) Math.round(player.getSkillBonus("sellBonusPercent"));
-        return shopPrice(item) * Math.min(percent, 100) / 100;
+        return (int) ((long) shopPrice(item) * Math.min(percent, 100) * WorldEvents.sellPercent(player, player.getTownId(), item) / 10000L);
     }
 
     /** Le joueur achète l'objet {@code wanted} (un élément de {@link #getStock()}). */

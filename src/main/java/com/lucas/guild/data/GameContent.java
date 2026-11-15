@@ -430,6 +430,29 @@ public final class GameContent {
         return lore;
     }
 
+    /** Les événements du monde (events.json). */
+    public static EventsData events() {
+        EventsData data = read("events.json", EventsData.class);
+        data.validate("events.json");
+        WorldData world = world();
+        for (EventsData.EventData e : data.events) {
+            String where = "events.json : evenement \"" + e.id + "\"";
+            if (e.items != null) {
+                for (String id : e.items) {
+                    if (newItem(id) == null) throw new IllegalStateException(where + " : objet inconnu \"" + id + "\" (voir items.json)");
+                }
+            }
+            if (e.towns != null) {
+                for (String id : e.towns) {
+                    if (world.place(id) == null || world.place(id).zoneFile != null) {
+                        throw new IllegalStateException(where + " : \"towns\" doit contenir des villes de world.json (" + id + ")");
+                    }
+                }
+            }
+        }
+        return data;
+    }
+
     /** Vérifie que chaque panneau à lire (action « read ») d'un fichier de lieu renvoie à un texte de lore.json. */
     private static void checkReadable(String file, List<TownData.PartData> parts) {
         if (parts == null) {
@@ -507,6 +530,7 @@ public final class GameContent {
         calendar();
         agingStages();
         lore();
+        events();
     }
 
     // ------------------------------------------------------------------ lecture
