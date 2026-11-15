@@ -3,7 +3,9 @@ package com.lucas.guild.libgdx;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.lucas.guild.data.LoreData;
+import com.lucas.guild.data.GameContent;
 import com.lucas.guild.game.Lore;
+import com.lucas.guild.game.QuestLog;
 import com.lucas.guild.game.WorldEvents;
 
 /** Intérieur de l'auberge « La Pinte qui Chante » : l'aubergiste, un lit à l'étage. */
@@ -105,6 +107,16 @@ public class InnScreen extends InteriorScreen {
         }
         dialogTable.add("Bienvenue à " + com.lucas.guild.data.GameContent.town(player.getTownId()).findByInterior("inn").name
                 + " ! Que désirez-vous ?").row();
+
+        final String innName = com.lucas.guild.data.GameContent.town(player.getTownId()).findByInterior("inn").name;
+        final QuestLog questLog = new QuestLog(player);
+        if (questLog.canDeliver(innName, GameContent.quests())) {
+            addDialogButton("Remettre la livraison", () -> {
+                String message = questLog.deliver(innName, GameContent.quests());
+                toggleDialog(null);
+                gameClock.postMessage(message);
+            });
+        }
 
         addDialogButton("Manger un repas (" + MEAL_PRICE + " Po)", () -> {
             toggleDialog(null);

@@ -36,6 +36,11 @@ public class TownScreen extends BaseWorldScreen {
 
     /** Ce qu'on obtient en visant la porte de la ville (action « gate » de town.json). */
     private static final String GATE = "Gate";
+    /** Ce qu'on obtient en visant le tableau d'annonces de la ville (action « board »). */
+    private static final String BOARD = "Board";
+
+    private com.badlogic.gdx.scenes.scene2d.ui.Table boardTable;
+    private QuestBoardPanel questBoard;
 
     private final Vector3 spawnPoint;
 
@@ -94,7 +99,7 @@ public class TownScreen extends BaseWorldScreen {
             addBuilding(data);
         }
         for (TownData.PartData part : town.decor) {
-            addPart(part, 0, 0, "decor", "gate".equals(part.action) ? GATE : "read".equals(part.action) ? new Readable(part.text) : null);
+            addPart(part, 0, 0, "decor", "gate".equals(part.action) ? GATE : "board".equals(part.action) ? BOARD : "read".equals(part.action) ? new Readable(part.text) : null);
         }
     }
 
@@ -139,6 +144,9 @@ public class TownScreen extends BaseWorldScreen {
         if (GATE.equals(userData)) {
             return "Prendre la route (E)";
         }
+        if (BOARD.equals(userData)) {
+            return "Lire le tableau d'annonces (E)";
+        }
         return null;
     }
 
@@ -146,6 +154,10 @@ public class TownScreen extends BaseWorldScreen {
     protected boolean onInteract(Object userData) {
         if (GATE.equals(userData)) {
             game.setScreen(new WorldMapScreen(game, difficulty));
+            return true;
+        }
+        if (BOARD.equals(userData)) {
+            questBoard.toggle();
             return true;
         }
         if (!(userData instanceof TownBuilding)) {
@@ -169,6 +181,37 @@ public class TownScreen extends BaseWorldScreen {
             default:
                 throw new IllegalStateException("interieur inconnu : " + building.interior);
         }
+    }
+
+    // ------------------------------------------------------------------ tableau d'annonces
+
+    @Override
+    protected void setupExtraUI() {
+        boardTable = new com.badlogic.gdx.scenes.scene2d.ui.Table(skin);
+        boardTable.setFillParent(true);
+        boardTable.setVisible(false);
+        stage.addActor(boardTable);
+        questBoard = new QuestBoardPanel(boardTable, skin, player, player.getTownId(), "Tableau d'annonces", dialogTable.getBackground(),
+                () -> questBoard.toggle());
+    }
+
+    @Override
+    protected boolean isExtraOverlayOpen() {
+        return questBoard != null && questBoard.isOpen();
+    }
+
+    @Override
+    protected boolean closeExtraOverlay() {
+        if (isExtraOverlayOpen()) {
+            questBoard.toggle();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    protected boolean onOverlayKeyDown(int keycode) {
+        return questBoard != null && questBoard.handleKey(keycode);
     }
 
     // ------------------------------------------------------------------ sauvegarde rapide

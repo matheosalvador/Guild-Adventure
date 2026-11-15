@@ -39,6 +39,13 @@ public class Guild {
         }
     }
 
+    /** Les quetes du tableau de la ville {@code townId} accessibles a ce rang. */
+    public List<Quest> getQuestsFor(String townId, int rank) {
+        return availableQuests.stream()
+                .filter(q -> q.getTown().equals(townId) && q.getRank() <= rank)
+                .collect(Collectors.toList());
+    }
+
     public List<Quest> getQuestsForRank(int rank) {
         return availableQuests.stream()
                 .filter(q -> q.getRank() <= rank)

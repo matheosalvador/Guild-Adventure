@@ -22,12 +22,84 @@
   },
   {
     "title": "Chasse aux gobelins",
-    "description": "Un groupe de gobelins attaque les voyageurs.",
+    "description": "Un groupe de gobelins attaque les voyageurs. Rapportez l'insigne d'un gobelin des ruines, à l'est d'Aethelgard.",
     "rank": 1,
     "type": "COMBAT",
-    "target": "Chef Gobelin",
+    "target": "Gobelin",
     "goldReward": 100,
     "experienceReward": 15,
-    "proofItem": "Oreille de gobelin"
+    "proofItem": "Insigne de gobelin"
+  },
+  {
+    "title": "Colis pour Port-Brume",
+    "description": "Un marchand d'Aethelgard attend une réponse du Comptoir du Port. Portez-lui ce colis : 33 km de route.",
+    "rank": 0,
+    "type": "DELIVERY",
+    "town": "aethelgard",
+    "target": "Comptoir du Port",
+    "goldReward": 45,
+    "experienceReward": 5,
+    "giveItem": "Colis scellé",
+    "payOnDelivery": true
+  },
+  {
+    "title": "Pli pour Hautevigne",
+    "description": "L'aubergiste du Filon d'Argent attend des nouvelles de la ville. Portez-lui ce pli : 28 km de route.",
+    "rank": 0,
+    "type": "DELIVERY",
+    "town": "aethelgard",
+    "target": "Le Filon d'Argent",
+    "goldReward": 40,
+    "experienceReward": 5,
+    "giveItem": "Pli d'Aethelgard",
+    "payOnDelivery": true
+  },
+  {
+    "title": "Trophées de gobelins",
+    "description": "Les marins paient pour des oreilles de gobelin : la preuve que les ruines se vident. Rapportez-en quatre.",
+    "rank": 0,
+    "type": "COLLECT",
+    "town": "portbrume",
+    "target": "Gobelin",
+    "goldReward": 70,
+    "experienceReward": 8,
+    "collectItem": "goblin_ear",
+    "collectCount": 4
+  },
+  {
+    "title": "Pli pour Aethelgard",
+    "description": "Le port a une lettre pour l'aubergiste de La Pinte qui Chante. 33 km de route, payés à la remise.",
+    "rank": 0,
+    "type": "DELIVERY",
+    "town": "portbrume",
+    "target": "La Pinte qui Chante",
+    "goldReward": 60,
+    "experienceReward": 5,
+    "giveItem": "Pli du port",
+    "payOnDelivery": true
+  },
+  {
+    "title": "Peaux pour le tanneur",
+    "description": "Le tanneur de Hautevigne manque de peaux. Rapportez-lui trois peaux de loup de la forêt voisine.",
+    "rank": 0,
+    "type": "COLLECT",
+    "town": "hautevigne",
+    "target": "Loup",
+    "goldReward": 60,
+    "experienceReward": 8,
+    "collectItem": "wolf_pelt",
+    "collectCount": 3
+  },
+  {
+    "title": "Sacoche pour La Voile Rouge",
+    "description": "Un mineur envoie une sacoche à l'aubergiste de Port-Brume. 52 km de route : la plus longue livraison du pays.",
+    "rank": 0,
+    "type": "DELIVERY",
+    "town": "hautevigne",
+    "target": "La Voile Rouge",
+    "goldReward": 95,
+    "experienceReward": 10,
+    "giveItem": "Sacoche de mineur",
+    "payOnDelivery": true
   }
 ]

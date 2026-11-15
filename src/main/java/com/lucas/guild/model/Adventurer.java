@@ -87,6 +87,10 @@ public class Adventurer extends Entite {
         return rank;
     }
 
+    public void setRank(int rank) {
+        this.rank = rank;
+    }
+
     public Inventaire getInventaire() {
         return inventory;
     }

@@ -73,11 +73,45 @@ public final class GameContent {
             if (q.getGoldReward() < 0) {
                 throw new IllegalStateException("quests.json : la quete \"" + q.getTitle() + "\" : \"goldReward\" doit etre >= 0");
             }
-            if (q.getProofItem() == null || q.getProofItem().isEmpty()) {
-                throw new IllegalStateException("quests.json : la quete \"" + q.getTitle() + "\" : \"proofItem\" manquant");
+            String where = "quests.json : la quete \"" + q.getTitle() + "\"";
+            boolean collect = q.getType() == com.lucas.guild.model.QuestType.COLLECT;
+            if (!collect && !q.isPayOnDelivery() && (q.getProofItem() == null || q.getProofItem().isEmpty())) {
+                throw new IllegalStateException(where + " : \"proofItem\" manquant");
+            }
+            if (collect) {
+                if (q.getCollectItem() == null || newItem(q.getCollectItem()) == null) {
+                    throw new IllegalStateException(where + " : \"collectItem\" doit etre un objet de items.json (" + q.getCollectItem() + ")");
+                }
+                if (q.getCollectCount() < 1) throw new IllegalStateException(where + " : \"collectCount\" doit etre >= 1");
+            }
+            if (q.isPayOnDelivery() && (q.getType() != com.lucas.guild.model.QuestType.DELIVERY || q.getGiveItem() == null || q.getGiveItem().isEmpty())) {
+                throw new IllegalStateException(where + " : \"payOnDelivery\" demande une quete DELIVERY avec un \"giveItem\"");
+            }
+            WorldData.PlaceData board = world().place(q.getTown());
+            if (board == null || board.zoneFile != null) {
+                throw new IllegalStateException(where + " : \"town\" doit etre une ville de world.json (" + q.getTown() + ")");
+            }
+            if (q.getType() == com.lucas.guild.model.QuestType.DELIVERY && !deliveryRecipients().contains(q.getTarget())) {
+                throw new IllegalStateException(where + " : destinataire inconnu \"" + q.getTarget() + "\" (attendu : " + deliveryRecipients() + ")");
             }
         }
         return quests;
+    }
+
+    /** Ceux a qui on peut remettre une livraison : le forgeron, et les auberges et boutiques des villes (par leur nom). */
+    public static List<String> deliveryRecipients() {
+        List<String> names = new ArrayList<>();
+        names.add("Forgeron");
+        for (WorldData.PlaceData place : world().places) {
+            if (place.zoneFile == null) {
+                for (TownData.BuildingData b : town(place.id).buildings) {
+                    if ("inn".equals(b.interior) || "store".equals(b.interior)) {
+                        names.add(b.name);
+                    }
+                }
+            }
+        }
+        return names;
     }
 
     /** Toutes les compétences du jeu, dans l'ordre du fichier (nouvelles instances à chaque appel). */

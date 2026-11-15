@@ -230,6 +230,42 @@ class WorldContentErrorsTest {
     }
 
     @Test
+    void questCollectUnknownItem() throws IOException {
+        expectError("quests.json", "\"collectItem\": \"goblin_ear\"", "\"collectItem\": \"oreille_fantome\"", "quests.json", "Trophées de gobelins", "collectItem", "items.json");
+    }
+
+    @Test
+    void questCollectBadCount() throws IOException {
+        expectError("quests.json", "\"collectCount\": 4", "\"collectCount\": 0", "quests.json", "Trophées de gobelins", "collectCount");
+    }
+
+    @Test
+    void questDeliveryUnknownRecipient() throws IOException {
+        expectError("quests.json", "\"target\": \"Comptoir du Port\"", "\"target\": \"Le Chat Perché\"", "quests.json", "Colis pour Port-Brume", "destinataire inconnu", "Le Chat Perché");
+    }
+
+    @Test
+    void questBoardInUnknownTown() throws IOException {
+        expectError("quests.json", "\"town\": \"portbrume\"", "\"town\": \"atlantide\"", "quests.json", "atlantide");
+    }
+
+    @Test
+    void questBoardInAWildZone() throws IOException {
+        expectError("quests.json", "\"town\": \"hautevigne\"", "\"town\": \"foret_loups\"", "quests.json", "foret_loups");
+    }
+
+    @Test
+    void questPayOnDeliveryWithoutParcel() throws IOException {
+        expectError("quests.json", "\"giveItem\": \"Colis scellé\",\n    \"payOnDelivery\": true", "\"payOnDelivery\": true", "quests.json", "Colis pour Port-Brume", "payOnDelivery", "giveItem");
+    }
+
+    @Test
+    void boardPartIsAKnownAction() throws IOException {
+        // « board » est une action valide : le message d'une action inconnue ne la refuse pas
+        expectError("town_portbrume.json", "\"action\": \"board\"", "\"action\": \"panneau\"", "town_portbrume.json", "panneau", "board");
+    }
+
+    @Test
     void shopBadPriceFactor() throws IOException {
         expectError("shops.json", "\"priceFactor\": 90", "\"priceFactor\": 0", "shops.json", "portbrume_store", "priceFactor");
     }

@@ -41,6 +41,7 @@
     "attackCooldown": 1.1,
     "goldMin": 3,
     "goldMax": 9,
+    "lootItem": "Insigne de gobelin",
     "drops": [ { "item": "goblin_ear", "chance": 70 }, { "item": "rusty_blade", "chance": 40 }, { "item": "goblin_trinket", "chance": 15 } ],
     "color": "#4F8A3C",
     "w": 0.7,

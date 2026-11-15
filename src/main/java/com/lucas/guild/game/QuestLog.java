@@ -19,6 +19,9 @@ public class QuestLog {
 
     public enum Status { AVAILABLE, ACTIVE, DONE }
 
+    /** Combien de quetes terminees pour monter d'un rang (rang = quetes terminees / ce nombre). */
+    public static final int QUESTS_PER_RANK = 3;
+
     private final Adventurer player;
 
     public QuestLog(Adventurer player) {
@@ -58,7 +61,20 @@ public class QuestLog {
 
     /** Le joueur porte-t-il la preuve de cette quête ? */
     public boolean hasProof(Quest quest) {
+        if (quest.getType() == QuestType.COLLECT) {
+            return countCollected(quest) >= quest.getCollectCount();
+        }
         return findQuestItem(quest.getProofItem()) != null;
+    }
+
+    private int countCollected(Quest quest) {
+        int n = 0;
+        for (Item item : player.getInventoryItems()) {
+            if (quest.getCollectItem().equals(item.getId())) {
+                n++;
+            }
+        }
+        return n;
     }
 
     /**
@@ -70,15 +86,34 @@ public class QuestLog {
         if (status(quest) != Status.ACTIVE) {
             return status(quest) == Status.DONE ? "Vous avez déjà rendu cette quête." : "Vous n'avez pas accepté cette quête.";
         }
-        Item proof = findQuestItem(quest.getProofItem());
-        if (proof == null) {
-            return "Il vous manque la preuve : " + quest.getProofItem() + ".";
+        if (quest.getType() == QuestType.COLLECT) {
+            if (!hasProof(quest)) {
+                return "Il vous manque des objets : " + quest.getObjectiveText() + " (vous en avez " + countCollected(quest) + ").";
+            }
+            int toTake = quest.getCollectCount();
+            for (Item item : new java.util.ArrayList<>(player.getInventoryItems())) {
+                if (toTake > 0 && quest.getCollectItem().equals(item.getId())) {
+                    player.removeItem(item);
+                    toTake--;
+                }
+            }
+        } else {
+            Item proof = findQuestItem(quest.getProofItem());
+            if (proof == null) {
+                return "Il vous manque la preuve : " + quest.getProofItem() + ".";
+            }
+            player.removeItem(proof);
         }
-        player.removeItem(proof);
+        finish(quest);
+        return null;
+    }
+
+    /** La quete est terminee : or verse, quete rangee, rang remonte si le personnage en a fait assez. */
+    private void finish(Quest quest) {
         player.getActiveQuests().remove(quest.getTitle());
         player.getDoneQuests().add(quest.getTitle());
         player.addGold(quest.getGoldReward());
-        return null;
+        player.setRank(Math.max(player.getRank(), player.getDoneQuests().size() / QUESTS_PER_RANK));
     }
 
     // ------------------------------------------------------------------ livraisons
@@ -100,8 +135,12 @@ public class QuestLog {
         }
         Item parcel = findQuestItem(quest.getGiveItem());
         player.removeItem(parcel);
+        if (quest.isPayOnDelivery()) {
+            finish(quest);
+            return quest.getGiveItem() + " remis : +" + quest.getGoldReward() + " Po !";
+        }
         player.addItem(new ObjetDeQuete(quest.getProofItem()));
-        return quest.getGiveItem() + " remise. Rapportez « " + quest.getProofItem() + " » à la guilde.";
+        return quest.getGiveItem() + " remise. Rapportez à la guilde : " + quest.getProofItem() + ".";
     }
 
     private Quest pendingDelivery(String recipient, java.util.List<Quest> allQuests) {

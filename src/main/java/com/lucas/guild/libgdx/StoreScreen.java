@@ -1,6 +1,8 @@
 package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.graphics.Color;
+import com.lucas.guild.data.GameContent;
+import com.lucas.guild.game.QuestLog;
 
 /** Intérieur d'une boutique de village : un commerçant, et la boutique de la ville (shops.json). */
 public class StoreScreen extends InteriorScreen {
@@ -59,6 +61,15 @@ public class StoreScreen extends InteriorScreen {
             return;
         }
         dialogTable.add("Bienvenue au " + storeName + " ! Je regarde ce qu'il vous faut ?").row();
+
+        final QuestLog questLog = new QuestLog(player);
+        if (questLog.canDeliver(storeName, GameContent.quests())) {
+            addDialogButton("Remettre la livraison", () -> {
+                String message = questLog.deliver(storeName, GameContent.quests());
+                toggleDialog(null);
+                gameClock.postMessage(message);
+            });
+        }
 
         addDialogButton("Voir la marchandise", () -> showShop(shopId, () -> {
             dialogTable.clear();

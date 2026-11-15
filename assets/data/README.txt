@@ -8,12 +8,20 @@ Ils sont lus d'abord dans le classpath (data/...), puis dans assets/data/ du dos
 donc ca marche avec Maven comme avec run.bat.
 
 quests.json
-    Les quetes du tableau de la guilde. title = nom UNIQUE (sert d'identifiant dans la sauvegarde).
-    rank : rang minimum (0 = F, 1 = E, ...) ; type : COMBAT, DELIVERY ou ESCORT ;
-    goldReward = or verse quand on rend la quete ; proofItem = objet a rapporter a la guilde pour la rendre
-    (butin d'un monstre, recu de livraison...) ; giveItem = objet remis a l'acceptation (livraison : la lettre
-    a porter) ; target = destinataire d'une livraison (le forgeron : "Forgeron").
-    experienceReward n'est plus utilise.
+    Les quetes, reparties sur les TABLEAUX des villes. title = nom UNIQUE (sert d'identifiant dans la sauvegarde).
+    town = la ville dont le tableau propose la quete (absent = la ville de depart : le tableau de la guilde
+    d'Aethelgard ; Port-Brume et Hautevigne ont un tableau d'annonces pres de la porte). Chaque quete se
+    rend la ou elle a ete prise.
+    rank : rang minimum (0 = F, 1 = E, ...). Le rang monte d'un cran toutes les 3 quetes terminees.
+    type :
+      COMBAT   : proofItem = objet de quete lache par un monstre (monsters.json "lootItem") tant que la quete
+                 est active ; on le rapporte au tableau.
+      DELIVERY : giveItem = objet remis a l'acceptation ; target = le destinataire, par son NOM (le forgeron :
+                 "Forgeron", ou le nom d'une auberge ou d'une boutique, "Comptoir du Port"...). Le joueur le lui
+                 remet par le bouton "Remettre la livraison". Avec "payOnDelivery": true, la quete est payee et
+                 terminee a la remise (livraison entre villes) ; sinon on recoit proofItem a rapporter au tableau.
+      COLLECT  : collectItem (identifiant de items.json) x collectCount sont rapportes au tableau, qui les reprend.
+    goldReward = or verse a la fin. experienceReward n'est plus utilise.
 
 skills.json
     Les competences. On ne les achete pas : elles progressent quand on fait l'action.
@@ -85,6 +93,7 @@ town.json, town_portbrume.json, town_hautevigne.json (un fichier par ville)
     hauteur, profondeur (en metres) ; color = nom LibGDX (DARK_GRAY, BROWN, TAN...) ou "#RRGGBB" ;
     decal = true pour du visuel seulement (rues, eau) : on marche dessus au lieu de la heurter ;
     action = "gate" pour la porte de la ville (E ouvre la carte du monde) ;
+    action = "board" pour un tableau d'annonces (E l'ouvre : les quetes de la ville, voir quests.json) ;
     action = "read" + text = un identifiant de lore.json pour un panneau, une stele, un livre : E le lit
     (la premiere lecture l'ajoute au journal).
     Pour les "parts" d'un batiment, x/z sont relatifs a son centre. Viser une partie d'un batiment
