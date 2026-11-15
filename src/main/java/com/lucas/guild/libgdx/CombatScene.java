@@ -75,6 +75,8 @@ class CombatScene implements Disposable {
     }
 
     private float minX = -1000, maxX = 1000, minZ = -1000, maxZ = 1000;
+    /** Distance en plus pour les coups et la cible affichée : la caméra à la 3e personne est derrière les yeux du joueur. */
+    private float rangeBonus;
     private float playerCooldown;
     private float damageFlash;
 
@@ -85,6 +87,15 @@ class CombatScene implements Disposable {
         p.fill();
         pixel = new Texture(p);
         p.dispose();
+    }
+
+    /** Le joueur peut-il porter un coup tout de suite (le délai entre deux coups est écoulé) ? */
+    boolean ready() {
+        return playerCooldown <= 0f;
+    }
+
+    void setRangeBonus(float rangeBonus) {
+        this.rangeBonus = rangeBonus;
     }
 
     /** Zone où les monstres peuvent aller (les murs de la pièce). */
@@ -188,7 +199,7 @@ class CombatScene implements Disposable {
             return null;
         }
         playerCooldown = Combat.PLAYER_COOLDOWN;
-        Entry target = targetOf(eye, direction, Combat.PLAYER_RANGE);
+        Entry target = targetOf(eye, direction, Combat.PLAYER_RANGE + rangeBonus);
         if (target == null) {
             return null;
         }
@@ -241,7 +252,7 @@ class CombatScene implements Disposable {
             batch.draw(pixel, 0, 0, w, h);
             batch.setColor(Color.WHITE);
         }
-        Entry target = targetOf(eye, direction, TARGET_RANGE);
+        Entry target = targetOf(eye, direction, TARGET_RANGE + rangeBonus);
         if (target != null) {
             Monster m = target.monster;
             String text = m.getName() + "  " + m.getHealth() + " / " + m.getMaxHealth();

@@ -141,3 +141,17 @@ events.json
     "Demander des nouvelles" chez l'aubergiste (evenements des AUTRES villes), journal (J, villes connues).
     L'etat est sauvegarde avec le personnage. Debug (F10) : demarrer un evenement dans la ville courante.
 
+models.json
+    Les modeles 3D des personnages, faits de formes simples sur des articulations. "models" : un modele par
+    nom ("human" = le joueur). Chaque modele : "joints" (point de pivot x/y/z en metres et "parent" ; un parent
+    est defini AVANT ses enfants), "parts" (les formes), "pose" (angle fixe de repos de certaines articulations),
+    "walk" (balancement des articulations a la marche : axis, amp en degres, phase) et "attack" (le geste du
+    coup : duration, et pour chaque articulation un angle de depart "from" a "to").
+    Une forme : shape (box, cylinder, sphere, cone ou capsule), w/h/d (taille en m), x/y/z (centre), rot (3 angles
+    en degres, facultatif), color (nom LibGDX ou "#RRGGBB"), joint (l'articulation qui la porte ; absent = le corps).
+    "slot": "armor" = la forme prend la couleur de l'armure portee (armorColors, par identifiant d'objet).
+    Repere : l'origine est entre les pieds, au sol ; le modele regarde vers -Z ; +X est a sa droite ; +Y en haut.
+    "gear" : des formes en plus pour un objet porte (arme en main, casque d'une armure, sac), par identifiant
+    d'objet de items.json. Toute arme, armure et tout sac du catalogue doit avoir son aspect (un test le verifie).
+    En jeu : V bascule entre la vue a la 1re et a la 3e personne.
+

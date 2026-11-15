@@ -42,6 +42,21 @@ public class PlayerController implements Disposable {
     private final static Vector3 rayFrom = new Vector3();
     private final static Vector3 rayTo = new Vector3();
     private final static ClosestRayResultCallback rayCallback = new ClosestRayResultCallback(Vector3.Zero, Vector3.Z);
+    private final static ClosestRayResultCallback cameraRay = new ClosestRayResultCallback(Vector3.Zero, Vector3.Z);
+
+    /** Groupe de collision du joueur : les rayons de visée et de caméra l'ignorent (sinon, en 3e personne, on se viserait soi-même). */
+    private static final short PLAYER_GROUP = 32;
+    private static final short NOT_PLAYER = (short) ~PLAYER_GROUP;
+
+    /** Distance de la caméra derrière le joueur en 3e personne, et décalage d'épaule. */
+    private static final float THIRD_PERSON_DISTANCE = 3.4f;
+    private static final float SHOULDER_RIGHT = 0.55f;
+    private static final float SHOULDER_UP = 0.25f;
+
+    private final Vector3 eye = new Vector3();
+    private final Vector3 desired = new Vector3();
+    private final Vector3 right = new Vector3();
+    private float aimBonus;
 
     public PlayerController(Camera camera, btDiscreteDynamicsWorld dynamicsWorld, Adventurer player) {
         this(camera, dynamicsWorld, player, new Vector3(0, 10, 0));
@@ -67,7 +82,7 @@ public class PlayerController implements Disposable {
         playerBody.setFriction(0.8f);
         playerBody.setRestitution(0f);
 
-        dynamicsWorld.addRigidBody(playerBody);
+        dynamicsWorld.addRigidBody(playerBody, PLAYER_GROUP, (short) -1);
     }
 
     public btRigidBody getPlayerBody() {
@@ -137,16 +152,53 @@ public class PlayerController implements Disposable {
 
     public void updateCamera() {
         Vector3 playerPosition = playerBody.getCenterOfMassPosition();
-        camera.position.set(playerPosition).add(0, 0.8f, 0);
-        
+        eye.set(playerPosition).add(0, 0.8f, 0);
+
         camRotation.set(Vector3.Y, yaw);
         pitchRotation.set(Vector3.X, pitch);
         camRotation.mul(pitchRotation);
-        
+
         camera.direction.set(0, 0, -1).mul(camRotation);
         camera.up.set(0, 1, 0).mul(camRotation);
-        
+
+        if (!ViewSettings.thirdPerson) {
+            camera.position.set(eye);
+            aimBonus = 0f;
+        } else {
+            // derrière le joueur, un peu sur l'épaule ; un mur entre les deux rapproche la caméra
+            right.set(camera.direction).crs(camera.up).nor();
+            desired.set(eye).mulAdd(camera.direction, -THIRD_PERSON_DISTANCE).mulAdd(right, SHOULDER_RIGHT).mulAdd(camera.up, SHOULDER_UP);
+            cameraRay.setCollisionObject(null);
+            cameraRay.setClosestHitFraction(1f);
+            cameraRay.setCollisionFilterGroup((short) -1);
+            cameraRay.setCollisionFilterMask(NOT_PLAYER);
+            dynamicsWorld.rayTest(eye, desired, cameraRay);
+            if (cameraRay.hasHit()) {
+                float length = eye.dst(desired);
+                float safe = Math.max(0.3f, cameraRay.getClosestHitFraction() * length - 0.3f);
+                desired.set(eye).add(tmp.set(desired).sub(eye).nor().scl(Math.min(safe, length)));
+            }
+            camera.position.set(desired);
+            aimBonus = camera.position.dst(eye);
+        }
+
         camera.update();
+    }
+
+    /** Vitesse de déplacement au sol, en m/s (anime la marche du personnage). */
+    public float getHorizontalSpeed() {
+        Vector3 v = playerBody.getLinearVelocity();
+        return (float) Math.hypot(v.x, v.z);
+    }
+
+    /** Direction du regard, en degrés (0 = vers -Z). */
+    public float getYaw() {
+        return yaw;
+    }
+
+    /** Distance entre la caméra et les yeux du joueur : à ajouter à la portée de ce que la caméra vise. */
+    public float getAimBonus() {
+        return aimBonus;
     }
     
     private void interact() {
@@ -162,12 +214,12 @@ public class PlayerController implements Disposable {
 
     public btCollisionObject getBodyInView(float maxDistance) {
         rayFrom.set(camera.position);
-        rayTo.set(camera.direction).scl(maxDistance).add(rayFrom);
+        rayTo.set(camera.direction).scl(maxDistance + aimBonus).add(rayFrom);
 
         rayCallback.setCollisionObject(null);
         rayCallback.setClosestHitFraction(1f);
         rayCallback.setCollisionFilterGroup((short)-1);
-        rayCallback.setCollisionFilterMask((short)-1);
+        rayCallback.setCollisionFilterMask(NOT_PLAYER);
 
         dynamicsWorld.rayTest(rayFrom, rayTo, rayCallback);
 

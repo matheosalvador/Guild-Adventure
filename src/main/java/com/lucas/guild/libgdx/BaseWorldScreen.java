@@ -301,6 +301,26 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         }
 
         playerController = new PlayerController(camera, dynamicsWorld, player, getSpawnPoint());
+        playerModel = new CharacterModel(instances, GameContent.models(), "human");
+        disposables.add(playerModel);
+    }
+
+    /** Le corps du joueur, visible à la 3e personne (touche V). */
+    private CharacterModel playerModel;
+    private final Vector3 feet = new Vector3();
+
+    /** Habille le corps du joueur de son équipement, le place et l'anime. */
+    private void updatePlayerModel(float delta) {
+        com.lucas.guild.model.Inventaire inventory = player.getInventaire();
+        playerModel.setLook(
+                inventory.getArmor() != null ? inventory.getArmor().getId() : null,
+                inventory.getWeapon() != null ? inventory.getWeapon().getId() : null,
+                inventory.getBag() != null ? inventory.getBag().getId() : null);
+        // contre un mur, la caméra se colle au joueur : on cache alors son corps (comme à la 1re personne)
+        playerModel.setVisible(ViewSettings.thirdPerson && playerController.getAimBonus() > 0.9f);
+        feet.set(playerController.getPlayerBody().getCenterOfMassPosition()).sub(0, 1.0f, 0);
+        playerModel.update(delta, playerController.getHorizontalSpeed(), feet, playerController.getYaw());
+        combat.setRangeBonus(playerController.getAimBonus());
     }
 
     private void setup3DEnvironment() {
@@ -517,6 +537,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             playerController.update();
             dynamicsWorld.stepSimulation(delta, 5, 1 / 60f);
             playerController.updateCamera();
+            updatePlayerModel(delta);
             gameClock.update(delta);
             advanceWorldEvents();
             trainWalking();
@@ -682,7 +703,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         hudText.append("Or : ").append(player.getGold()).append(" Po - ").append(UiKit.loadLine(player));
         font.draw(spriteBatch, hudText, 10, h - 10);
 
-        font.draw(spriteBatch, "I : inventaire   K : personnage   J : journal   Q : potion   Échap : pause", 10, 24);
+        font.draw(spriteBatch, "I : inventaire   K : personnage   J : journal   Q : potion   V : vue   Échap : pause", 10, 24);
 
         combat.drawHud(spriteBatch, font, w, h, camera.position, camera.direction);
         drawToast(delta, w, h);
@@ -805,6 +826,11 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             return true;
         }
 
+        if (keycode == Input.Keys.V) {
+            ViewSettings.thirdPerson = !ViewSettings.thirdPerson;
+            return true;
+        }
+
         if (keycode == Input.Keys.E) {
             btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
             if (objectInView != null && objectInView.userData instanceof Readable) {
@@ -831,7 +857,11 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
         if (button == Input.Buttons.LEFT && !isOverlayOpen()) {
             // clic gauche : un coup (sans effet s'il n'y a pas de monstre à portée)
+            boolean swing = combat.ready();
             String loot = combat.attack(player, camera.position, camera.direction);
+            if (swing) {
+                playerModel.startAttack();
+            }
             if (loot != null) {
                 gameClock.postMessage(loot);
             }

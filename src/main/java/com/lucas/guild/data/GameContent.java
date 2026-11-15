@@ -464,6 +464,23 @@ public final class GameContent {
         return lore;
     }
 
+    /** Les modèles 3D des personnages et de leur équipement (models.json). */
+    public static ModelsData models() {
+        ModelsData data = read("models.json", ModelsData.class);
+        data.validate("models.json");
+        for (String id : data.gear.keySet()) {
+            if (newItem(id) == null) {
+                throw new IllegalStateException("models.json : equipement \"" + id + "\" : objet inconnu (voir items.json)");
+            }
+        }
+        for (String id : data.armorColors.keySet()) {
+            if (newItem(id) == null) {
+                throw new IllegalStateException("models.json : armorColors \"" + id + "\" : objet inconnu (voir items.json)");
+            }
+        }
+        return data;
+    }
+
     /** Les événements du monde (events.json). */
     public static EventsData events() {
         EventsData data = read("events.json", EventsData.class);
@@ -565,6 +582,7 @@ public final class GameContent {
         agingStages();
         lore();
         events();
+        models();
     }
 
     // ------------------------------------------------------------------ lecture

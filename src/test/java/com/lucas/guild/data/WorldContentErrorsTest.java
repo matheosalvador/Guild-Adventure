@@ -36,7 +36,8 @@ class WorldContentErrorsTest {
             }
         }
         Path target = tmp.resolve(file);
-        String text = new String(Files.readAllBytes(target), StandardCharsets.UTF_8);
+        // les fichiers peuvent etre en fins de ligne Windows (CRLF) selon la configuration de git : on compare en LF
+        String text = new String(Files.readAllBytes(target), StandardCharsets.UTF_8).replace("\r\n", "\n");
         assertTrue(text.contains(from), "scenario mal ecrit : '" + from + "' introuvable dans " + file);
         Files.write(target, text.replace(from, to).getBytes(StandardCharsets.UTF_8));
         GameContent.overrideDataDirForTests(tmp);
@@ -263,6 +264,56 @@ class WorldContentErrorsTest {
     void boardPartIsAKnownAction() throws IOException {
         // « board » est une action valide : le message d'une action inconnue ne la refuse pas
         expectError("town_portbrume.json", "\"action\": \"board\"", "\"action\": \"panneau\"", "town_portbrume.json", "panneau", "board");
+    }
+
+    @Test
+    void modelUnknownShape() throws IOException {
+        expectError("models.json", "\"shape\": \"sphere\"", "\"shape\": \"pyramide\"", "models.json", "shape", "pyramide");
+    }
+
+    @Test
+    void modelUnknownJoint() throws IOException {
+        expectError("models.json", "\"joint\": \"legL\"", "\"joint\": \"jambe\"", "models.json", "articulation inconnue", "jambe");
+    }
+
+    @Test
+    void modelParentAfterChild() throws IOException {
+        expectError("models.json", "\"parent\": \"torso\" }", "\"parent\": \"legR\" }", "models.json", "parent", "avant");
+    }
+
+    @Test
+    void modelWalkUnknownJoint() throws IOException {
+        expectError("models.json", "\"legL\": { \"axis\": \"x\", \"amp\": 28, \"phase\": 0 }", "\"jambeG\": { \"axis\": \"x\", \"amp\": 28, \"phase\": 0 }", "models.json", "walk", "jambeG");
+    }
+
+    @Test
+    void modelBadAxis() throws IOException {
+        expectError("models.json", "\"axis\": \"x\", \"amp\": 28", "\"axis\": \"w\", \"amp\": 28", "models.json", "axis");
+    }
+
+    @Test
+    void modelBadColor() throws IOException {
+        expectError("models.json", "\"#D9A87C\"", "\"#ZZZZZZ\"", "models.json", "color");
+    }
+
+    @Test
+    void modelZeroSize() throws IOException {
+        expectError("models.json", "\"w\": 0.45, \"h\": 0.08, \"d\": 0.29", "\"w\": 0, \"h\": 0.08, \"d\": 0.29", "models.json", "\"w\"");
+    }
+
+    @Test
+    void modelBadRotation() throws IOException {
+        expectError("models.json", "\"rot\": [90, 0, 0]", "\"rot\": [90, 0]", "models.json", "rot");
+    }
+
+    @Test
+    void modelGearForUnknownItem() throws IOException {
+        expectError("models.json", "\"dagger\": { \"parts\"", "\"poignard_fantome\": { \"parts\"", "models.json", "poignard_fantome", "items.json");
+    }
+
+    @Test
+    void modelArmorColorForUnknownItem() throws IOException {
+        expectError("models.json", "\"leather_armor\": \"#6B4A2B\"", "\"armure_fantome\": \"#6B4A2B\"", "models.json", "armure_fantome", "items.json");
     }
 
     @Test
