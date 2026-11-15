@@ -93,6 +93,11 @@ town.json, town_portbrume.json, town_hautevigne.json (un fichier par ville)
     hauteur, profondeur (en metres) ; color = nom LibGDX (DARK_GRAY, BROWN, TAN...) ou "#RRGGBB" ;
     decal = true pour du visuel seulement (rues, eau) : on marche dessus au lieu de la heurter ;
     action = "gate" pour la porte de la ville (E ouvre la carte du monde) ;
+    shape = box (par defaut), cylinder, sphere, cone ou gable (toit a deux pentes : w = longueur de la crete,
+    d = largeur, h = hauteur ; la crete court le long de X) ; une forme autre que box est VISUELLE seulement
+    (on ne la heurte pas), comme "rot" [x, y, z] (rotation en degres) ; anim = "water" : la surface ondule.
+    "villagers" (au niveau de la ville) : les habitants qui se promenent : model (models.json), speed (m/s) et route
+    (au moins 2 points {x, z}, parcourus en boucle). On ne leur parle pas.
     action = "board" pour un tableau d'annonces (E l'ouvre : les quetes de la ville, voir quests.json) ;
     action = "read" + text = un identifiant de lore.json pour un panneau, une stele, un livre : E le lit
     (la premiere lecture l'ajoute au journal).
@@ -164,4 +169,3 @@ models.json
     PNJ et monstres : un monstre (monsters.json) a un champ "model" (son modele 3D ; la boite de collision reste
     celle de w/h/d). Un PNJ est pose dans un ecran par addNpc("innkeeper", x, z, ...) : il respire (idle) et se
     tourne vers le joueur quand il approche.
-

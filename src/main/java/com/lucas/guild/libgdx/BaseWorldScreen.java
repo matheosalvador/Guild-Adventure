@@ -534,19 +534,81 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     /** Une boîte seulement visible : le joueur la traverse (rues, eau, marquages au sol). */
     protected ModelInstance addVisualBox(float w, float h, float d, Color color, float x, float y, float z) {
-        ModelInstance instance = new ModelInstance(boxModel(w, h, d, color));
+        return addVisualShape("box", w, h, d, color, x, y, z, null);
+    }
+
+    /** Une forme seulement visible (voir {@link Shapes}), éventuellement tournée (degrés autour de x, y, z). */
+    protected ModelInstance addVisualShape(String shape, float w, float h, float d, Color color, float x, float y, float z, float[] rot) {
+        ModelInstance instance = new ModelInstance(shapeModel(shape, w, h, d, color));
         instance.transform.setTranslation(x, y, z);
+        if (rot != null) {
+            instance.transform.rotate(Vector3.Y, rot[1]).rotate(Vector3.X, rot[0]).rotate(Vector3.Z, rot[2]);
+        }
         instances.add(instance);
         return instance;
     }
 
-    /** Modèle partagé par toutes les boîtes de même taille et couleur. */
-    private Model boxModel(float w, float h, float d, Color color) {
-        String key = w + "x" + h + "x" + d + "/" + color.toIntBits();
+    /**
+     * Une partie de décor d'un fichier de ville ou de zone : une boîte solide, ou une forme visuelle (toit, couronne
+     * d'arbre, eau...). {@code (ox, oz)} est le centre du bâtiment pour ses détails.
+     */
+    protected void addDecorPart(com.lucas.guild.data.TownData.PartData part, float ox, float oz, Color color, Object userData) {
+        float x = ox + part.x;
+        float z = oz + part.z;
+        float centerY = 0.5f + part.y + part.h / 2f;   // le sol est une boîte d'1 m dont le dessus est à 0,5
+        boolean plainBox = "box".equals(part.shape) && part.rot == null;
+        if (part.decal || !plainBox) {
+            ModelInstance instance = addVisualShape(part.shape, part.w, part.h, part.d, color, x, centerY, z, part.rot);
+            if ("water".equals(part.anim)) {
+                waves.add(new Wave(instance, centerY, color));
+            }
+        } else {
+            addBox(part.w, part.h, part.d, color, x, centerY, z, userData);
+        }
+    }
+
+    /** Une surface d'eau qui ondule. */
+    private static final class Wave {
+        final ModelInstance instance;
+        final float baseY;
+        final Color base;
+        final float phase;
+
+        Wave(ModelInstance instance, float baseY, Color base) {
+            this.instance = instance;
+            this.baseY = baseY;
+            this.base = new Color(base);
+            this.phase = instance.transform.val[com.badlogic.gdx.math.Matrix4.M03] * 0.15f;
+        }
+    }
+
+    private final java.util.List<Wave> waves = new java.util.ArrayList<>();
+    private float waveTime;
+
+    private void animateWater(float delta) {
+        if (waves.isEmpty()) {
+            return;
+        }
+        waveTime += delta;
+        for (Wave wave : waves) {
+            float s = com.badlogic.gdx.math.MathUtils.sin(waveTime * 1.1f + wave.phase);
+            wave.instance.transform.val[com.badlogic.gdx.math.Matrix4.M13] = wave.baseY + 0.05f * s;
+            ColorAttribute diffuse = (ColorAttribute) wave.instance.materials.first().get(ColorAttribute.Diffuse);
+            float k = 1f + 0.12f * s;
+            diffuse.color.set(Math.min(1f, wave.base.r * k), Math.min(1f, wave.base.g * k), Math.min(1f, wave.base.b * k), 1f);
+        }
+    }
+
+    /** Appelé à chaque image après la mise à jour du jeu, même quand un menu est ouvert (animations du décor). */
+    protected void afterUpdate(float delta) {
+    }
+
+    /** Modèle partagé par toutes les formes de même type, taille et couleur. */
+    private Model shapeModel(String shape, float w, float h, float d, Color color) {
+        String key = shape + "/" + w + "x" + h + "x" + d + "/" + color.toIntBits();
         Model model = boxModels.get(key);
         if (model == null) {
-            Material material = new Material(ColorAttribute.createDiffuse(color));
-            model = new ModelBuilder().createBox(w, h, d, material, Usage.Position | Usage.Normal);
+            model = Shapes.create(shape, w, h, d, new Material(ColorAttribute.createDiffuse(color)));
             disposables.add(model);
             boxModels.put(key, model);
         }
@@ -559,6 +621,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     public void render(float delta) {
         update(delta);
         updateNpcs(delta);
+        animateWater(delta);
+        afterUpdate(delta);
         updateEnvironment();
 
         Color bg = getBackgroundColor();

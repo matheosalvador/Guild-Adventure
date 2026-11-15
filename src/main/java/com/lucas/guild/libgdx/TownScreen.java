@@ -87,6 +87,47 @@ public class TownScreen extends BaseWorldScreen {
         return true;
     }
 
+    /** Un habitant qui se promène : son modèle et son parcours. */
+    private static final class Villager {
+        final CharacterModel model;
+        final com.lucas.guild.game.RouteWalker walker;
+
+        Villager(CharacterModel model, com.lucas.guild.game.RouteWalker walker) {
+            this.model = model;
+            this.walker = walker;
+        }
+    }
+
+    private final java.util.List<Villager> villagers = new java.util.ArrayList<>();
+    private final Vector3 villagerFeet = new Vector3();
+
+    private void buildVillagers(TownData town) {
+        java.util.Random random = new java.util.Random(town.name.hashCode());
+        for (TownData.VillagerData data : town.villagers) {
+            java.util.List<float[]> route = new java.util.ArrayList<>();
+            for (TownData.RoutePoint point : data.route) {
+                route.add(new float[] {point.x, point.z});
+            }
+            com.lucas.guild.game.RouteWalker walker = new com.lucas.guild.game.RouteWalker(route, data.speed);
+            walker.advanceMeters(random.nextFloat() * 60f);   // ils ne partent pas tous du même point
+            CharacterModel model = new CharacterModel(instances, GameContent.models(), data.model);
+            model.setVisible(true);
+            disposables.add(model);
+            villagers.add(new Villager(model, walker));
+        }
+    }
+
+    @Override
+    protected void afterUpdate(float delta) {
+        boolean frozen = isOverlayOpen();
+        for (Villager v : villagers) {
+            if (!frozen) {
+                v.walker.update(delta);
+            }
+            v.model.update(frozen ? 0f : delta, frozen ? 0f : v.walker.getSpeed(), villagerFeet.set(v.walker.getX(), 0.5f, v.walker.getZ()), v.walker.getYaw());
+        }
+    }
+
     // ------------------------------------------------------------------ décor
 
     @Override
@@ -98,6 +139,7 @@ public class TownScreen extends BaseWorldScreen {
         for (TownData.BuildingData data : town.buildings) {
             addBuilding(data);
         }
+        buildVillagers(town);
         for (TownData.PartData part : town.decor) {
             addPart(part, 0, 0, "decor", "gate".equals(part.action) ? GATE : "board".equals(part.action) ? BOARD : "read".equals(part.action) ? new Readable(part.text) : null);
         }
@@ -110,15 +152,7 @@ public class TownScreen extends BaseWorldScreen {
 
     /** Une boîte du décor ; (ox, oz) est le centre du bâtiment pour ses détails, {@code userData} ce qu'on obtient en la visant. */
     private void addPart(TownData.PartData part, float ox, float oz, String where, Object userData) {
-        Color color = parseColor(part.color, where);
-        float x = ox + part.x;
-        float z = oz + part.z;
-        float centerY = 0.5f + part.y + part.h / 2f;   // le sol est une boîte d'1 m dont le dessus est à 0,5
-        if (part.decal) {
-            addVisualBox(part.w, part.h, part.d, color, x, centerY, z);
-        } else {
-            addBox(part.w, part.h, part.d, color, x, centerY, z, userData);
-        }
+        addDecorPart(part, ox, oz, parseColor(part.color, where), userData);
     }
 
     private void addBuilding(TownData.BuildingData data) {

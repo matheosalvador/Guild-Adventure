@@ -347,6 +347,31 @@ class WorldContentErrorsTest {
     }
 
     @Test
+    void townUnknownPartShape() throws IOException {
+        expectError("town.json", "\"shape\": \"gable\"", "\"shape\": \"pyramide\"", "town.json", "shape", "pyramide");
+    }
+
+    @Test
+    void townUnknownPartAnimation() throws IOException {
+        expectError("town_portbrume.json", "\"anim\": \"water\"", "\"anim\": \"lave\"", "town_portbrume.json", "anim", "lave");
+    }
+
+    @Test
+    void townVillagerUnknownModel() throws IOException {
+        expectError("town.json", "\"model\": \"villager_a\"", "\"model\": \"elfe\"", "town.json", "habitant", "elfe", "models.json");
+    }
+
+    @Test
+    void townVillagerRouteTooShort() throws IOException {
+        expectError("town.json", "\"route\": [{\"x\": -45, \"z\": 10}, {\"x\": 45, \"z\": 10}]", "\"route\": [{\"x\": -45, \"z\": 10}]", "town.json", "route");
+    }
+
+    @Test
+    void townVillagerBadSpeed() throws IOException {
+        expectError("town.json", "\"speed\": 1.3", "\"speed\": 0", "town.json", "speed");
+    }
+
+    @Test
     void shopBadPriceFactor() throws IOException {
         expectError("shops.json", "\"priceFactor\": 90", "\"priceFactor\": 0", "shops.json", "portbrume_store", "priceFactor");
     }

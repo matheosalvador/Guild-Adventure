@@ -432,6 +432,11 @@ public final class GameContent {
         TownData town = read(file, TownData.class);
         town.validate(file);
         checkReadable(file, town.decor);
+        for (TownData.VillagerData v : town.villagers) {
+            if (!models().models.containsKey(v.model)) {
+                throw new IllegalStateException(file + " : habitant : modele inconnu \"" + v.model + "\" (voir models.json)");
+            }
+        }
         for (TownData.BuildingData b : town.buildings) {
             checkReadable(file, b.parts);
         }

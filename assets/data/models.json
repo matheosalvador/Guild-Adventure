@@ -196,6 +196,56 @@
         { "shape": "sphere", "w": 0.13, "h": 0.13, "d": 0.04, "x": -0.1, "y": 0.9, "z": -0.5, "color": "#C99A9A", "joint": "head" },
         { "shape": "sphere", "w": 0.13, "h": 0.13, "d": 0.04, "x": 0.1, "y": 0.9, "z": -0.5, "color": "#C99A9A", "joint": "head" }
       ]
+    },
+    "villager_a": {
+      "base": "human",
+      "scale": [0.95, 0.97, 0.95],
+      "roles": { "skin": "#E0B48C", "hair": "#5A3A1E", "tunic": "#8A5A3A", "pants": "#4A3F2E", "belt": "#4A3220" },
+      "hide": ["cloak"]
+    },
+    "villager_b": {
+      "base": "human",
+      "roles": { "skin": "#D9A87C", "hair": "#C9A052", "tunic": "#4F6E8A", "pants": "#5A4A3A", "cloak": "#8A5A3A" }
+    },
+    "villager_c": {
+      "base": "human",
+      "scale": [0.92, 0.93, 0.92],
+      "roles": { "skin": "#B0805A", "hair": "#2B2B2B", "tunic": "#9A4A4A", "belt": "#E2D9BC" },
+      "hide": ["cloak"],
+      "extra": [
+        { "shape": "cylinder", "w": 0.52, "h": 0.66, "d": 0.42, "x": 0, "y": 0.6, "z": 0, "color": "#9A4A4A", "joint": "torso", "role": "tunic" },
+        { "shape": "sphere", "w": 0.25, "h": 0.34, "d": 0.2, "x": 0, "y": 1.55, "z": 0.07, "color": "#2B2B2B", "joint": "head" }
+      ]
+    },
+    "guard": {
+      "base": "human",
+      "roles": { "skin": "#D9A87C", "tunic": "#2F3E5C", "cloak": "#8A2A2A", "pants": "#3A3A44", "belt": "#2A2018" },
+      "hide": ["hair"],
+      "gear": ["prop_spear"],
+      "extra": [
+        { "shape": "sphere", "w": 0.27, "h": 0.23, "d": 0.28, "x": 0, "y": 1.75, "z": 0.0, "color": "#8E949B", "joint": "head" },
+        { "shape": "box", "w": 0.4, "h": 0.4, "d": 0.28, "x": 0, "y": 1.3, "z": 0, "color": "#8E949B", "joint": "torso" }
+      ]
+    },
+    "sailor": {
+      "base": "human",
+      "roles": { "skin": "#C99A72", "hair": "#5A3A1E", "tunic": "#E8E2D0", "pants": "#2F4F6F", "belt": "#4A3220" },
+      "hide": ["cloak"],
+      "extra": [
+        { "shape": "cylinder", "w": 0.27, "h": 0.08, "d": 0.27, "x": 0, "y": 1.83, "z": 0, "color": "#2F4F6F", "joint": "head" },
+        { "shape": "cylinder", "w": 0.14, "h": 0.05, "d": 0.14, "x": 0, "y": 1.52, "z": 0, "color": "#B03030", "joint": "torso" }
+      ]
+    },
+    "miner": {
+      "base": "human",
+      "scale": [1.05, 0.98, 1.05],
+      "roles": { "skin": "#C99A72", "tunic": "#6A5A4A", "pants": "#4A3F2E", "boots": "#2E2118", "belt": "#2A2018" },
+      "hide": ["cloak", "hair"],
+      "gear": ["prop_pickaxe"],
+      "extra": [
+        { "shape": "sphere", "w": 0.27, "h": 0.22, "d": 0.28, "x": 0, "y": 1.76, "z": 0.0, "color": "#C8A64A", "joint": "head" },
+        { "shape": "box", "w": 0.06, "h": 0.05, "d": 0.04, "x": 0, "y": 1.79, "z": -0.15, "color": "#FFE08A", "joint": "head" }
+      ]
     }
   },
   "armorColors": { "leather_armor": "#6B4A2B", "chain_mail": "#8E949B", "plate_armor": "#B8C0CC" },
@@ -284,6 +334,18 @@
       "parts": [
         { "shape": "box", "w": 0.04, "h": 0.012, "d": 0.34, "x": 0.29, "y": 0.9, "z": -0.22, "color": "#8A7A68", "joint": "handR" },
         { "shape": "box", "w": 0.045, "h": 0.045, "d": 0.1, "x": 0.29, "y": 0.9, "z": -0.02, "color": "#4A3220", "joint": "handR" }
+      ]
+    },
+    "prop_spear": {
+      "parts": [
+        { "shape": "cylinder", "w": 0.035, "h": 2.1, "d": 0.035, "x": 0.36, "y": 1.05, "z": -0.1, "color": "#6B4A2B" },
+        { "shape": "cone", "w": 0.08, "h": 0.22, "d": 0.08, "x": 0.36, "y": 2.2, "z": -0.1, "color": "#C9CED6" }
+      ]
+    },
+    "prop_pickaxe": {
+      "parts": [
+        { "shape": "cylinder", "w": 0.045, "h": 0.8, "d": 0.045, "x": 0.29, "y": 0.9, "z": -0.25, "color": "#5A3A1E", "joint": "handR", "rot": [90, 0, 0] },
+        { "shape": "box", "w": 0.42, "h": 0.05, "d": 0.06, "x": 0.29, "y": 0.9, "z": -0.64, "color": "#6F757D", "joint": "handR" }
       ]
     }
   }

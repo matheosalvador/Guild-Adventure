@@ -151,26 +151,7 @@ class CharacterModel implements Disposable {
         }
         Color color = ColorNames.parse(hex, file, "une forme (" + part.shape + ")");
         Material material = new Material(ColorAttribute.createDiffuse(color));
-        long attributes = Usage.Position | Usage.Normal;
-        ModelBuilder builder = new ModelBuilder();
-        Model model;
-        switch (part.shape) {
-            case "cylinder":
-                model = builder.createCylinder(part.w, part.h, part.d, 14, material, attributes);
-                break;
-            case "sphere":
-                model = builder.createSphere(part.w, part.h, part.d, 14, 10, material, attributes);
-                break;
-            case "cone":
-                model = builder.createCone(part.w, part.h, part.d, 14, material, attributes);
-                break;
-            case "capsule":
-                model = builder.createCapsule(Math.min(part.w, part.d) / 2f, part.h, 14, material, attributes);
-                break;
-            default:
-                model = builder.createBox(part.w, part.h, part.d, material, attributes);
-                break;
-        }
+        Model model = Shapes.create(part.shape, part.w, part.h, part.d, material);
         models.add(model);
         pieces.add(new Piece(new ModelInstance(model), part.joint != null ? joints.get(part.joint) : null, part, color));
         flashing = false;

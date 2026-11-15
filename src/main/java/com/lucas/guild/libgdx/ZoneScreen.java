@@ -116,13 +116,7 @@ public class ZoneScreen extends BaseWorldScreen {
         addBox(2f, 12f, zone.size + 4f, hedge, -half - 1f, 6f, 0, null);
 
         for (TownData.PartData part : zone.decor) {
-            Color color = ColorNames.parse(part.color, file, "le decor");
-            float centerY = 0.5f + part.y + part.h / 2f;
-            if (part.decal) {
-                addVisualBox(part.w, part.h, part.d, color, part.x, centerY, part.z);
-            } else {
-                addBox(part.w, part.h, part.d, color, part.x, centerY, part.z, "read".equals(part.action) ? new Readable(part.text) : null);
-            }
+            addDecorPart(part, 0, 0, ColorNames.parse(part.color, file, "le decor"), "read".equals(part.action) ? new Readable(part.text) : null);
         }
 
         // la borne de route : un poteau et son panneau

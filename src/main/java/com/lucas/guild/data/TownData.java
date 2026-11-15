@@ -17,6 +17,20 @@ public class TownData {
     public Point3 arrival;
     /** Décor de la ville (rues, maisons, arbres, murs...), en coordonnées absolues. */
     public List<PartData> decor = new ArrayList<>();
+    /** Les habitants qui se promènent dans les rues (ils ne font que passer : on ne leur parle pas). */
+    public List<VillagerData> villagers = new ArrayList<>();
+
+    /** Un habitant : un modèle (models.json) qui suit un parcours en boucle à la vitesse donnée (m/s). */
+    public static class VillagerData {
+        public String model;
+        public float speed = 1.2f;
+        public List<RoutePoint> route = new ArrayList<>();
+    }
+
+    public static class RoutePoint {
+        public float x;
+        public float z;
+    }
 
     /**
      * Une boîte du décor. {@code x} et {@code z} sont le centre (relatif au bâtiment pour les
@@ -35,6 +49,12 @@ public class TownData {
         public boolean decal;
         /** Action quand on vise cette partie (E) : « gate » = la porte de la ville, qui mène à la carte du monde. */
         public String action;
+        /** Forme : box (par defaut), cylinder, sphere, cone ou gable (toit a deux pentes, crete le long de X). Sauf box, visuel seulement. */
+        public String shape = "box";
+        /** Rotation en degres autour de x, y, z (facultatif ; visuel seulement). */
+        public float[] rot;
+        /** « water » : la surface ondule doucement. */
+        public String anim;
         /** Pour l'action « read » : l'identifiant du texte à lire dans lore.json (panneau, stèle, livre...). */
         public String text;
     }
@@ -87,6 +107,11 @@ public class TownData {
             if (p.action != null && !"gate".equals(p.action) && !"read".equals(p.action) && !"board".equals(p.action)) throw new IllegalStateException(at + " : \"action\" inconnue \"" + p.action + "\" (attendu : gate, read ou board)");
             if ("read".equals(p.action) && (p.text == null || p.text.isEmpty())) throw new IllegalStateException(at + " : l'action \"read\" demande un \"text\" (un identifiant de lore.json)");
             if (p.w <= 0 || p.h <= 0 || p.d <= 0) throw new IllegalStateException(at + " : \"w\", \"h\" et \"d\" doivent etre > 0");
+            if (p.shape == null || !java.util.Arrays.asList("box", "cylinder", "sphere", "cone", "gable").contains(p.shape)) {
+                throw new IllegalStateException(at + " : \"shape\" inconnue \"" + p.shape + "\" (attendu : box, cylinder, sphere, cone ou gable)");
+            }
+            if (p.rot != null && p.rot.length != 3) throw new IllegalStateException(at + " : \"rot\" doit avoir 3 nombres [x, y, z]");
+            if (p.anim != null && !"water".equals(p.anim)) throw new IllegalStateException(at + " : \"anim\" inconnue \"" + p.anim + "\" (attendu : water)");
         }
     }
 
@@ -112,5 +137,13 @@ public class TownData {
             validateParts(b.parts, where + " : \"parts\"");
         }
         validateParts(decor, file + " : \"decor\"");
+        if (villagers == null) villagers = new ArrayList<>();
+        for (int i = 0; i < villagers.size(); i++) {
+            VillagerData v = villagers.get(i);
+            String where = file + " : habitant n°" + (i + 1);
+            if (v == null || v.model == null || v.model.isEmpty()) throw new IllegalStateException(where + " : \"model\" manquant");
+            if (v.speed <= 0) throw new IllegalStateException(where + " : \"speed\" doit etre > 0");
+            if (v.route == null || v.route.size() < 2) throw new IllegalStateException(where + " : \"route\" doit avoir au moins 2 points");
+        }
     }
 }
