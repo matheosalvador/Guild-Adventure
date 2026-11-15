@@ -92,6 +92,8 @@ public class ModelsData {
         /** Marche : balancement de chaque articulation, au rythme des pas. */
         public Map<String, AnimData> walk = new LinkedHashMap<>();
         public AttackData attack;
+        /** Axe autour duquel le modèle bascule à sa mort : « x » (il tombe à la renverse) ou « z » (il tombe sur le côté). */
+        public String fallAxis = "x";
         /** Mètres parcourus pour un cycle de marche complet. */
         public float strideLength = 1.6f;
     }
@@ -156,6 +158,7 @@ public class ModelsData {
         r.joints = base.joints;
         r.parts = base.parts;
         r.strideLength = m.strideLength != 1.6f ? m.strideLength : base.strideLength;
+        r.fallAxis = !"x".equals(m.fallAxis) ? m.fallAxis : base.fallAxis;
         r.pose = !m.pose.isEmpty() ? m.pose : base.pose;
         r.walk = !m.walk.isEmpty() ? m.walk : base.walk;
         r.idle = !m.idle.isEmpty() ? m.idle : base.idle;
@@ -184,6 +187,7 @@ public class ModelsData {
             if (m.walk == null) m.walk = new LinkedHashMap<>();
             if (m.idle == null) m.idle = new LinkedHashMap<>();
             if (m.strideLength <= 0) throw new IllegalStateException(where + " : \"strideLength\" doit etre > 0");
+            if (!"x".equals(m.fallAxis) && !"z".equals(m.fallAxis)) throw new IllegalStateException(where + " : \"fallAxis\" doit etre x ou z");
             if (m.scale != null && (m.scale.length != 3 || m.scale[0] <= 0 || m.scale[1] <= 0 || m.scale[2] <= 0)) {
                 throw new IllegalStateException(where + " : \"scale\" doit avoir 3 nombres > 0 [x, y, z]");
             }

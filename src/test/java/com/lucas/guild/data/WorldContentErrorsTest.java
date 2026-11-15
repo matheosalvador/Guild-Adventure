@@ -372,6 +372,11 @@ class WorldContentErrorsTest {
     }
 
     @Test
+    void modelBadFallAxis() throws IOException {
+        expectError("models.json", "\"fallAxis\": \"z\"", "\"fallAxis\": \"y\"", "models.json", "quadruped", "fallAxis");
+    }
+
+    @Test
     void shopBadPriceFactor() throws IOException {
         expectError("shops.json", "\"priceFactor\": 90", "\"priceFactor\": 0", "shops.json", "portbrume_store", "priceFactor");
     }

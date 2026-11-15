@@ -169,3 +169,8 @@ models.json
     PNJ et monstres : un monstre (monsters.json) a un champ "model" (son modele 3D ; la boite de collision reste
     celle de w/h/d). Un PNJ est pose dans un ecran par addNpc("innkeeper", x, z, ...) : il respire (idle) et se
     tourne vers le joueur quand il approche.
+    "fallAxis" : comment le corps s'effondre a la mort : "x" (a la renverse, par defaut) ou "z" (sur le cote, pour
+    les betes). Hors donnees : en plein air (villes, zones), le soleil porte des ombres autour du joueur, la lune
+    et les etoiles se levent la nuit et des nuages passent ; le menu pause (Echap) a un bouton "Ombres" pour les
+    couper si le jeu est trop lent. Un coup fait gicler de petits eclats, et un monstre vaincu s'effondre.
+

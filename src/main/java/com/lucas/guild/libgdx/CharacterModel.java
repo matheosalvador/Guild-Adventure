@@ -72,6 +72,8 @@ class CharacterModel implements Disposable {
 
     private boolean visible = false;
     private boolean flashing = false;
+    private boolean falling = false;
+    private float fallTime;
     private float idleTime;
     private String look = "";
     private float walkPhase;
@@ -198,6 +200,16 @@ class CharacterModel implements Disposable {
         }
     }
 
+    /** Le personnage s'effondre (mort) : en une demi-seconde, il bascule au sol. */
+    void startFall() {
+        falling = true;
+        fallTime = 0f;
+    }
+
+    boolean isFalling() {
+        return falling;
+    }
+
     /** Lance le geste de coup (si le modèle en a un). */
     void startAttack() {
         if (def.attack != null) {
@@ -220,6 +232,9 @@ class CharacterModel implements Disposable {
         walkBlend += (Math.min(1f, speed / 3f) - walkBlend) * Math.min(1f, dt * 10f);
         attackTimer = Math.max(0f, attackTimer - dt);
         idleTime += dt;
+        if (falling) {
+            fallTime += dt;
+        }
 
         for (Joint joint : jointOrder) {
             joint.angle[0] = joint.angle[1] = joint.angle[2] = 0f;
@@ -248,6 +263,11 @@ class CharacterModel implements Disposable {
         }
 
         root.idt().translate(feet).rotate(Vector3.Y, yaw);
+        if (falling) {
+            float t = Math.min(1f, fallTime / 0.5f);
+            float eased = t * t * (3f - 2f * t);
+            root.rotate("z".equals(def.fallAxis) ? Vector3.Z : Vector3.X, 90f * eased);
+        }
         if (def.scale != null) {
             root.scale(def.scale[0], def.scale[1], def.scale[2]);
         }

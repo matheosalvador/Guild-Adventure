@@ -90,6 +90,16 @@ class ModelsTest {
     }
 
     @Test
+    void deadBodiesFallTheRightWay() {
+        ModelsData data = GameContent.models();
+        assertEquals("x", data.resolved("human").fallAxis, "un humain tombe a la renverse");
+        assertEquals("x", data.resolved("goblin").fallAxis, "la variante herite de sa base");
+        assertEquals("z", data.resolved("quadruped").fallAxis, "une bete tombe sur le cote");
+        assertEquals("z", data.resolved("wolf").fallAxis);
+        assertEquals("z", data.resolved("giant_rat").fallAxis);
+    }
+
+    @Test
     void quadrupedHasLegsTailAndABite() {
         ModelsData.ModelData wolf = GameContent.models().resolved("wolf");
         for (String joint : new String[] {"head", "legFL", "legFR", "legBL", "legBR", "tail"}) {

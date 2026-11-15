@@ -73,6 +73,11 @@ public class TownScreen extends BaseWorldScreen {
     }
 
     @Override
+    protected boolean hasSky() {
+        return true;
+    }
+
+    @Override
     protected float getAmbientLight() {
         return 0.4f;
     }

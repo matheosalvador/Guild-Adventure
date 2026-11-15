@@ -47,6 +47,7 @@ class CombatScene implements Disposable {
         final CharacterModel character;
         float lastX;
         float lastZ;
+        float lastYaw;
 
         Entry(Monster monster, Model model, ModelInstance instance, Color baseColor, CharacterModel character) {
             this.monster = monster;
@@ -59,12 +60,31 @@ class CombatScene implements Disposable {
         }
     }
 
+    /** Un monstre mort qui s'effondre, avant de disparaître. */
+    private static final class Dying {
+        final CharacterModel model;
+        final float x;
+        final float z;
+        final float yaw;
+        float time;
+
+        Dying(CharacterModel model, float x, float z, float yaw) {
+            this.model = model;
+            this.x = x;
+            this.z = z;
+            this.yaw = yaw;
+        }
+    }
+
+    private static final float DYING_SECONDS = 1.6f;
     private static final float FLOOR_TOP = 0.5f;      // le dessus du sol (boîte d'1 m centrée en 0)
     private static final float DAMAGE_FLASH = 0.35f;  // durée du flash rouge quand le joueur est touché
     private static final float TARGET_RANGE = 12f;    // distance max à laquelle on affiche le monstre visé
 
     private final Array<ModelInstance> worldInstances;
     private final List<Entry> entries = new ArrayList<>();
+    private final List<Dying> dying = new ArrayList<>();
+    private final Sparks sparks;
     private final Random random = new Random();
     private final Texture pixel;
     private final GlyphLayout layout = new GlyphLayout();
@@ -91,6 +111,7 @@ class CombatScene implements Disposable {
 
     CombatScene(Array<ModelInstance> worldInstances) {
         this.worldInstances = worldInstances;
+        this.sparks = new Sparks(worldInstances);
         Pixmap p = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         p.setColor(Color.WHITE);
         p.fill();
@@ -158,6 +179,11 @@ class CombatScene implements Disposable {
             remove(e);
         }
         entries.clear();
+        for (Dying d : dying) {
+            d.model.dispose();
+        }
+        dying.clear();
+        sparks.clear();
         return n;
     }
 
@@ -178,6 +204,16 @@ class CombatScene implements Disposable {
     boolean update(float dt, Adventurer player, Vector3 playerPos) {
         playerCooldown = Math.max(0f, playerCooldown - dt);
         damageFlash = Math.max(0f, damageFlash - dt);
+        sparks.update(dt);
+        for (java.util.Iterator<Dying> it = dying.iterator(); it.hasNext();) {
+            Dying d = it.next();
+            d.time += dt;
+            d.model.update(dt, 0f, feet.set(d.x, FLOOR_TOP, d.z), d.yaw);
+            if (d.time > DYING_SECONDS) {
+                d.model.dispose();
+                it.remove();
+            }
+        }
         boolean dead = false;
         for (Entry e : entries) {
             Monster m = e.monster;
@@ -208,6 +244,7 @@ class CombatScene implements Disposable {
             float speed = dt > 0f ? (float) Math.hypot(m.x - e.lastX, m.z - e.lastZ) / dt : 0f;
             e.lastX = m.x;
             e.lastZ = m.z;
+            e.lastYaw = yaw;
             e.character.setFlash(m.getHurtTimer() > 0f);
             e.character.update(dt, speed, feet.set(m.x, FLOOR_TOP, m.z), yaw);
             return;
@@ -237,8 +274,11 @@ class CombatScene implements Disposable {
             return null;
         }
         Combat.playerHit(player, target.monster);
+        Monster hitMonster = target.monster;
+        sparks.burst(hitMonster.x, FLOOR_TOP + hitMonster.data.h * 0.6f, hitMonster.z, 7, new Color(1f, 0.82f, 0.45f, 1f), 3.5f);
         if (target.monster.isDead()) {
             Monster m = target.monster;
+            sparks.burst(m.x, FLOOR_TOP + m.data.h * 0.5f, m.z, 14, target.baseColor, 4.5f);
             String loot = Combat.loot(player, m, random);
             // le reste du butin tombe au sol, là où le monstre est mort
             java.util.List<String> fallen = new ArrayList<>();
@@ -251,7 +291,14 @@ class CombatScene implements Disposable {
             if (!fallen.isEmpty()) {
                 loot += " Au sol : " + String.join(", ", fallen) + ".";
             }
-            remove(target);
+            if (target.character != null) {
+                // le corps s'effondre un instant avant de disparaître
+                target.character.setFlash(false);
+                target.character.startFall();
+                dying.add(new Dying(target.character, m.x, m.z, target.lastYaw));
+            } else {
+                remove(target);
+            }
             entries.remove(target);
             return loot;
         }
@@ -313,6 +360,11 @@ class CombatScene implements Disposable {
             }
             it.remove();
         }
+        for (Dying d : dying) {
+            d.model.dispose();
+        }
+        dying.clear();
+        sparks.dispose();
         pixel.dispose();
     }
 }

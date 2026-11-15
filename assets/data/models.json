@@ -180,7 +180,8 @@
         "joints": {
           "head": { "axis": "x", "from": -28, "to": 34 }
         }
-      }
+      },
+      "fallAxis": "z"
     },
     "wolf": {
       "base": "quadruped",

@@ -27,6 +27,8 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.graphics.g3d.environment.DirectionalShadowLight;
+import com.badlogic.gdx.graphics.g3d.utils.DepthShaderProvider;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
@@ -110,6 +112,12 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     protected final Array<Disposable> disposables = new Array<>();
     protected final Array<ModelInstance> instances = new Array<>();
+    /** Le ciel (astre, étoiles, nuages) : dessiné sans ombres, hors de la liste du décor. */
+    private final Array<ModelInstance> skyInstances = new Array<>();
+    private SkyDome skyDome;
+    private float skyClock;
+    private DirectionalShadowLight shadowLight;
+    private ModelBatch shadowBatch;
     private final Map<String, Model> boxModels = new HashMap<>();
     private final Map<GroundItems.Drop, ModelInstance> groundViews = new HashMap<>();
 
@@ -229,6 +237,11 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         dialogTable.add(label).width(width).pad(10).row();
     }
 
+    /** Cet écran est-il en plein air (ciel visible, ombres du soleil) ? */
+    protected boolean hasSky() {
+        return false;
+    }
+
     /** Intensité de la lumière ambiante. */
     protected float getAmbientLight() {
         return 0.6f;
@@ -303,6 +316,10 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         playerController = new PlayerController(camera, dynamicsWorld, player, getSpawnPoint());
         playerModel = new CharacterModel(instances, GameContent.models(), "human");
         disposables.add(playerModel);
+        if (hasSky()) {
+            skyDome = new SkyDome(skyInstances);
+            disposables.add(skyDome);
+        }
     }
 
     /** Le corps du joueur, visible à la 3e personne (touche V). */
@@ -338,8 +355,19 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         environment = new Environment();
         ambientLight = new ColorAttribute(ColorAttribute.AmbientLight, ambient, ambient, ambient, 1f);
         environment.set(ambientLight);
-        sunLight = new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f);
-        environment.add(sunLight);
+        if (hasSky()) {
+            // en plein air : le soleil porte des ombres (carte d'ombre de 70 m autour du joueur)
+            shadowLight = new DirectionalShadowLight(2048, 2048, 70f, 70f, 1f, 140f);
+            shadowLight.set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f);
+            sunLight = shadowLight;
+            environment.add(shadowLight);
+            shadowBatch = new ModelBatch(new DepthShaderProvider());
+            disposables.add(shadowLight);
+            disposables.add(shadowBatch);
+        } else {
+            sunLight = new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f);
+            environment.add(sunLight);
+        }
 
         spriteBatch = new SpriteBatch();
         font = new BitmapFont();
@@ -420,7 +448,16 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         TextButton continueButton = new TextButton("Continuer", skin);
         TextButton menuButton = new TextButton("Retour au Menu", skin);
 
+        final TextButton shadowsButton = new TextButton(shadowsLabel(), skin);
+        shadowsButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                ViewSettings.shadows = !ViewSettings.shadows;
+                shadowsButton.setText(shadowsLabel());
+            }
+        });
         pauseTable.add(continueButton).pad(10).row();
+        pauseTable.add(shadowsButton).pad(10).row();
         pauseTable.add(menuButton).pad(10).row();
 
         continueButton.addListener(new ClickListener() {
@@ -438,6 +475,10 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         });
 
         setupExtraUI();
+    }
+
+    private static String shadowsLabel() {
+        return "Ombres : " + (ViewSettings.shadows ? "oui" : "non");
     }
 
     private void setupInput() {
@@ -629,8 +670,20 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         Gdx.gl.glClearColor(bg.r, bg.g, bg.b, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
+        skyClock += delta;
+        boolean shadows = shadowLight != null && ViewSettings.shadows;
+        environment.shadowMap = shadows ? shadowLight : null;
+        if (shadows) {
+            shadowLight.begin(playerController.getPlayerBody().getCenterOfMassPosition(), camera.direction);
+            shadowBatch.begin(shadowLight.getCamera());
+            shadowBatch.render(instances);
+            shadowBatch.end();
+            shadowLight.end();
+        }
+
         modelBatch.begin(camera);
         modelBatch.render(instances, environment);
+        modelBatch.render(skyInstances, environment);
         modelBatch.end();
 
         spriteBatch.begin();
@@ -735,6 +788,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         ambientLight.color.set(light.ambient[0], light.ambient[1], light.ambient[2], 1f);
         sunLight.color.set(light.lightColor[0], light.lightColor[1], light.lightColor[2], 1f);
         sunLight.direction.set(light.lightDirection[0], light.lightDirection[1], light.lightDirection[2]).nor();
+        if (skyDome != null) {
+            skyDome.update(camera.position, light.daylight, light.lightDirection, skyClock);
+        }
     }
 
     private final java.util.Random eventRandom = new java.util.Random();
@@ -1103,6 +1159,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         }
         disposables.clear();
         instances.clear();
+        skyInstances.clear();
         boxModels.clear();
         groundViews.clear();
         skin.dispose();
