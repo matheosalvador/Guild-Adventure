@@ -23,6 +23,7 @@ import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
+import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.MonsterData;
 import com.lucas.guild.game.Combat;
 import com.lucas.guild.game.Monster;
@@ -42,12 +43,19 @@ class CombatScene implements Disposable {
         final Model model;
         final ModelInstance instance;
         final Color baseColor;
+        /** Le modèle 3D articulé du monstre (models.json), ou null s'il n'est qu'une boîte. */
+        final CharacterModel character;
+        float lastX;
+        float lastZ;
 
-        Entry(Monster monster, Model model, ModelInstance instance, Color baseColor) {
+        Entry(Monster monster, Model model, ModelInstance instance, Color baseColor, CharacterModel character) {
             this.monster = monster;
             this.model = model;
             this.instance = instance;
             this.baseColor = baseColor;
+            this.character = character;
+            this.lastX = monster.x;
+            this.lastZ = monster.z;
         }
     }
 
@@ -62,6 +70,7 @@ class CombatScene implements Disposable {
     private final GlyphLayout layout = new GlyphLayout();
     private final BoundingBox box = new BoundingBox();
     private final Vector3 hit = new Vector3();
+    private final Vector3 feet = new Vector3();
 
     /** Reçoit les objets qui tombent au sol à la mort d'un monstre. */
     interface DropSink {
@@ -110,13 +119,20 @@ class CombatScene implements Disposable {
         Monster monster = Monster.spawn(id, x, z);
         MonsterData data = monster.data;
         Color color = ColorNames.parse(data.color, "monsters.json", "monstre \"" + data.id + "\"");
-        Model model = new ModelBuilder().createBox(data.w, data.h, data.d,
-                new Material(ColorAttribute.createDiffuse(new Color(color))), Usage.Position | Usage.Normal);
-        ModelInstance instance = new ModelInstance(model);
-        worldInstances.add(instance);
-        Entry entry = new Entry(monster, model, instance, color);
+        Entry entry;
+        if (data.model != null) {
+            CharacterModel character = new CharacterModel(worldInstances, GameContent.models(), data.model);
+            character.setVisible(true);
+            entry = new Entry(monster, null, null, color, character);
+        } else {
+            Model model = new ModelBuilder().createBox(data.w, data.h, data.d,
+                    new Material(ColorAttribute.createDiffuse(new Color(color))), Usage.Position | Usage.Normal);
+            ModelInstance instance = new ModelInstance(model);
+            worldInstances.add(instance);
+            entry = new Entry(monster, model, instance, color, null);
+        }
         entries.add(entry);
-        place(entry, x, z + 1f);
+        place(entry, x, z + 1f, 0f);
         return monster;
     }
 
@@ -146,6 +162,10 @@ class CombatScene implements Disposable {
     }
 
     private void remove(Entry e) {
+        if (e.character != null) {
+            e.character.dispose();
+            return;
+        }
         worldInstances.removeValue(e.instance, true);
         e.model.dispose();
     }
@@ -171,14 +191,27 @@ class CombatScene implements Disposable {
                     dead = true;
                 }
             }
-            place(e, playerPos.x, playerPos.z);
+            if (attacks && e.character != null) {
+                e.character.startAttack();
+            }
+            place(e, playerPos.x, playerPos.z, dt);
         }
         return dead;
     }
 
     /** Pose la boîte du monstre : position, orientation vers le joueur et clignotement quand il est touché. */
-    private void place(Entry e, float lookX, float lookZ) {
+    private void place(Entry e, float lookX, float lookZ, float dt) {
         Monster m = e.monster;
+        if (e.character != null) {
+            // le modèle regarde vers -Z : l'angle qui le tourne vers le joueur
+            float yaw = (float) Math.toDegrees(Math.atan2(-(lookX - m.x), -(lookZ - m.z)));
+            float speed = dt > 0f ? (float) Math.hypot(m.x - e.lastX, m.z - e.lastZ) / dt : 0f;
+            e.lastX = m.x;
+            e.lastZ = m.z;
+            e.character.setFlash(m.getHurtTimer() > 0f);
+            e.character.update(dt, speed, feet.set(m.x, FLOOR_TOP, m.z), yaw);
+            return;
+        }
         float angle = (float) Math.toDegrees(Math.atan2(lookX - m.x, lookZ - m.z));
         e.instance.transform.idt().translate(m.x, FLOOR_TOP + m.data.h / 2f, m.z).rotate(Vector3.Y, angle);
         ColorAttribute diffuse = (ColorAttribute) e.instance.materials.first().get(ColorAttribute.Diffuse);
@@ -272,7 +305,12 @@ class CombatScene implements Disposable {
     public void dispose() {
         Iterator<Entry> it = entries.iterator();
         while (it.hasNext()) {
-            it.next().model.dispose();
+            Entry e = it.next();
+            if (e.character != null) {
+                e.character.dispose();
+            } else {
+                e.model.dispose();
+            }
             it.remove();
         }
         pixel.dispose();

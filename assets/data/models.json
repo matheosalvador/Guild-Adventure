@@ -3,54 +3,51 @@
     "human": {
       "strideLength": 1.6,
       "joints": {
-        "torso": { "x": 0,     "y": 0.95, "z": 0 },
-        "head":  { "x": 0,     "y": 1.54, "z": 0, "parent": "torso" },
-        "armL":  { "x": -0.29, "y": 1.44, "z": 0, "parent": "torso" },
-        "armR":  { "x": 0.29,  "y": 1.44, "z": 0, "parent": "torso" },
-        "handR": { "x": 0.29,  "y": 0.9,  "z": 0, "parent": "armR" },
-        "legL":  { "x": -0.11, "y": 0.92, "z": 0 },
-        "legR":  { "x": 0.11,  "y": 0.92, "z": 0 }
+        "torso": { "x": 0, "y": 0.95, "z": 0 },
+        "head": { "x": 0, "y": 1.54, "z": 0, "parent": "torso" },
+        "armL": { "x": -0.29, "y": 1.44, "z": 0, "parent": "torso" },
+        "armR": { "x": 0.29, "y": 1.44, "z": 0, "parent": "torso" },
+        "handR": { "x": 0.29, "y": 0.9, "z": 0, "parent": "armR" },
+        "legL": { "x": -0.11, "y": 0.92, "z": 0 },
+        "legR": { "x": 0.11, "y": 0.92, "z": 0 }
       },
       "parts": [
-        { "shape": "cylinder", "w": 0.2,  "h": 0.88, "d": 0.2,  "x": -0.11, "y": 0.47, "z": 0,     "color": "#5A4A3A", "joint": "legL" },
-        { "shape": "cylinder", "w": 0.2,  "h": 0.88, "d": 0.2,  "x": 0.11,  "y": 0.47, "z": 0,     "color": "#5A4A3A", "joint": "legR" },
-        { "shape": "cylinder", "w": 0.23, "h": 0.34, "d": 0.27, "x": -0.11, "y": 0.17, "z": -0.01, "color": "#2E2118", "joint": "legL" },
-        { "shape": "cylinder", "w": 0.23, "h": 0.34, "d": 0.27, "x": 0.11,  "y": 0.17, "z": -0.01, "color": "#2E2118", "joint": "legR" },
-        { "shape": "cylinder", "w": 0.26, "h": 0.05, "d": 0.3,  "x": -0.11, "y": 0.34, "z": -0.01, "color": "#1F160F", "joint": "legL" },
-        { "shape": "cylinder", "w": 0.26, "h": 0.05, "d": 0.3,  "x": 0.11,  "y": 0.34, "z": -0.01, "color": "#1F160F", "joint": "legR" },
-
-        { "shape": "cylinder", "w": 0.5,  "h": 0.34, "d": 0.34, "x": 0, "y": 0.8,  "z": 0,      "color": "#6E8B5A", "joint": "torso", "slot": "armor" },
-        { "shape": "box", "w": 0.45, "h": 0.08, "d": 0.29, "x": 0, "y": 0.96, "z": 0,      "color": "#3B2A1A", "joint": "torso" },
-        { "shape": "box", "w": 0.07, "h": 0.07, "d": 0.02, "x": 0, "y": 0.96, "z": -0.15,  "color": "#C8A64A", "joint": "torso" },
-        { "shape": "box", "w": 0.37, "h": 0.28, "d": 0.24, "x": 0, "y": 1.1,  "z": 0,      "color": "#6E8B5A", "joint": "torso", "slot": "armor" },
-        { "shape": "box", "w": 0.44, "h": 0.34, "d": 0.26, "x": 0, "y": 1.33, "z": 0,      "color": "#6E8B5A", "joint": "torso", "slot": "armor" },
-        { "shape": "box", "w": 0.5,  "h": 0.1,  "d": 0.27, "x": 0, "y": 1.48, "z": 0,      "color": "#6E8B5A", "joint": "torso", "slot": "armor" },
-        { "shape": "cylinder", "w": 0.52, "h": 0.1, "d": 0.34, "x": 0, "y": 1.47, "z": 0.01, "color": "#7A2E2E", "joint": "torso" },
-        { "shape": "box", "w": 0.4, "h": 0.78, "d": 0.04, "x": 0, "y": 1.06, "z": 0.17,  "color": "#7A2E2E", "joint": "torso" },
-
-        { "shape": "cylinder", "w": 0.11, "h": 0.12, "d": 0.11, "x": 0, "y": 1.55, "z": 0, "color": "#D9A87C", "joint": "torso" },
-        { "shape": "sphere", "w": 0.23,  "h": 0.27, "d": 0.25,  "x": 0,     "y": 1.69, "z": 0,      "color": "#D9A87C", "joint": "head" },
-        { "shape": "sphere", "w": 0.25,  "h": 0.17, "d": 0.27,  "x": 0,     "y": 1.77, "z": 0.015,  "color": "#3B2A1A", "joint": "head" },
-        { "shape": "sphere", "w": 0.25,  "h": 0.27, "d": 0.2,   "x": 0,     "y": 1.7,  "z": 0.05,   "color": "#3B2A1A", "joint": "head" },
-        { "shape": "box",    "w": 0.04,  "h": 0.065, "d": 0.05, "x": 0,     "y": 1.67, "z": -0.13,  "color": "#D9A87C", "joint": "head" },
-        { "shape": "box",    "w": 0.04,  "h": 0.02, "d": 0.01,  "x": -0.055, "y": 1.715, "z": -0.121, "color": "#F2EEE6", "joint": "head" },
-        { "shape": "box",    "w": 0.04,  "h": 0.02, "d": 0.01,  "x": 0.055,  "y": 1.715, "z": -0.121, "color": "#F2EEE6", "joint": "head" },
-        { "shape": "box",    "w": 0.022, "h": 0.02, "d": 0.012, "x": -0.055, "y": 1.715, "z": -0.124, "color": "#1A1A1A", "joint": "head" },
-        { "shape": "box",    "w": 0.022, "h": 0.02, "d": 0.012, "x": 0.055,  "y": 1.715, "z": -0.124, "color": "#1A1A1A", "joint": "head" },
-        { "shape": "box",    "w": 0.05,  "h": 0.012, "d": 0.01, "x": -0.055, "y": 1.745, "z": -0.121, "color": "#3B2A1A", "joint": "head" },
-        { "shape": "box",    "w": 0.05,  "h": 0.012, "d": 0.01, "x": 0.055,  "y": 1.745, "z": -0.121, "color": "#3B2A1A", "joint": "head" },
-
-        { "shape": "cylinder", "w": 0.13, "h": 0.52, "d": 0.13, "x": -0.29, "y": 1.19, "z": 0, "color": "#6E8B5A", "joint": "armL", "slot": "armor" },
-        { "shape": "cylinder", "w": 0.13, "h": 0.52, "d": 0.13, "x": 0.29,  "y": 1.19, "z": 0, "color": "#6E8B5A", "joint": "armR", "slot": "armor" },
-        { "shape": "cylinder", "w": 0.145, "h": 0.06, "d": 0.145, "x": -0.29, "y": 0.96, "z": 0, "color": "#3B2A1A", "joint": "armL" },
-        { "shape": "cylinder", "w": 0.145, "h": 0.06, "d": 0.145, "x": 0.29,  "y": 0.96, "z": 0, "color": "#3B2A1A", "joint": "armR" },
-        { "shape": "sphere",   "w": 0.18, "h": 0.18, "d": 0.18, "x": -0.29, "y": 1.44, "z": 0, "color": "#6E8B5A", "joint": "armL", "slot": "armor" },
-        { "shape": "sphere",   "w": 0.18, "h": 0.18, "d": 0.18, "x": 0.29,  "y": 1.44, "z": 0, "color": "#6E8B5A", "joint": "armR", "slot": "armor" },
-        { "shape": "sphere",   "w": 0.11, "h": 0.12, "d": 0.11, "x": -0.29, "y": 0.9,  "z": 0, "color": "#D9A87C", "joint": "armL" },
-        { "shape": "sphere",   "w": 0.11, "h": 0.12, "d": 0.11, "x": 0.29,  "y": 0.9,  "z": 0, "color": "#D9A87C", "joint": "handR" }
+        { "shape": "cylinder", "w": 0.2, "h": 0.88, "d": 0.2, "x": -0.11, "y": 0.47, "z": 0, "color": "#5A4A3A", "joint": "legL", "role": "pants" },
+        { "shape": "cylinder", "w": 0.2, "h": 0.88, "d": 0.2, "x": 0.11, "y": 0.47, "z": 0, "color": "#5A4A3A", "joint": "legR", "role": "pants" },
+        { "shape": "cylinder", "w": 0.23, "h": 0.34, "d": 0.27, "x": -0.11, "y": 0.17, "z": -0.01, "color": "#2E2118", "joint": "legL", "role": "boots" },
+        { "shape": "cylinder", "w": 0.23, "h": 0.34, "d": 0.27, "x": 0.11, "y": 0.17, "z": -0.01, "color": "#2E2118", "joint": "legR", "role": "boots" },
+        { "shape": "cylinder", "w": 0.26, "h": 0.05, "d": 0.3, "x": -0.11, "y": 0.34, "z": -0.01, "color": "#1F160F", "joint": "legL", "role": "boots" },
+        { "shape": "cylinder", "w": 0.26, "h": 0.05, "d": 0.3, "x": 0.11, "y": 0.34, "z": -0.01, "color": "#1F160F", "joint": "legR", "role": "boots" },
+        { "shape": "cylinder", "w": 0.5, "h": 0.34, "d": 0.34, "x": 0, "y": 0.8, "z": 0, "color": "#6E8B5A", "joint": "torso", "slot": "armor", "role": "tunic" },
+        { "shape": "box", "w": 0.45, "h": 0.08, "d": 0.29, "x": 0, "y": 0.96, "z": 0, "color": "#3B2A1A", "joint": "torso", "role": "belt" },
+        { "shape": "box", "w": 0.07, "h": 0.07, "d": 0.02, "x": 0, "y": 0.96, "z": -0.15, "color": "#C8A64A", "joint": "torso", "role": "buckle" },
+        { "shape": "box", "w": 0.37, "h": 0.28, "d": 0.24, "x": 0, "y": 1.1, "z": 0, "color": "#6E8B5A", "joint": "torso", "slot": "armor", "role": "tunic" },
+        { "shape": "box", "w": 0.44, "h": 0.34, "d": 0.26, "x": 0, "y": 1.33, "z": 0, "color": "#6E8B5A", "joint": "torso", "slot": "armor", "role": "tunic" },
+        { "shape": "box", "w": 0.5, "h": 0.1, "d": 0.27, "x": 0, "y": 1.48, "z": 0, "color": "#6E8B5A", "joint": "torso", "slot": "armor", "role": "tunic" },
+        { "shape": "cylinder", "w": 0.52, "h": 0.1, "d": 0.34, "x": 0, "y": 1.47, "z": 0.01, "color": "#7A2E2E", "joint": "torso", "role": "cloak" },
+        { "shape": "box", "w": 0.4, "h": 0.78, "d": 0.04, "x": 0, "y": 1.06, "z": 0.17, "color": "#7A2E2E", "joint": "torso", "role": "cloak" },
+        { "shape": "cylinder", "w": 0.11, "h": 0.12, "d": 0.11, "x": 0, "y": 1.55, "z": 0, "color": "#D9A87C", "joint": "torso", "role": "skin" },
+        { "shape": "sphere", "w": 0.23, "h": 0.27, "d": 0.25, "x": 0, "y": 1.69, "z": 0, "color": "#D9A87C", "joint": "head", "role": "skin" },
+        { "shape": "sphere", "w": 0.25, "h": 0.17, "d": 0.27, "x": 0, "y": 1.77, "z": 0.015, "color": "#3B2A1A", "joint": "head", "role": "hair" },
+        { "shape": "sphere", "w": 0.25, "h": 0.27, "d": 0.2, "x": 0, "y": 1.7, "z": 0.05, "color": "#3B2A1A", "joint": "head", "role": "hair" },
+        { "shape": "box", "w": 0.04, "h": 0.065, "d": 0.05, "x": 0, "y": 1.67, "z": -0.13, "color": "#D9A87C", "joint": "head", "role": "skin" },
+        { "shape": "box", "w": 0.04, "h": 0.02, "d": 0.01, "x": -0.055, "y": 1.715, "z": -0.121, "color": "#F2EEE6", "joint": "head", "role": "eyeWhite" },
+        { "shape": "box", "w": 0.04, "h": 0.02, "d": 0.01, "x": 0.055, "y": 1.715, "z": -0.121, "color": "#F2EEE6", "joint": "head", "role": "eyeWhite" },
+        { "shape": "box", "w": 0.022, "h": 0.02, "d": 0.012, "x": -0.055, "y": 1.715, "z": -0.124, "color": "#1A1A1A", "joint": "head", "role": "eye" },
+        { "shape": "box", "w": 0.022, "h": 0.02, "d": 0.012, "x": 0.055, "y": 1.715, "z": -0.124, "color": "#1A1A1A", "joint": "head", "role": "eye" },
+        { "shape": "box", "w": 0.05, "h": 0.012, "d": 0.01, "x": -0.055, "y": 1.745, "z": -0.121, "color": "#3B2A1A", "joint": "head", "role": "hair" },
+        { "shape": "box", "w": 0.05, "h": 0.012, "d": 0.01, "x": 0.055, "y": 1.745, "z": -0.121, "color": "#3B2A1A", "joint": "head", "role": "hair" },
+        { "shape": "cylinder", "w": 0.13, "h": 0.52, "d": 0.13, "x": -0.29, "y": 1.19, "z": 0, "color": "#6E8B5A", "joint": "armL", "slot": "armor", "role": "tunic" },
+        { "shape": "cylinder", "w": 0.13, "h": 0.52, "d": 0.13, "x": 0.29, "y": 1.19, "z": 0, "color": "#6E8B5A", "joint": "armR", "slot": "armor", "role": "tunic" },
+        { "shape": "cylinder", "w": 0.145, "h": 0.06, "d": 0.145, "x": -0.29, "y": 0.96, "z": 0, "color": "#3B2A1A", "joint": "armL", "role": "belt" },
+        { "shape": "cylinder", "w": 0.145, "h": 0.06, "d": 0.145, "x": 0.29, "y": 0.96, "z": 0, "color": "#3B2A1A", "joint": "armR", "role": "belt" },
+        { "shape": "sphere", "w": 0.18, "h": 0.18, "d": 0.18, "x": -0.29, "y": 1.44, "z": 0, "color": "#6E8B5A", "joint": "armL", "slot": "armor", "role": "tunic" },
+        { "shape": "sphere", "w": 0.18, "h": 0.18, "d": 0.18, "x": 0.29, "y": 1.44, "z": 0, "color": "#6E8B5A", "joint": "armR", "slot": "armor", "role": "tunic" },
+        { "shape": "sphere", "w": 0.11, "h": 0.12, "d": 0.11, "x": -0.29, "y": 0.9, "z": 0, "color": "#D9A87C", "joint": "armL", "role": "skin" },
+        { "shape": "sphere", "w": 0.11, "h": 0.12, "d": 0.11, "x": 0.29, "y": 0.9, "z": 0, "color": "#D9A87C", "joint": "handR", "role": "skin" }
       ],
       "pose": {
-        "armR":  { "axis": "x", "from": 14 },
+        "armR": { "axis": "x", "from": 14 },
         "handR": { "axis": "x", "from": 22 }
       },
       "walk": {
@@ -62,64 +59,232 @@
       "attack": {
         "duration": 0.35,
         "joints": {
-          "armR":  { "axis": "x", "from": 150, "to": 20 },
-          "torso": { "axis": "y", "from": 18,  "to": -12 }
+          "armR": { "axis": "x", "from": 150, "to": 20 },
+          "torso": { "axis": "y", "from": 18, "to": -12 }
+        }
+      },
+      "idle": {
+        "armL": { "axis": "x", "amp": 2.5, "phase": 0, "freq": 0.3 },
+        "armR": { "axis": "x", "amp": 2.5, "phase": 90, "freq": 0.3 },
+        "head": { "axis": "y", "amp": 7, "phase": 0, "freq": 0.12 },
+        "torso": { "axis": "x", "amp": 1.2, "phase": 0, "freq": 0.25 }
+      }
+    },
+    "blacksmith": {
+      "base": "human",
+      "scale": [1.18, 0.8, 1.18],
+      "roles": { "skin": "#C98F6B", "hair": "#6B3A1A", "tunic": "#4A4540", "pants": "#3A332B", "belt": "#2A2018", "boots": "#241A12" },
+      "hide": ["cloak"],
+      "gear": ["prop_hammer"],
+      "extra": [
+        { "shape": "box", "w": 0.4, "h": 0.78, "d": 0.03, "x": 0, "y": 1.0, "z": -0.14, "color": "#3B2A1A", "joint": "torso" },
+        { "shape": "sphere", "w": 0.23, "h": 0.27, "d": 0.16, "x": 0, "y": 1.56, "z": -0.1, "color": "#6B3A1A", "joint": "head" },
+        { "shape": "sphere", "w": 0.26, "h": 0.2, "d": 0.28, "x": 0, "y": 1.78, "z": 0.0, "color": "#8A8F96", "joint": "head" }
+      ]
+    },
+    "innkeeper": {
+      "base": "human",
+      "scale": [1.14, 1.0, 1.14],
+      "roles": { "skin": "#E0AE8A", "hair": "#8A4A1B", "tunic": "#D8C9A3", "pants": "#6A5640", "belt": "#4A3220" },
+      "hide": ["cloak"],
+      "gear": ["prop_mug"],
+      "extra": [
+        { "shape": "box", "w": 0.43, "h": 0.62, "d": 0.03, "x": 0, "y": 1.0, "z": -0.14, "color": "#F0EBDD", "joint": "torso" },
+        { "shape": "box", "w": 0.11, "h": 0.028, "d": 0.03, "x": 0, "y": 1.635, "z": -0.13, "color": "#8A4A1B", "joint": "head" }
+      ]
+    },
+    "guildmaster": {
+      "base": "human",
+      "scale": [1.0, 1.06, 1.0],
+      "roles": { "skin": "#D9A87C", "hair": "#D3D3D3", "tunic": "#2B4C8C", "cloak": "#1F2C5A", "belt": "#C8A64A", "pants": "#2B4C8C" },
+      "gear": ["prop_staff"],
+      "extra": [
+        { "shape": "cylinder", "w": 0.54, "h": 0.72, "d": 0.42, "x": 0, "y": 0.56, "z": 0, "color": "#2B4C8C", "joint": "torso", "role": "tunic" },
+        { "shape": "sphere", "w": 0.17, "h": 0.34, "d": 0.12, "x": 0, "y": 1.55, "z": -0.1, "color": "#D3D3D3", "joint": "head" },
+        { "shape": "sphere", "w": 0.25, "h": 0.2, "d": 0.27, "x": 0, "y": 1.79, "z": 0.0, "color": "#D3D3D3", "joint": "head" }
+      ]
+    },
+    "merchant": {
+      "base": "human",
+      "roles": { "skin": "#C99A72", "hair": "#2B2B2B", "tunic": "#3F6B4A", "pants": "#4A3A2A", "cloak": "#A07A2E", "belt": "#5A3A1E" },
+      "extra": [
+        { "shape": "cylinder", "w": 0.34, "h": 0.05, "d": 0.34, "x": 0, "y": 1.84, "z": 0, "color": "#5A3A1E", "joint": "head" },
+        { "shape": "cylinder", "w": 0.21, "h": 0.13, "d": 0.21, "x": 0, "y": 1.91, "z": 0, "color": "#5A3A1E", "joint": "head" },
+        { "shape": "box", "w": 0.1, "h": 0.12, "d": 0.08, "x": -0.22, "y": 0.92, "z": -0.1, "color": "#6B4A2B", "joint": "torso" },
+        { "shape": "box", "w": 0.4, "h": 0.5, "d": 0.02, "x": 0, "y": 1.12, "z": -0.14, "color": "#E2D9BC", "joint": "torso" }
+      ]
+    },
+    "goblin": {
+      "base": "human",
+      "scale": [0.78, 0.72, 0.78],
+      "roles": { "skin": "#5F9A3E", "tunic": "#6B5638", "pants": "#4A3F2E", "boots": "#3A2E20", "belt": "#2A2018", "eyeWhite": "#F2D43A" },
+      "hide": ["cloak", "hair"],
+      "gear": ["prop_rusty_blade"],
+      "pose": {
+        "torso": { "axis": "x", "from": -16 },
+        "armR": { "axis": "x", "from": 25 },
+        "handR": { "axis": "x", "from": 22 }
+      },
+      "extra": [
+        { "shape": "cone", "w": 0.1, "h": 0.26, "d": 0.06, "x": 0.17, "y": 1.72, "z": 0.0, "color": "#5F9A3E", "joint": "head", "rot": [0, 0, -78] },
+        { "shape": "cone", "w": 0.1, "h": 0.26, "d": 0.06, "x": -0.17, "y": 1.72, "z": 0.0, "color": "#5F9A3E", "joint": "head", "rot": [0, 0, 78] },
+        { "shape": "box", "w": 0.055, "h": 0.09, "d": 0.1, "x": 0, "y": 1.655, "z": -0.15, "color": "#5F9A3E", "joint": "head" },
+        { "shape": "box", "w": 0.1, "h": 0.02, "d": 0.02, "x": 0, "y": 1.6, "z": -0.12, "color": "#1F2A14", "joint": "head" }
+      ]
+    },
+    "quadruped": {
+      "strideLength": 1.3,
+      "joints": {
+        "head": { "x": 0, "y": 0.66, "z": -0.42 },
+        "legFL": { "x": -0.15, "y": 0.56, "z": -0.3 },
+        "legFR": { "x": 0.15, "y": 0.56, "z": -0.3 },
+        "legBL": { "x": -0.15, "y": 0.56, "z": 0.34 },
+        "legBR": { "x": 0.15, "y": 0.56, "z": 0.34 },
+        "tail": { "x": 0, "y": 0.6, "z": 0.62 }
+      },
+      "parts": [
+        { "shape": "cylinder", "w": 0.36, "h": 0.95, "d": 0.44, "x": 0, "y": 0.62, "z": 0.02, "color": "#7A7A80", "role": "body", "rot": [90, 0, 0] },
+        { "shape": "sphere", "w": 0.4, "h": 0.46, "d": 0.5, "x": 0, "y": 0.65, "z": -0.3, "color": "#7A7A80", "role": "body" },
+        { "shape": "sphere", "w": 0.4, "h": 0.46, "d": 0.5, "x": 0, "y": 0.62, "z": 0.36, "color": "#7A7A80", "role": "body" },
+        { "shape": "sphere", "w": 0.3, "h": 0.3, "d": 0.3, "x": 0, "y": 0.7, "z": -0.5, "color": "#868690", "joint": "head", "role": "body" },
+        { "shape": "sphere", "w": 0.28, "h": 0.27, "d": 0.34, "x": 0, "y": 0.72, "z": -0.6, "color": "#7A7A80", "joint": "head", "role": "body" },
+        { "shape": "box", "w": 0.12, "h": 0.11, "d": 0.22, "x": 0, "y": 0.665, "z": -0.82, "color": "#5E5E64", "joint": "head", "role": "snout" },
+        { "shape": "sphere", "w": 0.06, "h": 0.05, "d": 0.06, "x": 0, "y": 0.69, "z": -0.935, "color": "#111111", "joint": "head", "role": "nose" },
+        { "shape": "cone", "w": 0.09, "h": 0.15, "d": 0.07, "x": -0.09, "y": 0.89, "z": -0.5, "color": "#6A6A70", "joint": "head", "role": "body" },
+        { "shape": "cone", "w": 0.09, "h": 0.15, "d": 0.07, "x": 0.09, "y": 0.89, "z": -0.5, "color": "#6A6A70", "joint": "head", "role": "body" },
+        { "shape": "box", "w": 0.035, "h": 0.025, "d": 0.02, "x": -0.075, "y": 0.75, "z": -0.755, "color": "#E0C040", "joint": "head", "role": "eye" },
+        { "shape": "box", "w": 0.035, "h": 0.025, "d": 0.02, "x": 0.075, "y": 0.75, "z": -0.755, "color": "#E0C040", "joint": "head", "role": "eye" },
+        { "shape": "cylinder", "w": 0.1, "h": 0.56, "d": 0.1, "x": -0.15, "y": 0.28, "z": -0.3, "color": "#6A6A70", "joint": "legFL", "role": "legs" },
+        { "shape": "cylinder", "w": 0.1, "h": 0.56, "d": 0.1, "x": 0.15, "y": 0.28, "z": -0.3, "color": "#6A6A70", "joint": "legFR", "role": "legs" },
+        { "shape": "cylinder", "w": 0.11, "h": 0.56, "d": 0.11, "x": -0.15, "y": 0.28, "z": 0.34, "color": "#6A6A70", "joint": "legBL", "role": "legs" },
+        { "shape": "cylinder", "w": 0.11, "h": 0.56, "d": 0.11, "x": 0.15, "y": 0.28, "z": 0.34, "color": "#6A6A70", "joint": "legBR", "role": "legs" },
+        { "shape": "box", "w": 0.12, "h": 0.06, "d": 0.17, "x": -0.15, "y": 0.03, "z": -0.33, "color": "#4E4E54", "joint": "legFL", "role": "paws" },
+        { "shape": "box", "w": 0.12, "h": 0.06, "d": 0.17, "x": 0.15, "y": 0.03, "z": -0.33, "color": "#4E4E54", "joint": "legFR", "role": "paws" },
+        { "shape": "box", "w": 0.13, "h": 0.06, "d": 0.18, "x": -0.15, "y": 0.03, "z": 0.31, "color": "#4E4E54", "joint": "legBL", "role": "paws" },
+        { "shape": "box", "w": 0.13, "h": 0.06, "d": 0.18, "x": 0.15, "y": 0.03, "z": 0.31, "color": "#4E4E54", "joint": "legBR", "role": "paws" },
+        { "shape": "cylinder", "w": 0.09, "h": 0.52, "d": 0.09, "x": 0, "y": 0.5, "z": 0.8, "color": "#6A6A70", "joint": "tail", "role": "tail", "rot": [68, 0, 0] }
+      ],
+      "walk": {
+        "legFL": { "axis": "x", "amp": 32, "phase": 0 },
+        "legBR": { "axis": "x", "amp": 32, "phase": 0 },
+        "legFR": { "axis": "x", "amp": 32, "phase": 180 },
+        "legBL": { "axis": "x", "amp": 32, "phase": 180 },
+        "tail": { "axis": "y", "amp": 12, "phase": 0 }
+      },
+      "idle": {
+        "head": { "axis": "x", "amp": 4, "phase": 0, "freq": 0.35 },
+        "tail": { "axis": "y", "amp": 14, "phase": 0, "freq": 0.7 }
+      },
+      "attack": {
+        "duration": 0.3,
+        "joints": {
+          "head": { "axis": "x", "from": -28, "to": 34 }
         }
       }
+    },
+    "wolf": {
+      "base": "quadruped",
+      "roles": { "body": "#6F6F76", "legs": "#64646A", "tail": "#64646A", "snout": "#55555B" }
+    },
+    "giant_rat": {
+      "base": "quadruped",
+      "scale": [0.85, 0.55, 1.05],
+      "roles": { "body": "#6B5B4B", "legs": "#5A4A3A", "paws": "#C99A9A", "snout": "#8A6F66", "nose": "#C97A7A", "eye": "#101010" },
+      "hide": ["tail"],
+      "extra": [
+        { "shape": "cylinder", "w": 0.035, "h": 0.6, "d": 0.035, "x": 0, "y": 0.5, "z": 0.95, "color": "#C99A9A", "joint": "tail", "rot": [78, 0, 0] },
+        { "shape": "sphere", "w": 0.13, "h": 0.13, "d": 0.04, "x": -0.1, "y": 0.9, "z": -0.5, "color": "#C99A9A", "joint": "head" },
+        { "shape": "sphere", "w": 0.13, "h": 0.13, "d": 0.04, "x": 0.1, "y": 0.9, "z": -0.5, "color": "#C99A9A", "joint": "head" }
+      ]
     }
   },
-
-  "armorColors": {
-    "leather_armor": "#6B4A2B",
-    "chain_mail": "#8E949B",
-    "plate_armor": "#B8C0CC"
-  },
-
+  "armorColors": { "leather_armor": "#6B4A2B", "chain_mail": "#8E949B", "plate_armor": "#B8C0CC" },
   "gear": {
-    "dagger": { "parts": [
-      { "shape": "box", "w": 0.035, "h": 0.012, "d": 0.3,  "x": 0.29, "y": 0.9, "z": -0.2,  "color": "#C9CED6", "joint": "handR" },
-      { "shape": "box", "w": 0.045, "h": 0.045, "d": 0.1,  "x": 0.29, "y": 0.9, "z": -0.0,  "color": "#4A3220", "joint": "handR" },
-      { "shape": "box", "w": 0.1,   "h": 0.02,  "d": 0.025, "x": 0.29, "y": 0.9, "z": -0.05, "color": "#8A6A2E", "joint": "handR" }
-    ] },
-    "short_sword": { "parts": [
-      { "shape": "box", "w": 0.05, "h": 0.012, "d": 0.6,  "x": 0.29, "y": 0.9, "z": -0.36, "color": "#C9CED6", "joint": "handR" },
-      { "shape": "box", "w": 0.2,  "h": 0.03,  "d": 0.035, "x": 0.29, "y": 0.9, "z": -0.06, "color": "#8A6A2E", "joint": "handR" },
-      { "shape": "box", "w": 0.045, "h": 0.045, "d": 0.12, "x": 0.29, "y": 0.9, "z": 0.02,  "color": "#4A3220", "joint": "handR" },
-      { "shape": "sphere", "w": 0.06, "h": 0.06, "d": 0.06, "x": 0.29, "y": 0.9, "z": 0.09, "color": "#8A6A2E", "joint": "handR" }
-    ] },
-    "long_sword": { "parts": [
-      { "shape": "box", "w": 0.055, "h": 0.012, "d": 0.85, "x": 0.29, "y": 0.9, "z": -0.49, "color": "#D3D8DF", "joint": "handR" },
-      { "shape": "box", "w": 0.26,  "h": 0.03,  "d": 0.04, "x": 0.29, "y": 0.9, "z": -0.06, "color": "#B8923A", "joint": "handR" },
-      { "shape": "box", "w": 0.045, "h": 0.045, "d": 0.14, "x": 0.29, "y": 0.9, "z": 0.03,  "color": "#3A281A", "joint": "handR" },
-      { "shape": "sphere", "w": 0.07, "h": 0.07, "d": 0.07, "x": 0.29, "y": 0.9, "z": 0.11, "color": "#B8923A", "joint": "handR" }
-    ] },
-    "battle_axe": { "parts": [
-      { "shape": "cylinder", "w": 0.05, "h": 0.95, "d": 0.05, "x": 0.29, "y": 0.9, "z": -0.28, "rot": [90, 0, 0], "color": "#5A3A1E", "joint": "handR" },
-      { "shape": "box", "w": 0.03, "h": 0.26, "d": 0.18, "x": 0.29, "y": 0.9, "z": -0.7,  "color": "#AEB4BC", "joint": "handR" },
-      { "shape": "box", "w": 0.045, "h": 0.06, "d": 0.09, "x": 0.29, "y": 0.9, "z": -0.62, "color": "#8F959D", "joint": "handR" }
-    ] },
-
-    "chain_mail": { "parts": [
-      { "shape": "sphere", "w": 0.27, "h": 0.3, "d": 0.26, "x": 0, "y": 1.68, "z": 0.045, "color": "#8E949B", "joint": "head" },
-      { "shape": "cylinder", "w": 0.17, "h": 0.07, "d": 0.17, "x": 0, "y": 1.54, "z": 0.0, "color": "#8E949B", "joint": "torso" }
-    ] },
-    "plate_armor": { "parts": [
-      { "shape": "sphere", "w": 0.27, "h": 0.3, "d": 0.29, "x": 0, "y": 1.71, "z": 0.015, "color": "#B8C0CC", "joint": "head" },
-      { "shape": "box", "w": 0.15, "h": 0.03, "d": 0.01, "x": 0, "y": 1.71, "z": -0.13, "color": "#20242A", "joint": "head" },
-      { "shape": "cylinder", "w": 0.18, "h": 0.08, "d": 0.18, "x": 0, "y": 1.54, "z": 0, "color": "#B8C0CC", "joint": "torso" },
-      { "shape": "box", "w": 0.4, "h": 0.1, "d": 0.28, "x": 0, "y": 1.0, "z": 0, "color": "#9AA2AE", "joint": "torso" }
-    ] },
-
-    "pouch": { "parts": [
-      { "shape": "box", "w": 0.14, "h": 0.16, "d": 0.1, "x": -0.25, "y": 0.9, "z": 0.04, "color": "#6B4A2B", "joint": "torso" }
-    ] },
-    "backpack": { "parts": [
-      { "shape": "box", "w": 0.34, "h": 0.46, "d": 0.2, "x": 0, "y": 1.25, "z": 0.28, "color": "#7A5A33", "joint": "torso" },
-      { "shape": "box", "w": 0.36, "h": 0.06, "d": 0.22, "x": 0, "y": 1.45, "z": 0.28, "color": "#5A3E22", "joint": "torso" }
-    ] },
-    "travel_bag": { "parts": [
-      { "shape": "box", "w": 0.4,  "h": 0.55, "d": 0.26, "x": 0, "y": 1.25, "z": 0.3,  "color": "#8A6A3A", "joint": "torso" },
-      { "shape": "cylinder", "w": 0.14, "h": 0.46, "d": 0.14, "x": 0, "y": 1.58, "z": 0.3, "rot": [0, 0, 90], "color": "#6E5A3A", "joint": "torso" }
-    ] }
+    "dagger": {
+      "parts": [
+        { "shape": "box", "w": 0.035, "h": 0.012, "d": 0.3, "x": 0.29, "y": 0.9, "z": -0.2, "color": "#C9CED6", "joint": "handR" },
+        { "shape": "box", "w": 0.045, "h": 0.045, "d": 0.1, "x": 0.29, "y": 0.9, "z": -0.0, "color": "#4A3220", "joint": "handR" },
+        { "shape": "box", "w": 0.1, "h": 0.02, "d": 0.025, "x": 0.29, "y": 0.9, "z": -0.05, "color": "#8A6A2E", "joint": "handR" }
+      ]
+    },
+    "short_sword": {
+      "parts": [
+        { "shape": "box", "w": 0.05, "h": 0.012, "d": 0.6, "x": 0.29, "y": 0.9, "z": -0.36, "color": "#C9CED6", "joint": "handR" },
+        { "shape": "box", "w": 0.2, "h": 0.03, "d": 0.035, "x": 0.29, "y": 0.9, "z": -0.06, "color": "#8A6A2E", "joint": "handR" },
+        { "shape": "box", "w": 0.045, "h": 0.045, "d": 0.12, "x": 0.29, "y": 0.9, "z": 0.02, "color": "#4A3220", "joint": "handR" },
+        { "shape": "sphere", "w": 0.06, "h": 0.06, "d": 0.06, "x": 0.29, "y": 0.9, "z": 0.09, "color": "#8A6A2E", "joint": "handR" }
+      ]
+    },
+    "long_sword": {
+      "parts": [
+        { "shape": "box", "w": 0.055, "h": 0.012, "d": 0.85, "x": 0.29, "y": 0.9, "z": -0.49, "color": "#D3D8DF", "joint": "handR" },
+        { "shape": "box", "w": 0.26, "h": 0.03, "d": 0.04, "x": 0.29, "y": 0.9, "z": -0.06, "color": "#B8923A", "joint": "handR" },
+        { "shape": "box", "w": 0.045, "h": 0.045, "d": 0.14, "x": 0.29, "y": 0.9, "z": 0.03, "color": "#3A281A", "joint": "handR" },
+        { "shape": "sphere", "w": 0.07, "h": 0.07, "d": 0.07, "x": 0.29, "y": 0.9, "z": 0.11, "color": "#B8923A", "joint": "handR" }
+      ]
+    },
+    "battle_axe": {
+      "parts": [
+        { "shape": "cylinder", "w": 0.05, "h": 0.95, "d": 0.05, "x": 0.29, "y": 0.9, "z": -0.28, "rot": [90, 0, 0], "color": "#5A3A1E", "joint": "handR" },
+        { "shape": "box", "w": 0.03, "h": 0.26, "d": 0.18, "x": 0.29, "y": 0.9, "z": -0.7, "color": "#AEB4BC", "joint": "handR" },
+        { "shape": "box", "w": 0.045, "h": 0.06, "d": 0.09, "x": 0.29, "y": 0.9, "z": -0.62, "color": "#8F959D", "joint": "handR" }
+      ]
+    },
+    "chain_mail": {
+      "parts": [
+        { "shape": "sphere", "w": 0.27, "h": 0.3, "d": 0.26, "x": 0, "y": 1.68, "z": 0.045, "color": "#8E949B", "joint": "head" },
+        { "shape": "cylinder", "w": 0.17, "h": 0.07, "d": 0.17, "x": 0, "y": 1.54, "z": 0.0, "color": "#8E949B", "joint": "torso" }
+      ]
+    },
+    "plate_armor": {
+      "parts": [
+        { "shape": "sphere", "w": 0.27, "h": 0.3, "d": 0.29, "x": 0, "y": 1.71, "z": 0.015, "color": "#B8C0CC", "joint": "head" },
+        { "shape": "box", "w": 0.15, "h": 0.03, "d": 0.01, "x": 0, "y": 1.71, "z": -0.13, "color": "#20242A", "joint": "head" },
+        { "shape": "cylinder", "w": 0.18, "h": 0.08, "d": 0.18, "x": 0, "y": 1.54, "z": 0, "color": "#B8C0CC", "joint": "torso" },
+        { "shape": "box", "w": 0.4, "h": 0.1, "d": 0.28, "x": 0, "y": 1.0, "z": 0, "color": "#9AA2AE", "joint": "torso" }
+      ]
+    },
+    "pouch": {
+      "parts": [
+        { "shape": "box", "w": 0.14, "h": 0.16, "d": 0.1, "x": -0.25, "y": 0.9, "z": 0.04, "color": "#6B4A2B", "joint": "torso" }
+      ]
+    },
+    "backpack": {
+      "parts": [
+        { "shape": "box", "w": 0.34, "h": 0.46, "d": 0.2, "x": 0, "y": 1.25, "z": 0.28, "color": "#7A5A33", "joint": "torso" },
+        { "shape": "box", "w": 0.36, "h": 0.06, "d": 0.22, "x": 0, "y": 1.45, "z": 0.28, "color": "#5A3E22", "joint": "torso" }
+      ]
+    },
+    "travel_bag": {
+      "parts": [
+        { "shape": "box", "w": 0.4, "h": 0.55, "d": 0.26, "x": 0, "y": 1.25, "z": 0.3, "color": "#8A6A3A", "joint": "torso" },
+        { "shape": "cylinder", "w": 0.14, "h": 0.46, "d": 0.14, "x": 0, "y": 1.58, "z": 0.3, "rot": [0, 0, 90], "color": "#6E5A3A", "joint": "torso" }
+      ]
+    },
+    "prop_hammer": {
+      "parts": [
+        { "shape": "cylinder", "w": 0.05, "h": 0.55, "d": 0.05, "x": 0.29, "y": 0.9, "z": -0.2, "rot": [90, 0, 0], "color": "#5A3A1E", "joint": "handR" },
+        { "shape": "box", "w": 0.15, "h": 0.13, "d": 0.2, "x": 0.29, "y": 0.9, "z": -0.5, "color": "#6F757D", "joint": "handR" }
+      ]
+    },
+    "prop_mug": {
+      "parts": [
+        { "shape": "cylinder", "w": 0.1, "h": 0.13, "d": 0.1, "x": 0.29, "y": 0.94, "z": -0.13, "color": "#B08A4A", "joint": "handR" },
+        { "shape": "box", "w": 0.035, "h": 0.07, "d": 0.02, "x": 0.345, "y": 0.94, "z": -0.13, "color": "#B08A4A", "joint": "handR" }
+      ]
+    },
+    "prop_staff": {
+      "parts": [
+        { "shape": "cylinder", "w": 0.045, "h": 1.95, "d": 0.045, "x": 0.36, "y": 0.98, "z": -0.12, "color": "#5A3A1E" },
+        { "shape": "sphere", "w": 0.13, "h": 0.13, "d": 0.13, "x": 0.36, "y": 2.0, "z": -0.12, "color": "#5AB4E0" },
+        { "shape": "sphere", "w": 0.075, "h": 0.075, "d": 0.075, "x": 0.36, "y": 0.9, "z": -0.12, "color": "#7A5A33" }
+      ]
+    },
+    "prop_rusty_blade": {
+      "parts": [
+        { "shape": "box", "w": 0.04, "h": 0.012, "d": 0.34, "x": 0.29, "y": 0.9, "z": -0.22, "color": "#8A7A68", "joint": "handR" },
+        { "shape": "box", "w": 0.045, "h": 0.045, "d": 0.1, "x": 0.29, "y": 0.9, "z": -0.02, "color": "#4A3220", "joint": "handR" }
+      ]
+    }
   }
 }

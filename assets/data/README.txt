@@ -154,4 +154,14 @@ models.json
     "gear" : des formes en plus pour un objet porte (arme en main, casque d'une armure, sac), par identifiant
     d'objet de items.json. Toute arme, armure et tout sac du catalogue doit avoir son aspect (un test le verifie).
     En jeu : V bascule entre la vue a la 1re et a la 3e personne.
+    VARIANTES : un modele peut etre la variante d'un autre ("base") : il en reprend le squelette, les formes, la
+    marche, le repos ("idle") et le coup, et ajoute : "roles" (couleur de chaque role de forme : skin, hair, tunic,
+    pants, boots, belt, cloak... ; le role d'une forme s'ecrit "role"), "hide" (roles caches), "extra" (formes en
+    plus : barbe, tablier, oreilles...), "gear" (accessoires "prop_..." portes, definis dans "gear"), "scale"
+    [x, y, z] (etirement : un nain est large et petit) et "pose" (pose propre). Une base n'est pas elle-meme une
+    variante. Modeles fournis : human (le joueur), blacksmith, innkeeper, guildmaster, merchant, goblin ;
+    quadruped (base a quatre pattes), wolf, giant_rat.
+    PNJ et monstres : un monstre (monsters.json) a un champ "model" (son modele 3D ; la boite de collision reste
+    celle de w/h/d). Un PNJ est pose dans un ecran par addNpc("innkeeper", x, z, ...) : il respire (idle) et se
+    tourne vers le joueur quand il approche.
 

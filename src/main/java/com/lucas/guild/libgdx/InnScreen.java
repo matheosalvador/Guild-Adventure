@@ -37,7 +37,7 @@ public class InnScreen extends InteriorScreen {
         buildRoom(20f, floor, wall);
 
         // Aubergiste (PNJ)
-        addBox(1f, 2f, 1f, Color.ORANGE, 0, 1.5f, 5f, INNKEEPER);
+        addNpc("innkeeper", 0, 5f, INNKEEPER);
 
         // Trappe de la cave
         addBox(3f, 0.2f, 3f, new Color(0.23f, 0.14f, 0.07f, 1f), 6f, 0.6f, -4f, CELLAR);

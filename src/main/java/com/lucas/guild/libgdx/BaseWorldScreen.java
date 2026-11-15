@@ -462,17 +462,74 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
      */
     protected ModelInstance addBox(float w, float h, float d, Color color, float x, float y, float z, Object userData) {
         ModelInstance instance = addVisualBox(w, h, d, color, x, y, z);
+        addInvisibleBody(w, h, d, x, y, z, userData);
+        return instance;
+    }
 
+    /** Un volume solide qu'on ne voit pas (le corps d'un PNJ dessiné par un modèle) : on le heurte et on peut le viser. */
+    protected void addInvisibleBody(float w, float h, float d, float x, float y, float z, Object userData) {
         btBoxShape shape = new btBoxShape(new Vector3(w / 2f, h / 2f, d / 2f));
         disposables.add(shape);
         btRigidBody.btRigidBodyConstructionInfo info = new btRigidBody.btRigidBodyConstructionInfo(0, null, shape, Vector3.Zero);
         disposables.add(info);
         btRigidBody body = new btRigidBody(info);
-        body.setWorldTransform(instance.transform);
+        body.setWorldTransform(new com.badlogic.gdx.math.Matrix4().setTranslation(x, y, z));
         body.userData = userData;
         dynamicsWorld.addRigidBody(body);
+    }
 
-        return instance;
+    /** Un personnage non joueur : un modèle de models.json qui tourne la tête vers le joueur quand il approche. */
+    private static final class Npc {
+        final CharacterModel model;
+        final float x;
+        final float z;
+        float yaw;
+
+        Npc(CharacterModel model, float x, float z) {
+            this.model = model;
+            this.x = x;
+            this.z = z;
+        }
+    }
+
+    private final java.util.List<Npc> npcs = new java.util.ArrayList<>();
+
+    /**
+     * Pose un PNJ debout sur le sol en (x, z), de face (il regarde vers -Z, comme le joueur qui arrive par la
+     * porte). {@code userData} est ce qu'on obtient en le visant.
+     *
+     * @param modelId son modèle dans models.json (« innkeeper »...)
+     */
+    protected void addNpc(String modelId, float x, float z, Object userData) {
+        addInvisibleBody(0.9f, 2f, 0.9f, x, 1.5f, z, userData);
+        CharacterModel model = new CharacterModel(instances, GameContent.models(), modelId);
+        model.setVisible(true);
+        disposables.add(model);
+        npcs.add(new Npc(model, x, z));
+    }
+
+    private static final float NPC_NOTICE_RANGE = 9f;
+    private static final float NPC_TURN_SPEED = 160f;
+
+    /** Les PNJ respirent, et se tournent vers le joueur quand il est proche. */
+    private void updateNpcs(float delta) {
+        if (npcs.isEmpty()) {
+            return;
+        }
+        Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
+        for (Npc npc : npcs) {
+            float dx = p.x - npc.x;
+            float dz = p.z - npc.z;
+            float target = 0f;
+            if (Math.hypot(dx, dz) < NPC_NOTICE_RANGE) {
+                target = (float) Math.toDegrees(Math.atan2(-dx, -dz));
+            }
+            float diff = ((target - npc.yaw + 540f) % 360f) - 180f;
+            float step = NPC_TURN_SPEED * delta;
+            npc.yaw += Math.max(-step, Math.min(step, diff));
+            feet.set(npc.x, 0.5f, npc.z);
+            npc.model.update(delta, 0f, feet, npc.yaw);
+        }
     }
 
     /** Une boîte seulement visible : le joueur la traverse (rues, eau, marquages au sol). */
@@ -501,6 +558,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     @Override
     public void render(float delta) {
         update(delta);
+        updateNpcs(delta);
         updateEnvironment();
 
         Color bg = getBackgroundColor();

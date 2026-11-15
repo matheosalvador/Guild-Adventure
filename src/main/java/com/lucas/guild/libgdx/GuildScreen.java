@@ -26,7 +26,7 @@ public class GuildScreen extends InteriorScreen {
         buildRoom(30f, Color.BROWN, Color.TAN);
 
         // Maître de guilde (PNJ)
-        addBox(1f, 2f, 1f, Color.ROYAL, 0, 1.5f, 10f, GUILD_MASTER);
+        addNpc("guildmaster", 0, 10f, GUILD_MASTER);
     }
 
     @Override

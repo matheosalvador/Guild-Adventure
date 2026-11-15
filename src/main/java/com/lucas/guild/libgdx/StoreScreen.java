@@ -38,7 +38,7 @@ public class StoreScreen extends InteriorScreen {
         addBox(6f, 4f, 1f, wood, 5f, 2.5f, 9f, null);
 
         // Commerçant (PNJ), derrière le comptoir
-        addBox(1f, 2f, 1f, Color.GOLDENROD, 0, 1.5f, 6f, SHOPKEEPER);
+        addNpc("merchant", 0, 6f, SHOPKEEPER);
     }
 
     @Override

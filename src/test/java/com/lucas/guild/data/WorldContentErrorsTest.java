@@ -308,12 +308,42 @@ class WorldContentErrorsTest {
 
     @Test
     void modelGearForUnknownItem() throws IOException {
-        expectError("models.json", "\"dagger\": { \"parts\"", "\"poignard_fantome\": { \"parts\"", "models.json", "poignard_fantome", "items.json");
+        expectError("models.json", "\"dagger\": {", "\"poignard_fantome\": {", "models.json", "poignard_fantome", "items.json");
     }
 
     @Test
     void modelArmorColorForUnknownItem() throws IOException {
         expectError("models.json", "\"leather_armor\": \"#6B4A2B\"", "\"armure_fantome\": \"#6B4A2B\"", "models.json", "armure_fantome", "items.json");
+    }
+
+    @Test
+    void modelVariantUnknownBase() throws IOException {
+        expectError("models.json", "\"base\": \"human\"", "\"base\": \"elfe\"", "models.json", "base", "elfe");
+    }
+
+    @Test
+    void modelVariantOfAVariant() throws IOException {
+        expectError("models.json", "\"base\": \"quadruped\"", "\"base\": \"blacksmith\"", "models.json", "variante");
+    }
+
+    @Test
+    void modelVariantBadRoleColor() throws IOException {
+        expectError("models.json", "\"skin\": \"#C98F6B\"", "\"skin\": \"#GGGGGG\"", "models.json", "blacksmith", "couleur");
+    }
+
+    @Test
+    void modelVariantUnknownGear() throws IOException {
+        expectError("models.json", "\"gear\": [\"prop_hammer\"]", "\"gear\": [\"prop_marteau\"]", "models.json", "blacksmith", "prop_marteau");
+    }
+
+    @Test
+    void modelVariantBadScale() throws IOException {
+        expectError("models.json", "\"scale\": [1.18, 0.8, 1.18]", "\"scale\": [1.18, 0]", "models.json", "blacksmith", "scale");
+    }
+
+    @Test
+    void monsterUnknownModel() throws IOException {
+        expectError("monsters.json", "\"model\": \"wolf\"", "\"model\": \"dragon\"", "monsters.json", "wolf", "dragon", "models.json");
     }
 
     @Test

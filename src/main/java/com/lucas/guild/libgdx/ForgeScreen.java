@@ -23,7 +23,7 @@ public class ForgeScreen extends InteriorScreen {
         buildRoom(20f, Color.DARK_GRAY, Color.GRAY);
 
         // Forgeron (PNJ)
-        addBox(1f, 4f, 1f, Color.GREEN, 2, 2.5f, 0, BLACKSMITH);
+        addNpc("blacksmith", 2f, 0, BLACKSMITH);
     }
 
     @Override

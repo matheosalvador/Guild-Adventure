@@ -24,6 +24,8 @@ public class MonsterData {
     public String lootItem;
     /** Objets qui tombent au sol à la mort (items.json), chacun avec sa chance en %. */
     public java.util.List<Drop> drops = new java.util.ArrayList<>();
+    /** Le modèle 3D qui le représente (models.json) ; absent = une simple boîte de la couleur ci-dessous. */
+    public String model;
     /** Nom de couleur LibGDX ou « #RRGGBB ». */
     public String color;
     /** Taille de la boîte qui le représente, en m. */

@@ -48,11 +48,13 @@ class CharacterModel implements Disposable {
         final ModelInstance instance;
         final Joint joint;
         final ModelsData.PartData data;
+        final Color baseColor;
 
-        Piece(ModelInstance instance, Joint joint, ModelsData.PartData data) {
+        Piece(ModelInstance instance, Joint joint, ModelsData.PartData data, Color baseColor) {
             this.instance = instance;
             this.joint = joint;
             this.data = data;
+            this.baseColor = new Color(baseColor);
         }
     }
 
@@ -69,6 +71,8 @@ class CharacterModel implements Disposable {
     private final Matrix4 tmp = new Matrix4();
 
     private boolean visible = false;
+    private boolean flashing = false;
+    private float idleTime;
     private String look = "";
     private float walkPhase;
     private float walkBlend;
@@ -81,7 +85,7 @@ class CharacterModel implements Disposable {
     CharacterModel(Array<ModelInstance> sink, ModelsData data, String modelId) {
         this.sink = sink;
         this.data = data;
-        this.def = data.models.get(modelId);
+        this.def = data.resolved(modelId);
         this.file = "models.json (modele \"" + modelId + "\")";
         if (def == null) {
             throw new IllegalStateException("models.json : modele inconnu \"" + modelId + "\"");
@@ -112,6 +116,14 @@ class CharacterModel implements Disposable {
         for (ModelsData.PartData part : def.parts) {
             add(part, armorColor);
         }
+        for (ModelsData.PartData part : def.extra) {
+            add(part, null);
+        }
+        for (String id : def.gear) {
+            for (ModelsData.PartData part : data.gear.get(id).parts) {
+                add(part, null);
+            }
+        }
         for (String id : new String[] {armorId, weaponId, bagId}) {
             ModelsData.GearData gear = id != null ? data.gear.get(id) : null;
             if (gear != null) {
@@ -128,7 +140,15 @@ class CharacterModel implements Disposable {
     }
 
     private void add(ModelsData.PartData part, String armorColor) {
-        String hex = "armor".equals(part.slot) && armorColor != null ? armorColor : part.color;
+        if (part.role != null && def.hide.contains(part.role)) {
+            return;
+        }
+        String hex = part.color;
+        if ("armor".equals(part.slot) && armorColor != null) {
+            hex = armorColor;
+        } else if (part.role != null && def.roles.containsKey(part.role)) {
+            hex = def.roles.get(part.role);
+        }
         Color color = ColorNames.parse(hex, file, "une forme (" + part.shape + ")");
         Material material = new Material(ColorAttribute.createDiffuse(color));
         long attributes = Usage.Position | Usage.Normal;
@@ -152,7 +172,8 @@ class CharacterModel implements Disposable {
                 break;
         }
         models.add(model);
-        pieces.add(new Piece(new ModelInstance(model), part.joint != null ? joints.get(part.joint) : null, part));
+        pieces.add(new Piece(new ModelInstance(model), part.joint != null ? joints.get(part.joint) : null, part, color));
+        flashing = false;
     }
 
     private void clear() {
@@ -180,6 +201,22 @@ class CharacterModel implements Disposable {
         }
     }
 
+    /** Fait clignoter le modèle en rouge (il vient d'être touché) ou le remet à ses couleurs. */
+    void setFlash(boolean flash) {
+        if (flash == flashing) {
+            return;
+        }
+        flashing = flash;
+        for (Piece piece : pieces) {
+            ColorAttribute diffuse = (ColorAttribute) piece.instance.materials.first().get(ColorAttribute.Diffuse);
+            if (flash) {
+                diffuse.color.set(1f, 0.25f, 0.25f, 1f);
+            } else {
+                diffuse.color.set(piece.baseColor);
+            }
+        }
+    }
+
     /** Lance le geste de coup (si le modèle en a un). */
     void startAttack() {
         if (def.attack != null) {
@@ -201,12 +238,17 @@ class CharacterModel implements Disposable {
         }
         walkBlend += (Math.min(1f, speed / 3f) - walkBlend) * Math.min(1f, dt * 10f);
         attackTimer = Math.max(0f, attackTimer - dt);
+        idleTime += dt;
 
         for (Joint joint : jointOrder) {
             joint.angle[0] = joint.angle[1] = joint.angle[2] = 0f;
         }
         for (Map.Entry<String, ModelsData.AnimData> e : def.pose.entrySet()) {
             joints.get(e.getKey()).angle[axis(e.getValue().axis)] += e.getValue().from;
+        }
+        for (Map.Entry<String, ModelsData.AnimData> e : def.idle.entrySet()) {
+            ModelsData.AnimData a = e.getValue();
+            joints.get(e.getKey()).angle[axis(a.axis)] += a.amp * MathUtils.sinDeg(360f * a.freq * idleTime + a.phase) * (1f - walkBlend);
         }
         boolean attacking = attackTimer > 0f && def.attack != null;
         for (Map.Entry<String, ModelsData.AnimData> e : def.walk.entrySet()) {
@@ -225,6 +267,9 @@ class CharacterModel implements Disposable {
         }
 
         root.idt().translate(feet).rotate(Vector3.Y, yaw);
+        if (def.scale != null) {
+            root.scale(def.scale[0], def.scale[1], def.scale[2]);
+        }
         for (Joint joint : jointOrder) {
             joint.matrix.idt().translate(joint.pivot)
                     .rotate(Vector3.Y, joint.angle[1]).rotate(Vector3.X, joint.angle[0]).rotate(Vector3.Z, joint.angle[2])

@@ -57,4 +57,45 @@ class ModelsTest {
         assertEquals("handR", data.gear.get("long_sword").parts.get(0).joint);
         assertEquals("armR", human.joints.get("handR").parent);
     }
+
+    @Test
+    void everyNpcAndMonsterHasAModel() {
+        ModelsData data = GameContent.models();
+        for (String id : new String[] {"blacksmith", "innkeeper", "guildmaster", "merchant", "goblin", "wolf", "giant_rat", "quadruped"}) {
+            assertNotNull(data.resolved(id), "modele " + id);
+        }
+        for (com.lucas.guild.data.MonsterData monster : GameContent.monsters().values()) {
+            assertNotNull(monster.model, monster.id + " : un modele 3D");
+            assertNotNull(data.models.get(monster.model), monster.id + " : modele " + monster.model);
+        }
+    }
+
+    @Test
+    void variantsInheritTheirBaseBody() {
+        ModelsData data = GameContent.models();
+        ModelsData.ModelData human = data.models.get("human");
+        ModelsData.ModelData dwarf = data.resolved("blacksmith");
+        assertEquals(human.joints.keySet(), dwarf.joints.keySet(), "meme squelette");
+        assertEquals(human.parts.size(), dwarf.parts.size(), "memes formes de base");
+        assertFalse(dwarf.extra.isEmpty(), "barbe, tablier...");
+        assertNotNull(dwarf.scale, "un nain : plus petit et plus large");
+        assertTrue(dwarf.scale[1] < 1f && dwarf.scale[0] > 1f);
+        assertEquals(human.walk.keySet(), dwarf.walk.keySet(), "marche heritee");
+        assertEquals("#4A4540", dwarf.roles.get("tunic"));
+        assertTrue(dwarf.hide.contains("cloak"));
+
+        ModelsData.ModelData goblin = data.resolved("goblin");
+        assertTrue(goblin.pose.containsKey("torso"), "le gobelin est voute : sa pose remplace celle de la base");
+        assertFalse(human.pose.containsKey("torso"));
+    }
+
+    @Test
+    void quadrupedHasLegsTailAndABite() {
+        ModelsData.ModelData wolf = GameContent.models().resolved("wolf");
+        for (String joint : new String[] {"head", "legFL", "legFR", "legBL", "legBR", "tail"}) {
+            assertTrue(wolf.joints.containsKey(joint), joint);
+        }
+        assertNotNull(wolf.attack, "un coup de gueule");
+        assertFalse(wolf.idle.isEmpty());
+    }
 }

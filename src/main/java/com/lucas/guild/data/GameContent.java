@@ -168,6 +168,9 @@ public final class GameContent {
             if (m.goldMin < 0 || m.goldMax < m.goldMin) throw new IllegalStateException(where + " : \"goldMin\" >= 0 et \"goldMax\" >= \"goldMin\" attendus");
             if (m.color == null) throw new IllegalStateException(where + " : \"color\" manquant");
             if (m.w <= 0 || m.h <= 0 || m.d <= 0) throw new IllegalStateException(where + " : \"w\", \"h\" et \"d\" doivent etre > 0");
+            if (m.model != null && !models().models.containsKey(m.model)) {
+                throw new IllegalStateException(where + " : \"model\" inconnu \"" + m.model + "\" (voir models.json)");
+            }
             if (m.drops == null) m.drops = new ArrayList<>();
             for (MonsterData.Drop drop : m.drops) {
                 if (drop == null || drop.item == null || newItem(drop.item) == null) {
@@ -469,8 +472,9 @@ public final class GameContent {
         ModelsData data = read("models.json", ModelsData.class);
         data.validate("models.json");
         for (String id : data.gear.keySet()) {
-            if (newItem(id) == null) {
-                throw new IllegalStateException("models.json : equipement \"" + id + "\" : objet inconnu (voir items.json)");
+            // un equipement est celui d'un objet de items.json, ou un accessoire propre aux modeles (identifiant « prop_... »)
+            if (!id.startsWith("prop_") && newItem(id) == null) {
+                throw new IllegalStateException("models.json : equipement \"" + id + "\" : objet inconnu (voir items.json ; un accessoire de modele s'appelle prop_...)");
             }
         }
         for (String id : data.armorColors.keySet()) {
