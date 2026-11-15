@@ -89,7 +89,7 @@ public class TownScreen extends BaseWorldScreen {
             addBuilding(data);
         }
         for (TownData.PartData part : town.decor) {
-            addPart(part, 0, 0, "decor", "gate".equals(part.action) ? GATE : null);
+            addPart(part, 0, 0, "decor", "gate".equals(part.action) ? GATE : "read".equals(part.action) ? new Readable(part.text) : null);
         }
     }
 

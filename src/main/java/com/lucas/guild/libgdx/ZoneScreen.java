@@ -121,7 +121,7 @@ public class ZoneScreen extends BaseWorldScreen {
             if (part.decal) {
                 addVisualBox(part.w, part.h, part.d, color, part.x, centerY, part.z);
             } else {
-                addBox(part.w, part.h, part.d, color, part.x, centerY, part.z, null);
+                addBox(part.w, part.h, part.d, color, part.x, centerY, part.z, "read".equals(part.action) ? new Readable(part.text) : null);
             }
         }
 

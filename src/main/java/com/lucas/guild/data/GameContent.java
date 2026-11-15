@@ -371,6 +371,7 @@ public final class GameContent {
     private static ZoneData zoneFile(String file) {
         ZoneData zone = read(file, ZoneData.class);
         zone.validate(file);
+        checkReadable(file, zone.decor);
         for (ZoneData.SpawnData m : zone.monsters) {
             if (m == null || m.id == null || monsters().get(m.id) == null) {
                 throw new IllegalStateException(file + " : monstre inconnu \"" + (m != null ? m.id : null) + "\" (voir monsters.json)");
@@ -393,6 +394,10 @@ public final class GameContent {
     private static TownData townFile(String file) {
         TownData town = read(file, TownData.class);
         town.validate(file);
+        checkReadable(file, town.decor);
+        for (TownData.BuildingData b : town.buildings) {
+            checkReadable(file, b.parts);
+        }
         for (TownData.BuildingData b : town.buildings) {
             if (b.shop != null) {
                 try {
@@ -410,6 +415,31 @@ public final class GameContent {
         WorldData world = read("world.json", WorldData.class);
         world.validate("world.json");
         return world;
+    }
+
+    /** Les rumeurs et les textes à lire (lore.json). */
+    public static LoreData lore() {
+        LoreData lore = read("lore.json", LoreData.class);
+        lore.validate("lore.json");
+        WorldData world = world();
+        for (LoreData.RumorData r : lore.rumors) {
+            if (r.town != null && (world.place(r.town) == null || world.place(r.town).zoneFile != null)) {
+                throw new IllegalStateException("lore.json : rumeur \"" + r.id + "\" : \"town\" doit etre une ville de world.json (" + r.town + ")");
+            }
+        }
+        return lore;
+    }
+
+    /** Vérifie que chaque panneau à lire (action « read ») d'un fichier de lieu renvoie à un texte de lore.json. */
+    private static void checkReadable(String file, List<TownData.PartData> parts) {
+        if (parts == null) {
+            return;
+        }
+        for (TownData.PartData p : parts) {
+            if ("read".equals(p.action) && !lore().texts.containsKey(p.text)) {
+                throw new IllegalStateException(file + " : texte a lire inconnu \"" + p.text + "\" (voir lore.json)");
+            }
+        }
     }
 
     /** Le calendrier (saisons, lever/coucher du soleil, début de partie...). */
@@ -476,6 +506,7 @@ public final class GameContent {
         }
         calendar();
         agingStages();
+        lore();
     }
 
     // ------------------------------------------------------------------ lecture

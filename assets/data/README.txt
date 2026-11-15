@@ -84,7 +84,9 @@ town.json, town_portbrume.json, town_hautevigne.json (un fichier par ville)
     Une partie est une boite : x, z = centre ; y = hauteur du bas au-dessus du sol ; w, h, d = largeur,
     hauteur, profondeur (en metres) ; color = nom LibGDX (DARK_GRAY, BROWN, TAN...) ou "#RRGGBB" ;
     decal = true pour du visuel seulement (rues, eau) : on marche dessus au lieu de la heurter ;
-    action = "gate" pour la porte de la ville (E ouvre la carte du monde).
+    action = "gate" pour la porte de la ville (E ouvre la carte du monde) ;
+    action = "read" + text = un identifiant de lore.json pour un panneau, une stele, un livre : E le lit
+    (la premiere lecture l'ajoute au journal).
     Pour les "parts" d'un batiment, x/z sont relatifs a son centre. Viser une partie d'un batiment
     (la porte, l'enseigne) permet d'y entrer, comme pour le batiment lui-meme.
 
@@ -110,3 +112,11 @@ shops.json
     stock = identifiants (items.json) des objets en vente, et priceFactor = prix de la boutique par rapport au
     catalogue, en % (100 par defaut ; 90 = 10 % moins cher, 115 = 15 % plus cher : c'est ce qui fait varier
     les prix d'une ville a l'autre).
+
+lore.json
+    Le savoir du monde. "rumors" : les rumeurs de l'aubergiste, dans l'ordre ou il les raconte ; chacune a un
+    id, un text, et un "town" (la ville ou on l'entend ; sans "town" : partout). Une bière (2 Po) = une
+    rumeur nouvelle ; quand il n'en reste plus, l'aubergiste n'a rien a dire et rien n'est depense.
+    "texts" : les textes a lire (id -> title + text), reliés aux panneaux par action "read" (voir town.json
+    et zone_*.json). Tout ce qu'on a entendu ou lu est dans le journal (touche J) et sauvegarde.
+    Eviter les guillemets francais « » : la police du jeu ne les dessine pas (utiliser des guillemets droits).

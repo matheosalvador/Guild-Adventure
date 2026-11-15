@@ -30,6 +30,8 @@ public class Adventurer extends Entite {
     private List<String> visitedPlaces = new ArrayList<>();
     /** La dernière ville où le personnage a mis les pieds : c'est là qu'il se réveille s'il tombe en route. */
     private String homeTownId;
+    /** Rumeurs entendues et textes lus (voir game/Lore). */
+    private List<String> knownLore = new ArrayList<>();
     /** Coffres ouverts : identifiant du coffre -> jour de l'ouverture (ils se remplissent de nouveau plus tard). */
     private java.util.Map<String, Integer> openedChests = new java.util.HashMap<>();
 
@@ -199,6 +201,14 @@ public class Adventurer extends Entite {
             }
         }
         return home.id;
+    }
+
+    /** Ce que le personnage sait du monde (rumeurs entendues, textes lus), au format « rumor:id » / « text:id ». Jamais null. */
+    public List<String> getKnownLore() {
+        if (knownLore == null) {
+            knownLore = new ArrayList<>();
+        }
+        return knownLore;
     }
 
     /** Les coffres ouverts. Jamais null, même pour une ancienne sauvegarde. */

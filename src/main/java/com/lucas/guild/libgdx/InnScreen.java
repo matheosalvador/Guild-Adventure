@@ -2,6 +2,8 @@ package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.lucas.guild.data.LoreData;
+import com.lucas.guild.game.Lore;
 
 /** Intérieur de l'auberge « La Pinte qui Chante » : l'aubergiste, un lit à l'étage. */
 public class InnScreen extends InteriorScreen {
@@ -123,6 +125,29 @@ public class InnScreen extends InteriorScreen {
             }
             Gdx.app.log("Auberge", "Le joueur boit une bière.");
             gameClock.postMessage("Vous buvez une bière. Ça fait du bien.");
+        });
+
+        addDialogButton("Offrir une bière et écouter les rumeurs (" + BEER_PRICE + " Po)", () -> {
+            LoreData.RumorData rumor = Lore.nextRumor(player, player.getTownId());
+            if (rumor == null) {
+                toggleDialog(null);
+                gameClock.postMessage("L'aubergiste n'a plus rien de neuf à raconter, pour l'instant.");
+                return;
+            }
+            if (!player.spendGold(BEER_PRICE)) {
+                toggleDialog(null);
+                gameClock.postMessage("Pas assez d'or : une bière coûte " + BEER_PRICE + " Po.");
+                return;
+            }
+            Lore.learn(player, Lore.rumorKey(rumor.id));
+            dialogTable.clear();
+            dialogTable.add("L'aubergiste se penche vers vous :").pad(10).row();
+            addWrappedText("\"" + rumor.text + "\"");
+            dialogTable.add(UiKit.message(skin, "(Ajouté au journal : J)")).pad(5).row();
+            addDialogButton("Merci", () -> {
+                dialogTable.clear();
+                buildDialog(INNKEEPER);
+            });
         });
 
         addLeaveButton();

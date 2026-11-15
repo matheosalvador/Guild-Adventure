@@ -35,6 +35,8 @@ public class TownData {
         public boolean decal;
         /** Action quand on vise cette partie (E) : « gate » = la porte de la ville, qui mène à la carte du monde. */
         public String action;
+        /** Pour l'action « read » : l'identifiant du texte à lire dans lore.json (panneau, stèle, livre...). */
+        public String text;
     }
 
     /** Un bâtiment de la ville. */
@@ -82,7 +84,8 @@ public class TownData {
             String at = where + " n°" + (i + 1);
             if (p == null) throw new IllegalStateException(at + " : vide");
             if (p.color == null) throw new IllegalStateException(at + " : \"color\" manquant");
-            if (p.action != null && !"gate".equals(p.action)) throw new IllegalStateException(at + " : \"action\" inconnue \"" + p.action + "\" (attendu : gate)");
+            if (p.action != null && !"gate".equals(p.action) && !"read".equals(p.action)) throw new IllegalStateException(at + " : \"action\" inconnue \"" + p.action + "\" (attendu : gate ou read)");
+            if ("read".equals(p.action) && (p.text == null || p.text.isEmpty())) throw new IllegalStateException(at + " : l'action \"read\" demande un \"text\" (un identifiant de lore.json)");
             if (p.w <= 0 || p.h <= 0 || p.d <= 0) throw new IllegalStateException(at + " : \"w\", \"h\" et \"d\" doivent etre > 0");
         }
     }

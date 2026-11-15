@@ -49,7 +49,10 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.game.GameSession;
+import com.lucas.guild.data.GameContent;
+import com.lucas.guild.data.LoreData;
 import com.lucas.guild.game.GroundItems;
+import com.lucas.guild.game.Lore;
 import com.lucas.guild.model.Arme;
 import com.lucas.guild.model.Armure;
 import com.lucas.guild.model.Butin;
@@ -132,6 +135,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected boolean inDialog = false;
     protected boolean isInventoryOpen = false;
     protected boolean isSkillsOpen = false;
+    protected Table journalTable;
+    private JournalPanel journalPanel;
+    protected boolean isJournalOpen = false;
     /** Les monstres de l'écran (aucun dans la plupart des lieux). */
     protected CombatScene combat;
     protected Table debugTable;
@@ -175,8 +181,50 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     // ================================================================== à surcharger si besoin
 
-    /** Contenu d'un dialogue. {@code dialogTable} est déjà vidée. */
+    /**
+     * Contenu d'un dialogue. {@code dialogTable} est déjà vidée. Les écrans qui le redéfinissent
+     * peuvent appeler {@code super.buildDialog(dialogType)} pour garder la lecture des textes.
+     */
     protected void buildDialog(String dialogType) {
+        if (dialogType != null && dialogType.startsWith(TEXT_DIALOG)) {
+            LoreData.TextData text = GameContent.lore().texts.get(dialogType.substring(TEXT_DIALOG.length()));
+            if (text != null) {
+                dialogTable.add(UiKit.label(skin, text.title)).pad(10).row();
+                addWrappedText(text.text);
+                addLeaveButton();
+            }
+        }
+    }
+
+    /** Un texte à lire (panneau, stèle, livre) : ce qu'on obtient en visant une partie de décor d'action « read ». */
+    protected static final class Readable {
+        final String textId;
+
+        Readable(String textId) {
+            this.textId = textId;
+        }
+    }
+
+    private static final String TEXT_DIALOG = "Text:";
+
+    /** Ouvre la lecture d'un texte de lore.json ; la première lecture l'ajoute au journal. */
+    private void showText(String textId) {
+        LoreData.TextData text = GameContent.lore().texts.get(textId);
+        if (text == null) {
+            return;
+        }
+        if (Lore.learn(player, Lore.textKey(textId))) {
+            gameClock.postMessage("Ajouté au journal : " + text.title + ".");
+        }
+        toggleDialog(TEXT_DIALOG + textId);
+    }
+
+    /** Ajoute un paragraphe qui revient à la ligne dans le dialogue en cours. */
+    protected void addWrappedText(String text) {
+        Label label = UiKit.label(skin, text);
+        label.setWrap(true);
+        float width = Math.max(300f, Math.min(640f, Gdx.graphics.getWidth() - 100f));
+        dialogTable.add(label).width(width).pad(10).row();
     }
 
     /** Intensité de la lumière ambiante. */
@@ -320,6 +368,13 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         skillsTable.setBackground(panelBackground);
         skillsPanel = new SkillsPanel(skillsTable, skin, player, gameClock);
 
+        journalTable = new Table(skin);
+        journalTable.setFillParent(true);
+        journalTable.setVisible(false);
+        stage.addActor(journalTable);
+        journalTable.setBackground(panelBackground);
+        journalPanel = new JournalPanel(journalTable, skin, player);
+
         debugTable = new Table(skin);
         debugTable.setFillParent(true);
         debugTable.setVisible(false);
@@ -445,7 +500,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     /** Vrai quand un menu (pause, inventaire, dialogue, menu supplémentaire) bloque le jeu. */
     protected boolean isOverlayOpen() {
-        return inDialog || isInventoryOpen || isSkillsOpen || isDebugOpen || isPaused || isExtraOverlayOpen();
+        return inDialog || isInventoryOpen || isSkillsOpen || isJournalOpen || isDebugOpen || isPaused || isExtraOverlayOpen();
     }
 
     private void update(float delta) {
@@ -598,14 +653,17 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         hudText.append("Or : ").append(player.getGold()).append(" Po - ").append(UiKit.loadLine(player));
         font.draw(spriteBatch, hudText, 10, h - 10);
 
-        font.draw(spriteBatch, "I : inventaire   K : personnage   Q : potion   Échap : pause", 10, 24);
+        font.draw(spriteBatch, "I : inventaire   K : personnage   J : journal   Q : potion   Échap : pause", 10, 24);
 
         combat.drawHud(spriteBatch, font, w, h, camera.position, camera.direction);
         drawToast(delta, w, h);
 
         String text = null;
         btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
-        if (objectInView != null) {
+        if (objectInView != null && objectInView.userData instanceof Readable) {
+            LoreData.TextData readable = GameContent.lore().texts.get(((Readable) objectInView.userData).textId);
+            text = readable != null ? "Lire : " + readable.title + " (E)" : null;
+        } else if (objectInView != null) {
             text = getInteractionPrompt(objectInView.userData);
         }
         if (text == null) {
@@ -665,6 +723,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         if (keycode == Input.Keys.ESCAPE) {
             if (isDebugOpen) {
                 toggleDebug();
+            } else if (isJournalOpen) {
+                toggleJournal();
             } else if (isSkillsOpen) {
                 toggleSkills();
             } else if (isInventoryOpen) {
@@ -682,15 +742,22 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             }
             return true;
         }
+        if (keycode == Input.Keys.J) {
+            // le journal ne s'ouvre que depuis le jeu (pas par-dessus un autre menu)
+            if (isJournalOpen || !(inDialog || isInventoryOpen || isSkillsOpen || isPaused || isDebugOpen || isExtraOverlayOpen())) {
+                toggleJournal();
+            }
+            return true;
+        }
         if (keycode == Input.Keys.I) {
-            if (!isSkillsOpen) {
+            if (!isSkillsOpen && !isJournalOpen) {
                 toggleInventory();
             }
             return true;
         }
         if (keycode == Input.Keys.K) {
             // le panneau du personnage ne s'ouvre que depuis le jeu (pas par-dessus un autre menu)
-            if (isSkillsOpen || !(inDialog || isInventoryOpen || isPaused || isExtraOverlayOpen())) {
+            if (isSkillsOpen || !(inDialog || isInventoryOpen || isJournalOpen || isPaused || isExtraOverlayOpen())) {
                 toggleSkills();
             }
             return true;
@@ -711,6 +778,10 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
         if (keycode == Input.Keys.E) {
             btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
+            if (objectInView != null && objectInView.userData instanceof Readable) {
+                showText(((Readable) objectInView.userData).textId);
+                return true;
+            }
             if (objectInView != null && onInteract(objectInView.userData)) {
                 return true;
             }
@@ -763,6 +834,15 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         Gdx.input.setCursorCatched(!isDebugOpen);
         if (isDebugOpen) {
             debugPanel.rebuild(null);
+        }
+    }
+
+    protected void toggleJournal() {
+        isJournalOpen = !isJournalOpen;
+        journalTable.setVisible(isJournalOpen);
+        Gdx.input.setCursorCatched(!isJournalOpen);
+        if (isJournalOpen) {
+            journalPanel.rebuild();
         }
     }
 

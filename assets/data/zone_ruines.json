@@ -857,6 +857,17 @@
    "d": 44,
    "color": "#8B7B5A",
    "decal": true
+  },
+  {
+   "x": 5,
+   "z": -26,
+   "y": 0,
+   "w": 1.0,
+   "h": 2.4,
+   "d": 0.5,
+   "color": "#6E6E66",
+   "action": "read",
+   "text": "stele_ruines"
   }
  ],
  "monsters": [

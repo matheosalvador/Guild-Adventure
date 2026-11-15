@@ -154,6 +154,47 @@ class WorldContentErrorsTest {
     }
 
     @Test
+    void readPartWithoutText() throws IOException {
+        expectError("town.json", "\"action\": \"read\", \"text\": \"panneau_aethelgard\"},\n    {\"x\": 7, \"z\": 50, \"y\": 1.3",
+                "\"action\": \"read\"},\n    {\"x\": 7, \"z\": 50, \"y\": 1.3", "town.json", "read", "text");
+    }
+
+    @Test
+    void readPartWithUnknownText() throws IOException {
+        expectError("town_portbrume.json", "\"panneau_portbrume\"", "\"panneau_fantome\"", "town_portbrume.json", "panneau_fantome", "lore.json");
+    }
+
+    @Test
+    void zoneReadPartWithUnknownText() throws IOException {
+        expectError("zone_ruines.json", "\"stele_ruines\"", "\"stele_fantome\"", "zone_ruines.json", "stele_fantome", "lore.json");
+    }
+
+    @Test
+    void loreRumorWithoutText() throws IOException {
+        expectError("lore.json", "\"text\": \"Des rats gros comme des chiens", "\"texte\": \"Des rats gros comme des chiens", "lore.json", "aeth_rats", "text");
+    }
+
+    @Test
+    void loreRumorDuplicateId() throws IOException {
+        expectError("lore.json", "\"id\": \"aeth_portbrume\"", "\"id\": \"aeth_rats\"", "lore.json", "aeth_rats", "double");
+    }
+
+    @Test
+    void loreRumorForAnUnknownTown() throws IOException {
+        expectError("lore.json", "\"town\": \"portbrume\", \"text\": \"Les marins", "\"town\": \"atlantide\", \"text\": \"Les marins", "lore.json", "atlantide");
+    }
+
+    @Test
+    void loreRumorForAWildZone() throws IOException {
+        expectError("lore.json", "\"town\": \"hautevigne\", \"text\": \"La vieille mine", "\"town\": \"foret_loups\", \"text\": \"La vieille mine", "lore.json", "foret_loups");
+    }
+
+    @Test
+    void loreTextWithoutTitle() throws IOException {
+        expectError("lore.json", "\"title\": \"Panneau de la forêt\"", "\"titre\": \"Panneau de la forêt\"", "lore.json", "panneau_foret", "title");
+    }
+
+    @Test
     void shopBadPriceFactor() throws IOException {
         expectError("shops.json", "\"priceFactor\": 90", "\"priceFactor\": 0", "shops.json", "portbrume_store", "priceFactor");
     }

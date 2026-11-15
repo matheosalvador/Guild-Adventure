@@ -1,0 +1,43 @@
+{
+  "rumors": [
+    { "id": "aeth_rats", "town": "aethelgard", "text": "Des rats gros comme des chiens se sont installés dans la cave de l'auberge. L'aubergiste paierait cher pour qu'on l'en débarrasse." },
+    { "id": "aeth_portbrume", "town": "aethelgard", "text": "À Port-Brume, tout se vend un peu moins cher qu'ici : le port voit passer tant de marchandises que les prix s'effondrent." },
+    { "id": "aeth_hautevigne", "town": "aethelgard", "text": "Hautevigne manque de tout depuis que la mine donne moins. On y paie ses achats plus cher qu'ailleurs, et on y rachète mal." },
+    { "id": "aeth_loups", "town": "aethelgard", "text": "Des loups rôdent dans la forêt, entre ici et Hautevigne. Leurs peaux se revendent bien, pour qui en revient." },
+    { "id": "aeth_gobelins", "town": "aethelgard", "text": "Des gobelins ont fait leur nid dans de vieilles ruines, à l'est. On raconte qu'ils y gardent un coffre bien garni." },
+
+    { "id": "port_feux", "town": "portbrume", "text": "Les marins jurent avoir vu des feux dans les ruines, la nuit. Des gobelins, sûrement : ils adorent le fracas des vagues." },
+    { "id": "port_soupe", "town": "portbrume", "text": "La soupe de poisson d'ici est la meilleure de la côte. Mangez avant de reprendre la route, vous n'en aurez peut-être pas d'autre de la journée." },
+    { "id": "port_pirates", "town": "portbrume", "text": "Les capitaines ne voyagent plus à pied sans escorte : des bandes attendent sur les chemins, depuis un an." },
+
+    { "id": "haute_mine", "town": "hautevigne", "text": "La vieille mine est fermée depuis les éboulements. Certains mineurs disent avoir entendu des coups, au fond, dans le noir." },
+    { "id": "haute_loups", "town": "hautevigne", "text": "Quand l'hiver est dur, les loups de la forêt descendent jusqu'aux premières maisons. Un chasseur qui rapporte des peaux est toujours bien reçu." },
+    { "id": "haute_vin", "town": "hautevigne", "text": "Le village doit son nom à des vignes qui n'ont jamais donné. On en rit encore, à l'auberge." },
+
+    { "id": "any_coffres", "text": "Les coffres oubliés dans les bois se remplissent de nouveau avec le temps. Quelqu'un les approvisionne, ou quelque chose." },
+    { "id": "any_sommeil", "text": "Un aventurier prudent dort à l'auberge avant de reprendre la route : on y récupère toute sa vie, et on y apprend à encaisser." }
+  ],
+
+  "texts": {
+    "panneau_aethelgard": {
+      "title": "Panneau d'Aethelgard",
+      "text": "AETHELGARD, cité des aventuriers. La Guilde est à l'ouest, l'auberge à l'est, la forge au nord. Les rats de la cave de l'auberge ne sont pas sous la protection de la cité."
+    },
+    "panneau_portbrume": {
+      "title": "Panneau de Port-Brume",
+      "text": "PORT-BRUME. Ici on décharge, on vend, on repart. Les prix du port sont honnêtes ; les poches des marins, un peu moins."
+    },
+    "panneau_hautevigne": {
+      "title": "Panneau de Hautevigne",
+      "text": "HAUTEVIGNE, village minier. La mine est fermée jusqu'à nouvel ordre : les visiteurs sont priés de ne pas s'en approcher."
+    },
+    "panneau_foret": {
+      "title": "Panneau de la forêt",
+      "text": "FORÊT DES LOUPS. Voyageur, restez sur le chemin. Ceux qui l'ont quitté n'ont pas toujours retrouvé leur peau."
+    },
+    "stele_ruines": {
+      "title": "Stèle des ruines",
+      "text": "\"Ci-gît la garnison de la tour du nord. Les gobelins ne l'ont pas prise : ils ont simplement attendu qu'elle parte.\""
+    }
+  }
+}
