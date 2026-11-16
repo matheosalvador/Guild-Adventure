@@ -82,7 +82,9 @@ public class WorldMapScreen implements Screen {
         stage.addActor(side);
 
         side.add(UiKit.label(skin, "Carte du monde")).pad(5).row();
-        side.add(UiKit.label(skin, "Vous êtes à " + world.place(here).name)).pad(3).row();
+        boolean onTheWay = session.isInOpenWorld()
+                && com.lucas.guild.game.WorldLayout.standard().placeAt(session.getWorldX(), session.getWorldZ()) == null;
+        side.add(UiKit.label(skin, onTheWay ? "Vous êtes en chemin (point rouge)" : "Vous êtes à " + world.place(here).name)).pad(3).row();
         side.add(UiKit.label(skin, session.getClock().getDate() + " - " + session.getClock().formatTime())).pad(3).row();
         side.add(UiKit.label(skin, "-- Routes --")).pad(10).row();
 
@@ -114,7 +116,8 @@ public class WorldMapScreen implements Screen {
                 }
             })).pad(5).row();
         }
-        side.add(UiKit.button(skin, WorldData.isZone(world.place(here)) ? "Retour à la zone" : "Retour à la ville", new Runnable() {
+        String back = session.isInOpenWorld() ? "Retour sur le chemin" : WorldData.isZone(world.place(here)) ? "Retour à la zone" : "Retour à la ville";
+        side.add(UiKit.button(skin, back, new Runnable() {
             @Override
             public void run() {
                 backToTown();
@@ -134,6 +137,13 @@ public class WorldMapScreen implements Screen {
     }
 
     private void backToTown() {
+        GameSession session = game.getSession();
+        if (session.isInOpenWorld()) {
+            // le monde ouvert : on reprend là où l'on s'était arrêté
+            game.setScreen(new OpenWorldScreen(game, difficulty,
+                    new com.badlogic.gdx.math.Vector3(session.getWorldX(), 2f, session.getWorldZ())));
+            return;
+        }
         game.setScreen(game.screenAt(player.getTownId(), difficulty));
     }
 
@@ -171,6 +181,11 @@ public class WorldMapScreen implements Screen {
     }
 
     private float[] project(WorldData.PlaceData p) {
+        return project(p.x, p.z);
+    }
+
+    /** Un point de la carte (en km) sur l'écran. */
+    private float[] project(float px, float pz) {
         float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE, minZ = Float.MAX_VALUE, maxZ = -Float.MAX_VALUE;
         for (WorldData.PlaceData q : world.places) {
             if (q.hidden) {
@@ -184,8 +199,8 @@ public class WorldMapScreen implements Screen {
         float span = Math.max(Math.max(maxX - minX, maxZ - minZ), 1f);
         float scale = (MAP_SIZE - 120f) / span;
         // le nord (z négatif) est en haut de la carte
-        float x = MAP_X + 60f + (p.x - minX) * scale;
-        float y = MAP_Y + MAP_SIZE - 60f - (p.z - minZ) * scale;
+        float x = MAP_X + 60f + (px - minX) * scale;
+        float y = MAP_Y + MAP_SIZE - 60f - (pz - minZ) * scale;
         return new float[] {x, y};
     }
 
@@ -225,6 +240,16 @@ public class WorldMapScreen implements Screen {
             } else {
                 shapes.circle(xy[0], xy[1], p.id.equals(here) ? 11f : 8f);
             }
+        }
+        GameSession session = game.getSession();
+        if (session.isInOpenWorld()) {
+            // monde ouvert : le joueur, là où il est vraiment
+            float[] km = com.lucas.guild.game.WorldLayout.standard().toMap(session.getWorldX(), session.getWorldZ());
+            float[] xy = project(km[0], km[1]);
+            shapes.setColor(Color.BLACK);
+            shapes.circle(xy[0], xy[1], 7f);
+            shapes.setColor(Color.RED);
+            shapes.circle(xy[0], xy[1], 5f);
         }
         shapes.end();
 

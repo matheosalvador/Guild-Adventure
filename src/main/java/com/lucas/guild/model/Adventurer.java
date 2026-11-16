@@ -44,6 +44,8 @@ public class Adventurer extends Entite {
 
     /** L'histoire : chaque drapeau posé, avec la minute de jeu où il l'a été (voir game/Story). Absent des anciennes sauvegardes. */
     private Map<String, Integer> storyFlags = new HashMap<>();
+    /** Monde ouvert : les monstres tués (lieu#rang -> jour de leur mort), voir game/Respawns. Absent des anciennes sauvegardes. */
+    private Map<String, Integer> monsterKills = new HashMap<>();
     /** Le jour où le personnage a cessé de vieillir (une fin de l'histoire), ou null s'il vieillit normalement. */
     private Integer ageFrozenDay;
 
@@ -181,6 +183,14 @@ public class Adventurer extends Entite {
             storyFlags = new HashMap<>();
         }
         return storyFlags;
+    }
+
+    /** Monde ouvert : les monstres tués et le jour de leur mort. Jamais null, même pour une ancienne sauvegarde. */
+    public Map<String, Integer> getMonsterKills() {
+        if (monsterKills == null) {
+            monsterKills = new HashMap<>();
+        }
+        return monsterKills;
     }
 
     /**

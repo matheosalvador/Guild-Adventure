@@ -21,6 +21,7 @@ import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.RenderableProvider;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.math.Matrix4;
@@ -98,6 +99,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     /** Lumière ambiante et lumière directionnelle (soleil) : modifiées à chaque image par {@link #applyDayNight}. */
     private ColorAttribute ambientLight;
     private DirectionalLight sunLight;
+    /** La brume (couleur du ciel), si l'écran en a une ; et l'éclairage du ciel, qui n'en a pas. */
+    private ColorAttribute fog;
+    private Environment skyEnvironment;
     protected PlayerController playerController;
     /** Le corps du joueur, visible à la 3e personne (touche V). */
     private CharacterModel playerModel;
@@ -255,6 +259,37 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected void afterUpdate(float delta) {
     }
 
+    /** Distance de vue en m. Avec la brume ({@link #hasFog()}), ce qui est plus loin disparaît dans la couleur du ciel. */
+    protected float getViewDistance() {
+        return 300f;
+    }
+
+    /** La brume : le lointain se fond dans le ciel (le monde ouvert y cache les carreaux qui apparaissent). */
+    protected boolean hasFog() {
+        return false;
+    }
+
+    /** Ce qu'il faut dessiner en plus des {@link #instances} (des carreaux fusionnés du monde ouvert), ombres comprises. */
+    protected Array<RenderableProvider> extraRenderables() {
+        return NO_EXTRA;
+    }
+
+    private static final Array<RenderableProvider> NO_EXTRA = new Array<>();
+
+    /** Un monstre vient d'être tué (après l'histoire). */
+    protected void onMonsterKilled(Monster monster) {
+    }
+
+    /** Cet écran est-il le monde ouvert ? (prototype) */
+    protected boolean isOpenWorld() {
+        return false;
+    }
+
+    /** Cet écran garde-t-il le mode du monde ouvert tel qu'il est ? (les intérieurs : on y entre et on en sort) */
+    protected boolean keepsWorldMode() {
+        return false;
+    }
+
     /** Ce lieu prévient-il du marché en cours quand on y arrive ? (la ville, pas les intérieurs) */
     protected boolean announcesEvents() {
         return false;
@@ -283,6 +318,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         player = session.getPlayer();
         gameClock = session.getClock();
         townName = GameContent.world().place(player.getTownId()).name;   // lu une fois : le HUD le redessine à chaque image
+        if (!keepsWorldMode()) {
+            session.setInOpenWorld(isOpenWorld());   // la ville ou une zone classique : on quitte le monde ouvert
+        }
 
         setup3DEnvironment();
         setupPhysics();
@@ -303,6 +341,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
                 if (message != null) {
                     gameClock.postMessage(message);
                 }
+                onMonsterKilled(monster);
             }
 
             @Override
@@ -347,7 +386,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         camera.position.set(0f, 5f, 10f);
         camera.lookAt(0, 0, 0);
         camera.near = 0.1f;
-        camera.far = 300f;
+        camera.far = getViewDistance();
         camera.update();
 
         modelBatch = new ModelBatch();
@@ -366,6 +405,16 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             sunLight = new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f);
         }
         environment.add(sunLight);
+        if (hasFog()) {
+            // le ciel garde un éclairage sans brume : sinon le soleil et les étoiles, loin, disparaîtraient
+            skyEnvironment = new Environment();
+            skyEnvironment.set(ambientLight);
+            skyEnvironment.add(sunLight);
+            fog = new ColorAttribute(ColorAttribute.Fog, 0.5f, 0.8f, 1f, 1f);
+            environment.set(fog);
+        } else {
+            skyEnvironment = environment;
+        }
 
         spriteBatch = new SpriteBatch();
         font = new BitmapFont();
@@ -485,8 +534,13 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         }
     }
 
-    /** Modèle partagé par toutes les formes de même type, taille et couleur. */
-    private Model shapeModel(String shape, float w, float h, float d, Color color) {
+    /** Le monde physique de l'écran (le monde ouvert y ajoute et retire ses corps lui-même). */
+    protected btDiscreteDynamicsWorld physics() {
+        return dynamicsWorld;
+    }
+
+    /** Modèle partagé par toutes les formes de même type, taille et couleur (libéré avec l'écran). */
+    protected Model shapeModel(String shape, float w, float h, float d, Color color) {
         String key = shape + "/" + w + "x" + h + "x" + d + "/" + color.toIntBits();
         Model model = shapeModels.get(key);
         if (model == null) {
@@ -511,13 +565,17 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         Gdx.gl.glClearColor(bg.r, bg.g, bg.b, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
+        Array<RenderableProvider> extra = extraRenderables();
         if (outdoors != null) {
-            outdoors.renderShadows(environment, instances, playerPosition(), camera.direction, delta);
+            outdoors.renderShadows(environment, instances, extra, playerPosition(), camera.direction, delta);
         }
         modelBatch.begin(camera);
         modelBatch.render(instances, environment);
+        for (RenderableProvider provider : extra) {
+            modelBatch.render(provider, environment);
+        }
         if (outdoors != null) {
-            outdoors.renderSky(modelBatch, environment);
+            outdoors.renderSky(modelBatch, skyEnvironment);
         }
         modelBatch.end();
 
@@ -546,7 +604,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         return inDialog || isInventoryOpen || isSkillsOpen || isJournalOpen || isDebugOpen || isPaused || isExtraOverlayOpen();
     }
 
-    private Vector3 playerPosition() {
+    protected Vector3 playerPosition() {
         return playerController.getPlayerBody().getCenterOfMassPosition();
     }
 
@@ -607,6 +665,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         DayNightCycle.Light light = DayNightCycle.compute(
                 gameClock.getTimeOfDay(), gameClock.getSunrise(), gameClock.getSunset(), getAmbientLight());
         sky.set(light.sky[0], light.sky[1], light.sky[2], 1f);
+        if (fog != null) {
+            fog.color.set(sky);
+        }
         ambientLight.color.set(light.ambient[0], light.ambient[1], light.ambient[2], 1f);
         sunLight.color.set(light.lightColor[0], light.lightColor[1], light.lightColor[2], 1f);
         sunLight.direction.set(light.lightDirection[0], light.lightDirection[1], light.lightDirection[2]).nor();

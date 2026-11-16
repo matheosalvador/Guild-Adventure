@@ -39,7 +39,8 @@ final class SkyAndShadows implements Disposable {
      * Calcule les ombres de l'image (si le réglage « Ombres » est allumé) et fait avancer l'horloge du ciel.
      * À appeler avant de dessiner le décor.
      */
-    void renderShadows(Environment environment, Array<ModelInstance> instances, Vector3 center, Vector3 viewDirection, float delta) {
+    void renderShadows(Environment environment, Array<ModelInstance> instances, Array<com.badlogic.gdx.graphics.g3d.RenderableProvider> extra,
+                       Vector3 center, Vector3 viewDirection, float delta) {
         clock += delta;
         boolean shadows = com.lucas.guild.game.Settings.current().shadows;
         environment.shadowMap = shadows ? shadowLight : null;
@@ -47,6 +48,9 @@ final class SkyAndShadows implements Disposable {
             shadowLight.begin(center, viewDirection);
             shadowBatch.begin(shadowLight.getCamera());
             shadowBatch.render(instances);
+            for (com.badlogic.gdx.graphics.g3d.RenderableProvider provider : extra) {
+                shadowBatch.render(provider);
+            }
             shadowBatch.end();
             shadowLight.end();
         }

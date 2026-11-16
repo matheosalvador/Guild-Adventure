@@ -1,0 +1,29 @@
+{
+  "scale": 100,
+  "tileSize": 128,
+  "loadRadius": 2,
+  "solidRadius": 1,
+  "viewDistance": 270,
+  "placeLoadDistance": 400,
+  "ground": "#4E7A36",
+  "road": "#8A7552",
+  "roadWidth": 5,
+  "treesPerTile": 16,
+  "monsterRespawnDays": 3,
+  "places": [
+    { "id": "aethelgard", "half": 100 },
+    { "id": "foret_loups", "half": 82, "entrance": { "x": 0, "z": 81, "width": 10 } }
+  ],
+  "roads": [
+    {
+      "from": "aethelgard",
+      "to": "foret_loups",
+      "points": [
+        { "x": 0, "z": 62 },
+        { "x": -68, "z": 70 },
+        { "x": -900, "z": -1105 },
+        { "x": -900, "z": -1130 }
+      ]
+    }
+  ]
+}

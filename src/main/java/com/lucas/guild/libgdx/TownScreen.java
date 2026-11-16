@@ -22,8 +22,8 @@ public class TownScreen extends BaseWorldScreen {
     /** Identifiants d'intérieur reconnus (voir {@link #interiorScreen(String)}). */
     private static final Set<String> KNOWN_INTERIORS = new HashSet<>(Arrays.asList("forge", "guild", "inn", "store"));
 
-    /** Un bâtiment de la ville, avec l'intérieur qu'il ouvre. */
-    private static final class TownBuilding {
+    /** Un bâtiment de la ville, avec l'intérieur qu'il ouvre (aussi dans le monde ouvert). */
+    static final class TownBuilding {
         final String name;
         final String interior;
         final String shop;
@@ -39,6 +39,15 @@ public class TownScreen extends BaseWorldScreen {
     private static final String GATE = "Gate";
     /** Ce qu'on obtient en visant le tableau d'annonces de la ville (action « board »). */
     private static final String BOARD = "Board";
+
+    /** Le panneau « Partir à pied » (action « walk ») : entre dans le monde ouvert (prototype). */
+    static final class WalkSign {
+        final String to;
+
+        WalkSign(String to) {
+            this.to = to;
+        }
+    }
 
     private com.badlogic.gdx.scenes.scene2d.ui.Table boardTable;
     private QuestBoardPanel questBoard;
@@ -235,7 +244,9 @@ public class TownScreen extends BaseWorldScreen {
         }
         buildVillagers(town);
         for (TownData.PartData part : town.decor) {
-            addPart(part, 0, 0, "decor", "gate".equals(part.action) ? GATE : "board".equals(part.action) ? BOARD : decorUserData(part));
+            Object userData = "gate".equals(part.action) ? GATE : "board".equals(part.action) ? BOARD
+                    : "walk".equals(part.action) ? new WalkSign(part.text) : decorUserData(part);
+            addPart(part, 0, 0, "decor", userData);
         }
     }
 
@@ -278,6 +289,9 @@ public class TownScreen extends BaseWorldScreen {
         if (userData instanceof Villager) {
             return "Parler à " + ((Villager) userData).talk.name + " (E)";
         }
+        if (userData instanceof WalkSign) {
+            return "Partir à pied vers " + GameContent.world().place(((WalkSign) userData).to).name + " (E)";
+        }
         return null;
     }
 
@@ -296,15 +310,22 @@ public class TownScreen extends BaseWorldScreen {
             toggleDialog(VILLAGER_DIALOG);
             return true;
         }
+        if (userData instanceof WalkSign) {
+            // le monde ouvert : on y reprend là où l'on est dans la ville
+            Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
+            float[] w = com.lucas.guild.game.WorldLayout.standard().toWorld(player.getTownId(), p.x, p.z);
+            game.setScreen(new OpenWorldScreen(game, difficulty, new Vector3(w[0], p.y, w[1])));
+            return true;
+        }
         if (!(userData instanceof TownBuilding)) {
             return false;
         }
-        game.setScreen(interiorScreen((TownBuilding) userData));
+        game.setScreen(interiorScreen(game, difficulty, (TownBuilding) userData));
         return true;
     }
 
     /** L'écran d'intérieur correspondant à un identifiant de town.json. */
-    private com.badlogic.gdx.Screen interiorScreen(TownBuilding building) {
+    static com.badlogic.gdx.Screen interiorScreen(MainGame game, String difficulty, TownBuilding building) {
         switch (building.interior) {
             case "forge":
                 return new ForgeScreen(game, difficulty);

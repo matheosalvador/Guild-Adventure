@@ -55,6 +55,7 @@ public final class GameContent {
         TEXT_CACHE.clear();
         storyCache = null;
         npcsCache = null;
+        openWorldCache = null;
     }
 
     // ------------------------------------------------------------------ contenu
@@ -628,6 +629,23 @@ public final class GameContent {
         return story;
     }
 
+    private static volatile OpenWorldData openWorldCache;
+
+    /**
+     * Le prototype du monde ouvert (openworld.json). L'objet lu est gardé et partagé (le monde le consulte à chaque
+     * carreau) : ne pas le modifier.
+     */
+    public static OpenWorldData openWorld() {
+        OpenWorldData cached = openWorldCache;
+        if (cached != null) {
+            return cached;
+        }
+        OpenWorldData data = read("openworld.json", OpenWorldData.class);
+        data.validate("openworld.json", world());
+        openWorldCache = data;
+        return data;
+    }
+
     private static volatile NpcsData npcsCache;
 
     /**
@@ -760,6 +778,9 @@ public final class GameContent {
             if ("story".equals(p.action) && !storyPoints().contains(p.text)) {
                 throw new IllegalStateException(file + " : point d'histoire inconnu \"" + p.text + "\" (voir \"points\" dans story.json)");
             }
+            if ("walk".equals(p.action) && openWorld().place(p.text) == null) {
+                throw new IllegalStateException(file + " : depart a pied vers un lieu absent du monde ouvert \"" + p.text + "\" (voir openworld.json)");
+            }
         }
     }
 
@@ -832,6 +853,7 @@ public final class GameContent {
         models();
         story();
         npcs();
+        openWorld();
     }
 
     // ------------------------------------------------------------------ lecture

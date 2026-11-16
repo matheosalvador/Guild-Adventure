@@ -66,6 +66,9 @@ public class MainGame extends Game {
         com.badlogic.gdx.math.Vector3 pos = s.hasSavedPosition()
                 ? new com.badlogic.gdx.math.Vector3(s.getSavedX(), s.getSavedY(), s.getSavedZ())
                 : null;
+        if (pos != null && OpenWorldScreen.SAVE_SCREEN.equals(s.getSavedScreen())) {
+            return new OpenWorldScreen(this, s.getDifficulty(), pos);   // le monde ouvert : la position est celle du monde
+        }
         if (place != null && place.zoneFile != null) {
             return new ZoneScreen(this, s.getDifficulty(), pos);
         }
