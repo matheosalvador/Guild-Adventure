@@ -3,10 +3,10 @@
   "ground": "#6B7A52",
   "arrival": {"x": 0, "y": 2, "z": 52},
   "villagers": [
-    {"model": "miner", "speed": 1.3, "route": [{"x": -40, "z": 10}, {"x": 40, "z": 10}]},
-    {"model": "miner", "speed": 1.1, "route": [{"x": -3, "z": 18}, {"x": -3, "z": 50}]},
-    {"model": "villager_c", "speed": 1.1, "route": [{"x": -10, "z": 4}, {"x": 10, "z": 4}, {"x": 10, "z": 14}, {"x": -10, "z": 14}]},
-    {"model": "guard", "speed": 0.9, "route": [{"x": -6, "z": 56}, {"x": 6, "z": 56}]}
+    {"model": "miner", "talk": "mineur", "speed": 1.3, "route": [{"x": -40, "z": 10}, {"x": 40, "z": 10}]},
+    {"model": "miner", "talk": "vieux_mineur", "speed": 1.1, "route": [{"x": -3, "z": 18}, {"x": -3, "z": 50}]},
+    {"model": "villager_c", "talk": "vigneronne", "speed": 1.1, "route": [{"x": -10, "z": 4}, {"x": 10, "z": 4}, {"x": 10, "z": 14}, {"x": -10, "z": 14}]},
+    {"model": "guard", "talk": "garde", "speed": 0.9, "route": [{"x": -6, "z": 56}, {"x": 6, "z": 56}]}
   ],
   "buildings": [
     {

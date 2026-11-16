@@ -31,7 +31,7 @@ public class GuildScreen extends InteriorScreen {
 
     @Override
     protected String getNpcPrompt(Object userData) {
-        return GUILD_MASTER.equals(userData) ? "Parler au Maître de Guilde (E)" : null;
+        return GUILD_MASTER.equals(userData) ? npcPrompt("guildmaster") : null;
     }
 
     @Override
@@ -48,29 +48,7 @@ public class GuildScreen extends InteriorScreen {
         if (!GUILD_MASTER.equals(dialogType)) {
             return;
         }
-        dialogTable.add("Bienvenue à la guilde, aventurier. Que puis-je faire pour vous ?").row();
-
-        addStoryDialogs("guildmaster", () -> {
-            dialogTable.clear();
-            buildDialog(GUILD_MASTER);
-        });
-
-        if (story().guildClosed()) {
-            // une fin de l'histoire : la Guilde ne confie plus rien à ce personnage
-            dialogTable.add(UiKit.message(skin, "\"Je n'ai plus de travail pour vous.\"")).pad(10).row();
-        } else {
-            addDialogButton("Voir les quêtes", () -> {
-                toggleDialog(null);
-                questBoard.toggle();
-            });
-        }
-
-        addDialogButton("Acheter du matériel", () -> showShop("guild", () -> {
-            dialogTable.clear();
-            buildDialog(GUILD_MASTER);
-        }));
-
-        addLeaveButton();
+        buildNpcDialog("guildmaster", GUILD_MASTER, "la guilde", null, () -> questBoard.toggle());
     }
 
     // ------------------------------------------------------------------ tableau des quêtes

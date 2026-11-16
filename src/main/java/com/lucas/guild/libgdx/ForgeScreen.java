@@ -2,7 +2,6 @@ package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.graphics.Color;
 import com.lucas.guild.data.GameContent;
-import com.lucas.guild.game.QuestLog;
 
 /** Intérieur de la forge : le forgeron. */
 public class ForgeScreen extends InteriorScreen {
@@ -28,7 +27,7 @@ public class ForgeScreen extends InteriorScreen {
 
     @Override
     protected String getNpcPrompt(Object userData) {
-        return BLACKSMITH.equals(userData) ? "Parler au forgeron (E)" : null;
+        return BLACKSMITH.equals(userData) ? npcPrompt("blacksmith") : null;
     }
 
     @Override
@@ -45,26 +44,6 @@ public class ForgeScreen extends InteriorScreen {
         if (!BLACKSMITH.equals(dialogType)) {
             return;
         }
-        dialogTable.add("Que puis-je faire pour vous ?").row();
-
-        addStoryDialogs("blacksmith", () -> {
-            dialogTable.clear();
-            buildDialog(BLACKSMITH);
-        });
-        final QuestLog questLog = new QuestLog(player);
-        if (questLog.canDeliver("Forgeron", GameContent.quests())) {
-            addDialogButton("Remettre la lettre", () -> {
-                String message = questLog.deliver("Forgeron", GameContent.quests());
-                toggleDialog(null);
-                gameClock.postMessage(message);
-            });
-        }
-
-        addDialogButton("Armes et armures", () -> showShop("forge", () -> {
-            dialogTable.clear();
-            buildDialog(BLACKSMITH);
-        }));
-
-        addLeaveButton();
+        buildNpcDialog("blacksmith", BLACKSMITH, GameContent.town(player.getTownId()).findByInterior("forge").name, null, null);
     }
 }

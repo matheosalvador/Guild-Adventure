@@ -11,6 +11,8 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -209,6 +211,16 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     /** Distance max (en mètres) à laquelle on peut viser / utiliser quelque chose. */
     protected float getInteractionRange() {
         return 5f;
+    }
+
+    /**
+     * Un personnage qui se déplace (sans corps solide, comme les habitants de la ville) visé par le rayon
+     * {@code eye + t * direction}, plus près que {@code maxDistance}.
+     *
+     * @return ce qu'on obtient en le visant (passé à {@link #getInteractionPrompt} et {@link #onInteract}), ou null
+     */
+    protected Object aimedWalker(Vector3 eye, Vector3 direction, float maxDistance) {
+        return null;
     }
 
     /** Un menu supplémentaire est-il ouvert ? (ex. tableau des quêtes) Il bloque le jeu comme la pause. */
@@ -704,7 +716,6 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         hudText.append("FPS: ").append(Gdx.graphics.getFramesPerSecond()).append("\n");
         hudText.append("Player: ").append(player.getName())
                 .append(" (").append(player.getAge(gameClock.getCurrentDay())).append(" ans)\n");
-        hudText.append("HP: ").append(player.getHealth()).append(" / ").append(player.getMaxHealth()).append("\n");
         hudText.append(gameClock.getDate()).append(" - ").append(gameClock.formatTime())
                 .append(" - ").append(townName).append("\n");
         if (DebugMode.isEnabled()) {
@@ -716,18 +727,20 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         font.draw(spriteBatch, hudText, 10, h - 10);
 
         font.draw(spriteBatch, "I : inventaire   K : personnage   J : journal   Q : potion   V : vue   Échap : pause", 10, 24);
+        lifeBarClock += delta;
+        drawLifeBar();
 
         combat.drawHud(spriteBatch, font, w, h, camera.position, camera.direction);
         toasts.draw(delta, gameClock, spriteBatch, font, w, h);
 
         String text = null;
-        btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
-        if (objectInView != null && objectInView.userData instanceof Readable) {
-            text = ((Readable) objectInView.userData).prompt();
-        } else if (objectInView != null && objectInView.userData instanceof StoryPoint) {
-            text = ((StoryPoint) objectInView.userData).prompt();
-        } else if (objectInView != null) {
-            text = getInteractionPrompt(objectInView.userData);
+        Object aimed = aimedUserData();
+        if (aimed instanceof Readable) {
+            text = ((Readable) aimed).prompt();
+        } else if (aimed instanceof StoryPoint) {
+            text = ((StoryPoint) aimed).prompt();
+        } else if (aimed != null) {
+            text = getInteractionPrompt(aimed);
         }
         if (text == null) {
             Vector3 p = playerPosition();
@@ -747,6 +760,59 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             font.draw(spriteBatch, layout, w / 2f - layout.width / 2f, h / 2f - 30);
         }
     }
+
+    /** Portée pour parler à un habitant qui passe (depuis le joueur ; la caméra à la 3e personne s'y ajoute). */
+    private static final float WALKER_TALK_RANGE = 4f;
+
+    /** Ce que vise le joueur : un habitant qui passe s'il est devant le décor visé, sinon ce décor (ou null). */
+    private Object aimedUserData() {
+        btCollisionObject body = playerController.getBodyInView(getInteractionRange());
+        float bodyDistance = playerController.getLastViewDistance();
+        Object walker = aimedWalker(camera.position, camera.direction,
+                Math.min(bodyDistance, WALKER_TALK_RANGE + playerController.getAimBonus()));
+        if (walker != null) {
+            return walker;
+        }
+        return body != null ? body.userData : null;
+    }
+
+    // ------------------------------------------------------------------ barre de vie
+
+    private static final float LIFE_BAR_WIDTH = 220f;
+    private static final float LIFE_BAR_HEIGHT = 16f;
+    private Texture pixel;
+
+    /** La barre de vie du joueur, en bas à gauche au-dessus de l'aide des touches : rouge, plus vive quand la vie est basse. */
+    private void drawLifeBar() {
+        if (pixel == null) {
+            Pixmap white = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+            white.setColor(Color.WHITE);
+            white.fill();
+            pixel = new Texture(white);
+            white.dispose();
+            disposables.add(pixel);
+        }
+        float x = 10f;
+        float y = 36f;
+        float share = Math.max(0f, Math.min(1f, player.getHealth() / (float) Math.max(1, player.getMaxHealth())));
+        spriteBatch.setColor(0f, 0f, 0f, 0.6f);
+        spriteBatch.draw(pixel, x - 2, y - 2, LIFE_BAR_WIDTH + 4, LIFE_BAR_HEIGHT + 4);
+        spriteBatch.setColor(0.25f, 0.05f, 0.05f, 0.9f);
+        spriteBatch.draw(pixel, x, y, LIFE_BAR_WIDTH, LIFE_BAR_HEIGHT);
+        if (share <= 0.25f) {
+            // vie basse : la barre clignote doucement
+            float pulse = 0.75f + 0.25f * (float) Math.sin(lifeBarClock * 8f);
+            spriteBatch.setColor(1f, 0.25f * pulse, 0.15f * pulse, 1f);
+        } else {
+            spriteBatch.setColor(0.8f, 0.12f, 0.1f, 1f);
+        }
+        spriteBatch.draw(pixel, x, y, LIFE_BAR_WIDTH * share, LIFE_BAR_HEIGHT);
+        spriteBatch.setColor(Color.WHITE);
+        layout.setText(font, "PV " + player.getHealth() + " / " + player.getMaxHealth());
+        font.draw(spriteBatch, layout, x + (LIFE_BAR_WIDTH - layout.width) / 2f, y + LIFE_BAR_HEIGHT - 2f);
+    }
+
+    private float lifeBarClock;
 
     // ================================================================== entrées clavier / souris
 
@@ -818,16 +884,16 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         }
 
         if (keycode == Input.Keys.E) {
-            btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
-            if (objectInView != null && objectInView.userData instanceof Readable) {
-                read((Readable) objectInView.userData);
+            Object aimed = aimedUserData();
+            if (aimed instanceof Readable) {
+                read((Readable) aimed);
                 return true;
             }
-            if (objectInView != null && objectInView.userData instanceof StoryPoint) {
-                toggleDialog(STORY_POINT_DIALOG + ((StoryPoint) objectInView.userData).id);
+            if (aimed instanceof StoryPoint) {
+                toggleDialog(STORY_POINT_DIALOG + ((StoryPoint) aimed).id);
                 return true;
             }
-            if (objectInView != null && onInteract(objectInView.userData)) {
+            if (aimed != null && onInteract(aimed)) {
                 return true;
             }
             Vector3 p = playerPosition();

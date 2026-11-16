@@ -54,6 +54,7 @@ public final class GameContent {
         overrideDir = dir;
         TEXT_CACHE.clear();
         storyCache = null;
+        npcsCache = null;
     }
 
     // ------------------------------------------------------------------ contenu
@@ -476,6 +477,9 @@ public final class GameContent {
             if (!models().models.containsKey(v.model)) {
                 throw new IllegalStateException(file + " : habitant : modele inconnu \"" + v.model + "\" (voir models.json)");
             }
+            if (v.talk != null && !villagerTalkIds().contains(v.talk)) {
+                throw new IllegalStateException(file + " : habitant : \"talk\" inconnu \"" + v.talk + "\" (voir \"villagers\" dans npcs.json)");
+            }
         }
         for (TownData.BuildingData b : town.buildings) {
             checkReadable(file, b.parts);
@@ -624,6 +628,64 @@ public final class GameContent {
         return story;
     }
 
+    private static volatile NpcsData npcsCache;
+
+    /**
+     * Ce que disent les PNJ des bâtiments et les habitants (npcs.json). L'objet lu est gardé et partagé (les villes le
+     * consultent à chaque chargement) : ne pas le modifier.
+     */
+    public static NpcsData npcs() {
+        NpcsData cached = npcsCache;
+        if (cached != null) {
+            return cached;
+        }
+        String file = "npcs.json";
+        NpcsData data = read(file, NpcsData.class);
+        data.validate(file, STORY_NPCS);
+        WorldData world = world();
+        for (NpcsData.NpcData n : data.npcs) {
+            for (NpcsData.OptionData o : n.options) {
+                String where = file + " : PNJ \"" + n.id + "\" : choix \"" + o.label + "\"";
+                checkConditions(o.requires, where);
+                if (o.shop != null) {
+                    try {
+                        shop(o.shop);
+                    } catch (IllegalStateException ex) {
+                        throw new IllegalStateException(where + " : " + ex.getMessage(), ex);
+                    }
+                }
+            }
+        }
+        for (NpcsData.VillagerTalkData v : data.villagers) {
+            for (NpcsData.LineData line : v.lines) {
+                String where = file + " : habitant \"" + v.id + "\"";
+                checkConditions(line.requires, where);
+                if (line.town != null && (world.place(line.town) == null || world.place(line.town).townFile == null)) {
+                    throw new IllegalStateException(where + " : \"town\" doit etre une ville de world.json (" + line.town + ")");
+                }
+            }
+        }
+        npcsCache = data;
+        return data;
+    }
+
+    /**
+     * Les identifiants des habitants de npcs.json, lus sans vérifier le reste : npcs.json vérifie des conditions qui
+     * renvoient aux quêtes, et les quêtes relisent les villes (sinon, une boucle sans fin).
+     */
+    private static Set<String> villagerTalkIds() {
+        NpcsData data = read("npcs.json", NpcsData.class);
+        Set<String> ids = new HashSet<>();
+        if (data.villagers != null) {
+            for (NpcsData.VillagerTalkData v : data.villagers) {
+                if (v != null && v.id != null) {
+                    ids.add(v.id);
+                }
+            }
+        }
+        return ids;
+    }
+
     /**
      * Les noms des points d'histoire, lus sans vérifier le reste de story.json : les fichiers de lieux en ont besoin
      * pour leur propre vérification, et story.json vérifie à son tour des choses qui dépendent des lieux.
@@ -769,6 +831,7 @@ public final class GameContent {
         events();
         models();
         story();
+        npcs();
     }
 
     // ------------------------------------------------------------------ lecture

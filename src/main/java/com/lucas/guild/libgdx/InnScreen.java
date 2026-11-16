@@ -2,11 +2,7 @@ package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.lucas.guild.data.LoreData;
 import com.lucas.guild.data.GameContent;
-import com.lucas.guild.game.Lore;
-import com.lucas.guild.game.QuestLog;
-import com.lucas.guild.game.WorldEvents;
 
 /** Intérieur de l'auberge « La Pinte qui Chante » : l'aubergiste, un lit à l'étage. */
 public class InnScreen extends InteriorScreen {
@@ -15,9 +11,7 @@ public class InnScreen extends InteriorScreen {
     private static final String BED = "Bed";
     private static final String CELLAR = "Cellar";
 
-    // Prix en Po
-    private static final int MEAL_PRICE = 5;
-    private static final int BEER_PRICE = 2;
+    /** Prix d'une nuit en Po (les repas et boissons sont dans npcs.json). */
     private static final int BED_PRICE = 10;
 
     public InnScreen(MainGame game, String difficulty) {
@@ -70,7 +64,7 @@ public class InnScreen extends InteriorScreen {
     @Override
     protected String getNpcPrompt(Object userData) {
         if (INNKEEPER.equals(userData)) {
-            return "Parler à l'aubergiste (E)";
+            return npcPrompt("innkeeper");
         }
         if (CELLAR.equals(userData)) {
             return "Descendre à la cave (E)";
@@ -110,91 +104,6 @@ public class InnScreen extends InteriorScreen {
         if (!INNKEEPER.equals(dialogType)) {
             return;
         }
-        dialogTable.add("Bienvenue à " + com.lucas.guild.data.GameContent.town(player.getTownId()).findByInterior("inn").name
-                + " ! Que désirez-vous ?").row();
-
-        final String innName = com.lucas.guild.data.GameContent.town(player.getTownId()).findByInterior("inn").name;
-        addStoryDialogs("innkeeper", () -> {
-            dialogTable.clear();
-            buildDialog(INNKEEPER);
-        });
-        final QuestLog questLog = new QuestLog(player);
-        if (questLog.canDeliver(innName, GameContent.quests())) {
-            addDialogButton("Remettre la livraison", () -> {
-                String message = questLog.deliver(innName, GameContent.quests());
-                toggleDialog(null);
-                gameClock.postMessage(message);
-            });
-        }
-
-        addDialogButton("Manger un repas (" + MEAL_PRICE + " Po)", () -> {
-            toggleDialog(null);
-            if (!player.spendGold(MEAL_PRICE)) {
-                gameClock.postMessage("Pas assez d'or : un repas coûte " + MEAL_PRICE + " Po.");
-                return;
-            }
-            Gdx.app.log("Auberge", "Le joueur mange un repas.");
-            player.heal(20);
-            gameClock.postMessage("Vous mangez un bon repas (+20 PV).");
-            player.train("vigor", 1);
-        });
-
-        addDialogButton("Boire une bière (" + BEER_PRICE + " Po)", () -> {
-            toggleDialog(null);
-            if (!player.spendGold(BEER_PRICE)) {
-                gameClock.postMessage("Pas assez d'or : une bière coûte " + BEER_PRICE + " Po.");
-                return;
-            }
-            Gdx.app.log("Auberge", "Le joueur boit une bière.");
-            gameClock.postMessage("Vous buvez une bière. Ça fait du bien.");
-        });
-
-        addDialogButton("Offrir une bière et écouter les rumeurs (" + BEER_PRICE + " Po)", () -> {
-            LoreData.RumorData rumor = Lore.nextRumor(player, player.getTownId());
-            if (rumor == null) {
-                toggleDialog(null);
-                gameClock.postMessage("L'aubergiste n'a plus rien de neuf à raconter, pour l'instant.");
-                return;
-            }
-            if (!player.spendGold(BEER_PRICE)) {
-                toggleDialog(null);
-                gameClock.postMessage("Pas assez d'or : une bière coûte " + BEER_PRICE + " Po.");
-                return;
-            }
-            Lore.learn(player, Lore.rumorKey(rumor.id));
-            dialogTable.clear();
-            dialogTable.add("L'aubergiste se penche vers vous :").pad(10).row();
-            addWrappedText("\"" + rumor.text + "\"");
-            dialogTable.add(UiKit.message(skin, "(Ajouté au journal : J)")).pad(5).row();
-            addDialogButton("Merci", () -> {
-                dialogTable.clear();
-                buildDialog(INNKEEPER);
-            });
-        });
-
-        addDialogButton("Demander des nouvelles des autres villes", () -> {
-            dialogTable.clear();
-            dialogTable.add("L'aubergiste réfléchit :").pad(10).row();
-            boolean any = false;
-            for (com.lucas.guild.data.WorldData.PlaceData place : com.lucas.guild.data.GameContent.world().places) {
-                if (place.zoneFile != null || place.id.equals(player.getTownId())) {
-                    continue;
-                }
-                String news = WorldEvents.describeAt(player, place.id);
-                if (news != null) {
-                    addWrappedText(place.name + " : " + news);
-                    any = true;
-                }
-            }
-            if (!any) {
-                addWrappedText("Rien de spécial ailleurs, d'après les voyageurs. Les prix sont normaux.");
-            }
-            addDialogButton("Merci", () -> {
-                dialogTable.clear();
-                buildDialog(INNKEEPER);
-            });
-        });
-
-        addLeaveButton();
+        buildNpcDialog("innkeeper", INNKEEPER, GameContent.town(player.getTownId()).findByInterior("inn").name, null, null);
     }
 }

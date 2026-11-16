@@ -17,12 +17,14 @@ public class TownData {
     public Point3 arrival;
     /** Décor de la ville (rues, maisons, arbres, murs...), en coordonnées absolues. */
     public List<PartData> decor = new ArrayList<>();
-    /** Les habitants qui se promènent dans les rues (ils ne font que passer : on ne leur parle pas). */
+    /** Les habitants qui se promènent dans les rues ; on leur parle s'ils ont des répliques ({@code talk}). */
     public List<VillagerData> villagers = new ArrayList<>();
 
     /** Un habitant : un modèle (models.json) qui suit un parcours en boucle à la vitesse donnée (m/s). */
     public static class VillagerData {
         public String model;
+        /** Ses répliques : un habitant de npcs.json. Absent, il ne fait que passer. */
+        public String talk;
         public float speed = 1.2f;
         public List<RoutePoint> route = new ArrayList<>();
     }

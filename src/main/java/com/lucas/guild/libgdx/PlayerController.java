@@ -13,6 +13,7 @@ import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.physics.bullet.linearmath.btDefaultMotionState;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.IntIntMap;
+import com.lucas.guild.game.Settings;
 import com.lucas.guild.model.Adventurer;
 
 public class PlayerController implements Disposable {
@@ -37,7 +38,8 @@ public class PlayerController implements Disposable {
 
     private float yaw = 0f;
     private float pitch = 0f;
-    
+    private float lastViewDistance = Float.MAX_VALUE;
+
     private final static Vector3 rayFrom = new Vector3();
     private final static Vector3 rayTo = new Vector3();
     private final static ClosestRayResultCallback rayCallback = new ClosestRayResultCallback(Vector3.Zero, Vector3.Z);
@@ -130,8 +132,10 @@ public class PlayerController implements Disposable {
     }
 
     private void handleRotation() {
-        float deltaX = -Gdx.input.getDeltaX() * rotationSpeed;
-        float deltaY = -Gdx.input.getDeltaY() * rotationSpeed;
+        // la sensibilité du menu Options multiplie la vitesse de base
+        float speed = rotationSpeed * Settings.current().mouseSensitivity;
+        float deltaX = -Gdx.input.getDeltaX() * speed;
+        float deltaY = -Gdx.input.getDeltaY() * speed;
 
         yaw += deltaX;
         pitch += deltaY;
@@ -221,9 +225,16 @@ public class PlayerController implements Disposable {
         dynamicsWorld.rayTest(rayFrom, rayTo, rayCallback);
 
         if (rayCallback.hasHit()) {
+            lastViewDistance = rayCallback.getClosestHitFraction() * (maxDistance + aimBonus);
             return rayCallback.getCollisionObject();
         }
+        lastViewDistance = Float.MAX_VALUE;
         return null;
+    }
+
+    /** La distance (depuis la caméra) du corps trouvé par le dernier {@link #getBodyInView}, ou MAX_VALUE s'il n'y en avait pas. */
+    public float getLastViewDistance() {
+        return lastViewDistance;
     }
 
     /**

@@ -3,10 +3,10 @@
   "ground": "#7E9A55",
   "arrival": {"x": 0, "y": 2, "z": 52},
   "villagers": [
-    {"model": "sailor", "speed": 1.4, "route": [{"x": -40, "z": 10}, {"x": 40, "z": 10}]},
-    {"model": "sailor", "speed": 1.2, "route": [{"x": 36, "z": -12}, {"x": 36, "z": 30}]},
-    {"model": "villager_a", "speed": 1.2, "route": [{"x": 3, "z": 18}, {"x": 3, "z": 50}]},
-    {"model": "guard", "speed": 0.9, "route": [{"x": -6, "z": 56}, {"x": 6, "z": 56}]}
+    {"model": "sailor", "talk": "marin", "speed": 1.4, "route": [{"x": -40, "z": 10}, {"x": 40, "z": 10}]},
+    {"model": "sailor", "talk": "debardeur", "speed": 1.2, "route": [{"x": 36, "z": -12}, {"x": 36, "z": 30}]},
+    {"model": "villager_a", "talk": "poissonniere", "speed": 1.2, "route": [{"x": 3, "z": 18}, {"x": 3, "z": 50}]},
+    {"model": "guard", "talk": "garde", "speed": 0.9, "route": [{"x": -6, "z": 56}, {"x": 6, "z": 56}]}
   ],
   "buildings": [
     {

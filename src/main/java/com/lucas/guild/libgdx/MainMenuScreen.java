@@ -55,7 +55,7 @@ public class MainMenuScreen implements Screen {
         stage.addActor(mainTable);
 
         TextButton startButton = new TextButton("Start", skin);
-        TextButton settingsButton = new TextButton("Settings", skin);
+        TextButton settingsButton = new TextButton("Options", skin);
         TextButton creditsButton = new TextButton("Credits", skin);
         TextButton exitButton = new TextButton("Exit", skin);
 
@@ -178,13 +178,25 @@ public class MainMenuScreen implements Screen {
             }
         });
         
-        // Boutons non implémentés et a faire plus tard les tables
+        // Options : réglages enregistrés dans settings.json
+        final Table optionsTable = new Table();
+        optionsTable.setFillParent(true);
+        optionsTable.setVisible(false);
+        stage.addActor(optionsTable);
+        final OptionsPanel options = new OptionsPanel(optionsTable, skin, () -> {
+            optionsTable.setVisible(false);
+            mainTable.setVisible(true);
+        });
         settingsButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                Gdx.app.log("MENU", "Settings cliqué (non implémenté)");
+                options.rebuild();
+                mainTable.setVisible(false);
+                optionsTable.setVisible(true);
             }
         });
+
+        // Bouton pas encore fait
         creditsButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {

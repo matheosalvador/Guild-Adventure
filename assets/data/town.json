@@ -3,10 +3,10 @@
   "ground": "#5B8C3A",
   "arrival": {"x": 0, "y": 2, "z": 52},
   "villagers": [
-    {"model": "villager_a", "speed": 1.3, "route": [{"x": -45, "z": 10}, {"x": 45, "z": 10}]},
-    {"model": "villager_b", "speed": 1.2, "route": [{"x": 3, "z": 18}, {"x": 3, "z": 50}]},
-    {"model": "villager_c", "speed": 1.1, "route": [{"x": -10, "z": 4}, {"x": 10, "z": 4}, {"x": 10, "z": 14}, {"x": -10, "z": 14}]},
-    {"model": "guard", "speed": 0.9, "route": [{"x": -6, "z": 56}, {"x": 6, "z": 56}]}
+    {"model": "villager_a", "talk": "lavandiere", "speed": 1.3, "route": [{"x": -45, "z": 10}, {"x": 45, "z": 10}]},
+    {"model": "villager_b", "talk": "porteur", "speed": 1.2, "route": [{"x": 3, "z": 18}, {"x": 3, "z": 50}]},
+    {"model": "villager_c", "talk": "berthe", "speed": 1.1, "route": [{"x": -10, "z": 4}, {"x": 10, "z": 4}, {"x": 10, "z": 14}, {"x": -10, "z": 14}]},
+    {"model": "guard", "talk": "garde", "speed": 0.9, "route": [{"x": -6, "z": 56}, {"x": 6, "z": 56}]}
   ],
   "buildings": [
     {

@@ -41,7 +41,7 @@ final class SkyAndShadows implements Disposable {
      */
     void renderShadows(Environment environment, Array<ModelInstance> instances, Vector3 center, Vector3 viewDirection, float delta) {
         clock += delta;
-        boolean shadows = ViewSettings.shadows;
+        boolean shadows = com.lucas.guild.game.Settings.current().shadows;
         environment.shadowMap = shadows ? shadowLight : null;
         if (shadows) {
             shadowLight.begin(center, viewDirection);

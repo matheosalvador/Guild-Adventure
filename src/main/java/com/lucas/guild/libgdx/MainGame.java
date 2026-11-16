@@ -15,6 +15,9 @@ public class MainGame extends Game {
     @Override
     public void create() {
         GameContent.validateAll(); // échoue tout de suite, avec le nom du fichier, si un JSON est cassé
+        if (com.lucas.guild.game.Settings.current().fullscreen) {
+            ViewSettings.applyFullscreen(true);   // le plein écran choisi dans les Options (settings.json)
+        }
         this.setScreen(new MainMenuScreen(this));
     }
 

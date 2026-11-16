@@ -4,7 +4,12 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector3;
 import com.lucas.guild.data.GameContent;
+import com.lucas.guild.data.NpcsData;
 import com.lucas.guild.data.TownData;
+import com.lucas.guild.data.WorldData;
+import com.lucas.guild.game.NpcTalk;
+import com.lucas.guild.game.QuestLog;
+import com.lucas.guild.game.WorldEvents;
 
 /**
  * Intérieur d'un bâtiment (forge, guilde, auberge) : une pièce avec une porte de sortie
@@ -86,6 +91,124 @@ public abstract class InteriorScreen extends BaseWorldScreen {
         saveManager.saveGame(player, gameClock, difficulty, spawn.x, spawn.y, spawn.z, "Town");
         Gdx.app.log("SAVE", "Sauvegarde automatique en quittant " + placeName);
         game.setScreen(new TownScreen(game, difficulty, spawn));
+    }
+
+    // ------------------------------------------------------------------ PNJ de npcs.json
+
+    /** Le texte quand on vise le PNJ {@code npcId} : « Parler à l'aubergiste (E) ». */
+    protected String npcPrompt(String npcId) {
+        return GameContent.npcs().npc(npcId).prompt + " (E)";
+    }
+
+    /**
+     * Le dialogue d'un PNJ de npcs.json : son accueil, les dialogues d'histoire qu'il propose, ses choix, puis le bouton
+     * qui ferme.
+     *
+     * @param npcId      le PNJ (« innkeeper »)
+     * @param dialogType le dialogue à rouvrir pour revenir à l'accueil
+     * @param place      le nom du bâtiment : remplace {@code {lieu}}, et reçoit les livraisons par défaut
+     * @param shopId     la boutique du bâtiment (chez le commerçant), sinon null
+     * @param openQuests ouvre le tableau des quêtes (à la guilde), sinon null
+     */
+    protected void buildNpcDialog(String npcId, final String dialogType, String place, String shopId, Runnable openQuests) {
+        NpcsData.NpcData npc = GameContent.npcs().npc(npcId);
+        Runnable back = () -> {
+            dialogTable.clear();
+            buildDialog(dialogType);
+        };
+        dialogTable.add(NpcTalk.fill(npc.greeting, place, 0)).row();
+        addStoryDialogs(npcId, back);
+        for (NpcsData.OptionData option : NpcTalk.options(npc, story())) {
+            addNpcOption(option, place, shopId, openQuests, back);
+        }
+        addDialogButton(npc.leave, () -> toggleDialog(null));
+    }
+
+    private void addNpcOption(final NpcsData.OptionData option, String place, String shopId, final Runnable openQuests, final Runnable back) {
+        String label = NpcTalk.label(option);
+        switch (option.action) {
+            case "quests":
+                if (story().guildClosed()) {
+                    // une fin de l'histoire : la Guilde ne confie plus rien à ce personnage
+                    if (option.closedText != null) {
+                        dialogTable.add(UiKit.message(skin, option.closedText)).pad(10).row();
+                    }
+                } else if (openQuests != null) {
+                    addDialogButton(label, () -> {
+                        toggleDialog(null);
+                        openQuests.run();
+                    });
+                }
+                break;
+            case "shop":
+                final String shop = option.shop != null ? option.shop : shopId;
+                if (shop != null) {
+                    addDialogButton(label, () -> showShop(shop, back));
+                }
+                break;
+            case "deliver":
+                final String target = option.target != null ? option.target : place;
+                final QuestLog questLog = new QuestLog(player);
+                if (questLog.canDeliver(target, GameContent.quests())) {
+                    addDialogButton(label, () -> {
+                        String message = questLog.deliver(target, GameContent.quests());
+                        toggleDialog(null);
+                        gameClock.postMessage(message);
+                    });
+                }
+                break;
+            case "serve":
+                addDialogButton(label, () -> {
+                    toggleDialog(null);
+                    gameClock.postMessage(NpcTalk.serve(player, option));
+                });
+                break;
+            case "rumor":
+                addDialogButton(label, () -> {
+                    NpcTalk.RumorResult result = NpcTalk.buyRumor(player, player.getTownId(), option);
+                    if (result.rumor == null) {
+                        toggleDialog(null);
+                        gameClock.postMessage(result.refusal);
+                        return;
+                    }
+                    dialogTable.clear();
+                    dialogTable.add(option.intro).pad(10).row();
+                    addWrappedText("\"" + result.rumor.text + "\"");
+                    dialogTable.add(UiKit.message(skin, "(Ajouté au journal : J)")).pad(5).row();
+                    addDialogButton(option.back, back);
+                });
+                break;
+            case "news":
+                addDialogButton(label, () -> {
+                    dialogTable.clear();
+                    dialogTable.add(option.intro).pad(10).row();
+                    boolean any = false;
+                    for (WorldData.PlaceData other : GameContent.world().places) {
+                        if (other.zoneFile != null || other.id.equals(player.getTownId())) {
+                            continue;
+                        }
+                        String news = WorldEvents.describeAt(player, other.id);
+                        if (news != null) {
+                            addWrappedText(other.name + " : " + news);
+                            any = true;
+                        }
+                    }
+                    if (!any) {
+                        addWrappedText(option.emptyText);
+                    }
+                    addDialogButton(option.back, back);
+                });
+                break;
+            case "talk":
+                addDialogButton(label, () -> {
+                    dialogTable.clear();
+                    addWrappedText(option.text);
+                    addDialogButton(option.back, back);
+                });
+                break;
+            default:
+                throw new IllegalStateException("npcs.json : action inconnue \"" + option.action + "\"");
+        }
     }
 
     // ------------------------------------------------------------------ gabarit de pièce

@@ -1,0 +1,145 @@
+{
+  "npcs": [
+    {
+      "id": "guildmaster",
+      "prompt": "Parler au Maître de Guilde",
+      "greeting": "Bienvenue à la guilde, aventurier. Que puis-je faire pour vous ?",
+      "options": [
+        { "action": "quests", "label": "Voir les quêtes", "closedText": "\"Je n'ai plus de travail pour vous.\"" },
+        { "action": "shop", "label": "Acheter du matériel", "shop": "guild" },
+        { "action": "talk", "label": "Comment monter en rang ?",
+          "text": "\"Finissez des quêtes, et faites ce que la Guilde attend de vous. Le tableau vous dit ce qu'il manque pour le rang suivant.\"" }
+      ]
+    },
+    {
+      "id": "innkeeper",
+      "prompt": "Parler à l'aubergiste",
+      "greeting": "Bienvenue à {lieu} ! Que désirez-vous ?",
+      "options": [
+        { "action": "deliver", "label": "Remettre la livraison" },
+        { "action": "serve", "label": "Manger un repas", "price": 5, "heal": 20, "vigor": 1,
+          "text": "Vous mangez un bon repas (+20 PV).", "noGoldText": "Pas assez d'or : un repas coûte {prix} Po." },
+        { "action": "serve", "label": "Boire une bière", "price": 2,
+          "text": "Vous buvez une bière. Ça fait du bien.", "noGoldText": "Pas assez d'or : une bière coûte {prix} Po." },
+        { "action": "rumor", "label": "Offrir une bière et écouter les rumeurs", "price": 2,
+          "intro": "L'aubergiste se penche vers vous :",
+          "emptyText": "L'aubergiste n'a plus rien de neuf à raconter, pour l'instant.",
+          "noGoldText": "Pas assez d'or : une bière coûte {prix} Po." },
+        { "action": "news", "label": "Demander des nouvelles des autres villes",
+          "intro": "L'aubergiste réfléchit :",
+          "emptyText": "Rien de spécial ailleurs, d'après les voyageurs. Les prix sont normaux." }
+      ]
+    },
+    {
+      "id": "blacksmith",
+      "prompt": "Parler au forgeron",
+      "greeting": "Que puis-je faire pour vous ?",
+      "options": [
+        { "action": "deliver", "label": "Remettre la lettre", "target": "Forgeron" },
+        { "action": "shop", "label": "Armes et armures", "shop": "forge" }
+      ]
+    },
+    {
+      "id": "shopkeeper",
+      "prompt": "Parler au commerçant",
+      "greeting": "Bienvenue au {lieu} ! Je regarde ce qu'il vous faut ?",
+      "options": [
+        { "action": "deliver", "label": "Remettre la livraison" },
+        { "action": "shop", "label": "Voir la marchandise" }
+      ]
+    }
+  ],
+  "villagers": [
+    {
+      "id": "lavandiere",
+      "name": "Maëlle, lavandière",
+      "lines": [
+        { "text": "Le lavoir est plein de ragots. Les meilleurs, c'est à l'auberge qu'on les paie." },
+        { "text": "Ma soeur a épousé un marin de Port-Brume. Elle dit que là-bas, même le pain sent le poisson." },
+        { "text": "On raconte que la Guilde vous a confié la mine de Hautevigne. Bon courage : personne n'y descend plus.", "requires": ["flag:mandat"] },
+        { "text": "On dit que vous avez brisé quelque chose, là-haut, à Corvenne. Les vieux disent que l'air a changé.", "requires": ["flag:ending_break"] },
+        { "text": "Vous n'avez pas pris une ride depuis l'an dernier. Ça fait jaser, au lavoir.", "requires": ["flag:ending_keep"] }
+      ]
+    },
+    {
+      "id": "porteur",
+      "name": "Jorin, porteur d'eau",
+      "lines": [
+        { "text": "Deux seaux, cent pas, et on recommence. La fontaine, elle, ne se fatigue jamais." },
+        { "text": "Du travail ? Le tableau d'annonces, près de la fontaine. La Guilde en donne aussi, à ceux qui ont du rang." },
+        { "text": "Le forgeron cogne dès l'aube. Ne lui parlez pas avant qu'il ait mangé son pain." }
+      ]
+    },
+    {
+      "id": "berthe",
+      "name": "La vieille Berthe",
+      "lines": [
+        { "text": "J'ai connu le temps où la garnison de la tour descendait au marché. De beaux garçons. On ne les voit plus." },
+        { "text": "Les gobelins des ruines ? Du temps de mon mari, on les chassait avec des fourches." },
+        { "text": "Une lettre au sceau de Corvenne, au fond d'une mine ? Le seigneur ne descend jamais si bas, d'habitude.", "requires": ["flag:letter_found"] },
+        { "text": "Ne pas vieillir... Ma mère disait que c'est un malheur qu'on souhaite aux autres.", "requires": ["flag:varn_defeated"] }
+      ]
+    },
+    {
+      "id": "garde",
+      "name": "Garde",
+      "lines": [
+        { "text": "Circulez. Et pas d'arme dégainée dans les rues." },
+        { "text": "La porte est au sud. Au-delà, c'est la route, et la route n'est à personne.", "town": "aethelgard" },
+        { "text": "Les marins se battent le soir. Tant que personne ne tombe à l'eau, ce ne sont pas mes affaires.", "town": "portbrume" },
+        { "text": "La mine est fermée, ordre du conseil. Ne me demandez pas d'ouvrir la grille.", "town": "hautevigne", "requires": ["!flag:mandat"] },
+        { "text": "Vous avez le mandat de la Guilde ? Alors la mine est à vous. Moi, je n'y mets pas les pieds.", "town": "hautevigne", "requires": ["flag:mandat"] }
+      ]
+    },
+    {
+      "id": "mineur",
+      "name": "Hob, mineur",
+      "lines": [
+        { "text": "Depuis qu'on a fermé la vieille galerie, on creuse au nord. C'est moins riche, mais on remonte le soir." },
+        { "text": "On entend des coups, la nuit, sous la colline. Les anciens disent que ce sont les mineurs d'autrefois." },
+        { "text": "Vous êtes descendu ? Alors dites-moi : ils marchent encore, là-dessous ?", "requires": ["flag:letter_found"] }
+      ]
+    },
+    {
+      "id": "vieux_mineur",
+      "name": "Tarn, vieux mineur",
+      "lines": [
+        { "text": "Quarante ans de pioche. Le dos ne pardonne pas, mais la colline non plus." },
+        { "text": "Les premiers mineurs ont muré quelque chose, tout au fond. On ne disait pas quoi. On disait seulement : pas plus loin." }
+      ]
+    },
+    {
+      "id": "vigneronne",
+      "name": "Aude, vigneronne",
+      "lines": [
+        { "text": "Les vignes de la colline n'ont jamais donné. Mon grand-père disait que la terre avait oublié ses saisons." },
+        { "text": "Le Filon d'Argent sert un vin de la vallée. Le nôtre, personne n'en a jamais bu." },
+        { "text": "Cette année, les vignes de la colline ont des bourgeons. Pour la première fois.", "requires": ["flag:ending_break"] }
+      ]
+    },
+    {
+      "id": "marin",
+      "name": "Bosco, marin",
+      "lines": [
+        { "text": "La brume monte du port tous les matins. Le capitaine dit qu'elle cache les écueils, moi je dis qu'elle cache les dettes." },
+        { "text": "Des feux dans les ruines, la nuit, on les voyait du large. Personne n'y vivait pourtant." }
+      ]
+    },
+    {
+      "id": "debardeur",
+      "name": "Lenn, débardeur",
+      "lines": [
+        { "text": "Une caisse, deux caisses, cent caisses. La Fosse, en bas, c'est là qu'on règle les comptes entre nous." },
+        { "text": "Les routes ne sont plus sûres depuis un an. Les bandes, on dit que ce sont des soldats. Des vrais." }
+      ]
+    },
+    {
+      "id": "poissonniere",
+      "name": "Nella, poissonnière",
+      "lines": [
+        { "text": "Du poisson frais ! Enfin... frais de ce matin. Ou d'hier." },
+        { "text": "Le Comptoir du Port achète tout ce que les marins rapportent. Il revend le double, évidemment." }
+      ]
+    }
+  ]
+}

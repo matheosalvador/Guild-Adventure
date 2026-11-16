@@ -6,12 +6,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
@@ -21,7 +18,7 @@ import com.lucas.guild.model.Item;
 
 /**
  * Les menus communs à tous les écrans du monde : la fenêtre de dialogue, l'inventaire (I), le personnage (K),
- * le journal (J), le panneau de debug (F10) et la pause (Échap). Cette classe les construit et les remplit ;
+ * le journal (J), le panneau de debug (F10) et la pause (Échap, avec les Options). Cette classe les construit et les remplit ;
  * l'écran décide quand ils s'ouvrent (un seul à la fois).
  */
 final class WorldPanels implements Disposable {
@@ -38,6 +35,10 @@ final class WorldPanels implements Disposable {
     private final JournalPanel journalPanel;
     private final DebugPanel debugPanel;
     private final Texture shadeTexture;
+    private final Skin skin;
+    private final MainGame game;
+    private final Runnable onContinue;
+    private final OptionsPanel options;
 
     /**
      * @param onDrop     ce que devient un objet jeté depuis l'inventaire (le poser devant le joueur)
@@ -74,33 +75,22 @@ final class WorldPanels implements Disposable {
         debug.setBackground(background);
         debugPanel = new DebugPanel(debug, skin, game, screen, session, difficulty);
 
-        // Menu pause
+        // Menu pause, et ses Options à la place des boutons
         pause = addTable(stage, skin);
-        TextButton continueButton = new TextButton("Continuer", skin);
-        TextButton menuButton = new TextButton("Retour au Menu", skin);
-        final TextButton shadowsButton = new TextButton(shadowsLabel(), skin);
-        shadowsButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                ViewSettings.shadows = !ViewSettings.shadows;
-                shadowsButton.setText(shadowsLabel());
-            }
-        });
-        pause.add(continueButton).pad(10).row();
-        pause.add(shadowsButton).pad(10).row();
-        pause.add(menuButton).pad(10).row();
-        continueButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                onContinue.run();
-            }
-        });
-        menuButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new MainMenuScreen(game));
-            }
-        });
+        pause.setBackground(background);
+        this.skin = skin;
+        this.game = game;
+        this.onContinue = onContinue;
+        options = new OptionsPanel(pause, skin, this::buildPause);
+        buildPause();
+    }
+
+    /** Les boutons de la pause : Continuer, Options, Retour au menu. */
+    private void buildPause() {
+        pause.clear();
+        pause.add(UiKit.button(skin, "Continuer", onContinue)).pad(10).row();
+        pause.add(UiKit.button(skin, "Options", options::rebuild)).pad(10).row();
+        pause.add(UiKit.button(skin, "Retour au Menu", () -> game.setScreen(new MainMenuScreen(game)))).pad(10).row();
     }
 
     private static Table addTable(Stage stage, Skin skin) {
@@ -111,12 +101,11 @@ final class WorldPanels implements Disposable {
         return table;
     }
 
-    private static String shadowsLabel() {
-        return "Ombres : " + (ViewSettings.shadows ? "oui" : "non");
-    }
-
     /** Montre ou cache un menu ; la souris est libre tant qu'un menu est ouvert, capturée pour regarder sinon. */
     void show(Table table, boolean open) {
+        if (table == pause && open) {
+            buildPause();   // la pause rouvre toujours sur ses boutons, même fermée depuis les Options
+        }
         table.setVisible(open);
         Gdx.input.setCursorCatched(!open);
     }
