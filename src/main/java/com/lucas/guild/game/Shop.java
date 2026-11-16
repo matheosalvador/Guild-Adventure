@@ -60,11 +60,6 @@ public class Shop {
         return shopPrice(item) * data.sellPercent / 100;
     }
 
-    /** Prix affiché de l'objet (avant la réduction due au Marchandage). */
-    public int listPrice(Item item) {
-        return shopPrice(item);
-    }
-
     /** Prix que {@code player} paie pour {@code item} : le prix affiché, réduit par sa compétence Marchandage. */
     public int buyPrice(Adventurer player, Item item) {
         int price = eventPrice(player, item);

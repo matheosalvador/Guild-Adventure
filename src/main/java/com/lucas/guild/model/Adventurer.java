@@ -111,15 +111,6 @@ public class Adventurer extends Entite {
         inventory.retirerItem(item);
     }
 
-    public Item findItem(Item itemToFind) {
-        for (Item item : inventory.getItems()) {
-            if (item.equals(itemToFind)) {
-                return item;
-            }
-        }
-        return null;
-    }
-
     /** Équipe un objet de l'inventaire (arme, armure, sac). @return null si c'est fait, sinon la raison du refus. */
     public String equip(Item item) {
         return inventory.equip(item);

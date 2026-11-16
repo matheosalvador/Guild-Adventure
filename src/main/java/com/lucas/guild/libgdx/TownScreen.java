@@ -7,11 +7,9 @@ import java.util.Set;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Colors;
 import com.badlogic.gdx.math.Vector3;
 import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.TownData;
-import com.lucas.guild.model.Building;
 
 /**
  * La ville. Le sol est fixe ; les bâtiments (nom, position, couleur, intérieur à ouvrir)
@@ -23,12 +21,13 @@ public class TownScreen extends BaseWorldScreen {
     private static final Set<String> KNOWN_INTERIORS = new HashSet<>(Arrays.asList("forge", "guild", "inn", "store"));
 
     /** Un bâtiment de la ville, avec l'intérieur qu'il ouvre. */
-    private static class TownBuilding extends Building {
+    private static final class TownBuilding {
+        final String name;
         final String interior;
         final String shop;
 
-        TownBuilding(String name, String type, String interior, String shop) {
-            super(name, type);
+        TownBuilding(String name, String interior, String shop) {
+            this.name = name;
             this.interior = interior;
             this.shop = shop;
         }
@@ -166,7 +165,7 @@ public class TownScreen extends BaseWorldScreen {
             throw new IllegalStateException("town.json : batiment \"" + data.name + "\" : interieur inconnu \"" + data.interior
                     + "\" (attendu : " + KNOWN_INTERIORS + ")");
         }
-        TownBuilding building = new TownBuilding(data.name, data.type, data.interior, data.shop);
+        TownBuilding building = new TownBuilding(data.name, data.interior, data.shop);
         addBox(10f, 10f, 10f, color, data.x, 5.5f, data.z, building).userData = building;
         for (TownData.PartData part : data.parts) {
             addPart(part, data.x, data.z, "batiment \"" + data.name + "\" (details)", building); // viser la porte ou l'enseigne ouvre aussi le batiment
@@ -177,8 +176,8 @@ public class TownScreen extends BaseWorldScreen {
 
     @Override
     protected String getInteractionPrompt(Object userData) {
-        if (userData instanceof Building) {
-            return "Entrer dans: " + ((Building) userData).getName() + " (E)";
+        if (userData instanceof TownBuilding) {
+            return "Entrer dans: " + ((TownBuilding) userData).name + " (E)";
         }
         if (GATE.equals(userData)) {
             return "Prendre la route (E)";
@@ -216,7 +215,7 @@ public class TownScreen extends BaseWorldScreen {
             case "inn":
                 return new InnScreen(game, difficulty);
             case "store":
-                return new StoreScreen(game, difficulty, building.getName(), building.shop);
+                return new StoreScreen(game, difficulty, building.name, building.shop);
             default:
                 throw new IllegalStateException("interieur inconnu : " + building.interior);
         }

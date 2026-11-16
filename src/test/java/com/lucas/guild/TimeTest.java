@@ -3,7 +3,6 @@ package com.lucas.guild;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.model.*;
-import java.nio.charset.Charset;
 import java.nio.file.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;

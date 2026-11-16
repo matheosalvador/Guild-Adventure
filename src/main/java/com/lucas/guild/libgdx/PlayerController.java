@@ -14,7 +14,6 @@ import com.badlogic.gdx.physics.bullet.linearmath.btDefaultMotionState;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.IntIntMap;
 import com.lucas.guild.model.Adventurer;
-import com.lucas.guild.model.Item;
 
 public class PlayerController implements Disposable {
 
@@ -116,9 +115,6 @@ public class PlayerController implements Disposable {
             case Input.Keys.SPACE:
                 keys.put(keycode, keycode);
                 return true;
-            case Input.Keys.E:
-                interact();
-                return true;
         }
         return false;
     }
@@ -213,17 +209,6 @@ public class PlayerController implements Disposable {
         return aimBonus;
     }
     
-    private void interact() {
-        btCollisionObject body = getBodyInView(3f);
-        if (body != null && body.userData instanceof GameObject) {
-            GameObject object = (GameObject) body.userData;
-            if (object.isActive && object.item != null) {
-                player.findItem(object.item);
-                object.isActive = false;
-            }
-        }
-    }
-
     public btCollisionObject getBodyInView(float maxDistance) {
         rayFrom.set(camera.position);
         rayTo.set(camera.direction).scl(maxDistance + aimBonus).add(rayFrom);
