@@ -134,12 +134,13 @@ public class QuestLog {
             return "Vous n'avez rien à me remettre.";
         }
         Item parcel = findQuestItem(quest.getGiveItem());
-        player.removeItem(parcel);
         if (quest.isPayOnDelivery()) {
+            player.removeItem(parcel);
             finish(quest);
             return quest.getGiveItem() + " remis : +" + quest.getGoldReward() + " Po !";
         }
-        player.addItem(new ObjetDeQuete(quest.getProofItem()));
+        // la preuve prend la place du colis, même si le personnage est en surcharge : sinon elle serait perdue
+        player.getInventaire().remplacerItem(parcel, new ObjetDeQuete(quest.getProofItem()));
         return quest.getGiveItem() + " remise. Rapportez à la guilde : " + quest.getProofItem() + ".";
     }
 

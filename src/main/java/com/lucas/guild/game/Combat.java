@@ -62,7 +62,8 @@ public final class Combat {
         StringBuilder message = new StringBuilder(monster.getName()).append(" vaincu : +").append(gold).append(" Po");
 
         String loot = monster.data.lootItem;
-        if (loot != null && wantedByActiveQuest(player, loot)) {
+        // une seule preuve suffit : on n'en redonne pas à chaque monstre tant que le joueur porte la sienne
+        if (loot != null && wantedByActiveQuest(player, loot) && !carriesQuestItem(player, loot)) {
             if (player.addItem(new ObjetDeQuete(loot))) {
                 message.append(", ").append(loot);
             } else {
@@ -81,6 +82,15 @@ public final class Combat {
             }
         }
         return drops;
+    }
+
+    private static boolean carriesQuestItem(Adventurer player, String name) {
+        for (com.lucas.guild.model.Item item : player.getInventoryItems()) {
+            if (item instanceof ObjetDeQuete && name.equals(item.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean wantedByActiveQuest(Adventurer player, String item) {
