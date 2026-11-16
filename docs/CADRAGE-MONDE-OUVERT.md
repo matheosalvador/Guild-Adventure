@@ -183,7 +183,8 @@ d'être relues à chaque appel (point 3), sinon chaque carreau relit les fichier
 
 ## 7. Questions pour toi
 
-Les défauts proposés sont ceux du document ; « ok à tout » les valide.
+**Réponse de Lucas le 2026-11-16 : « oui à tout ».** Les huit défauts ci-dessous sont donc les décisions retenues.
+Le prototype se fera après l'histoire (chantier B).
 
 1. **Quelle approche ?** *Défaut : A (terrain continu), avec repli sur B si le prototype échoue.*
 2. **Quelle échelle ?** *Défaut : 1 km de carte = 100 m de terrain (3 minutes d'Aethelgard à la forêt).* Plus grand
