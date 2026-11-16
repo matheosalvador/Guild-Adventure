@@ -22,11 +22,15 @@ de `general_develop` `dcffeeb`). Rien n'est fusionné ni poussé. Compte rendu c
    quête jetables, hasard sans graine) ;
 3. son accord pour fusionner `feature/relecture` dans `general_develop`, puis pour commencer la suite.
 
+**Chantier D (cadrage du monde ouvert) : document écrit** le 2026-11-16, `docs/CADRAGE-MONDE-OUVERT.md`, sur la
+branche `feature/cadrage-monde-ouvert` (partie de `feature/relecture`, qui n'est pas encore fusionnée). Aucun code.
+Il recommande le terrain continu à l'échelle 1 km de carte = 100 m, avec un prototype Aethelgard → Forêt des Loups,
+et se termine par 8 questions. **Ne rien coder du monde ouvert avant les réponses de Lucas.**
+
 ## Ensuite (ne pas commencer sans l'accord de Lucas)
 
-Ordre du plan : les deux documents (`docs/HISTOIRE.md` : le cahier d'histoire ; `docs/CADRAGE-MONDE-OUVERT.md`), à
-lui faire lire ; puis B (réalisation de l'histoire) ; puis C (confort de jeu) ; E (Java 21) quand il autorise le
-téléchargement d'un JDK.
+Ordre du plan : `docs/HISTOIRE.md` (le cahier d'histoire, à lui faire valider) ; puis B (réalisation de l'histoire) ;
+puis C (confort de jeu) ; E (Java 21) quand il autorise le téléchargement d'un JDK.
 
 Les nouvelles branches partent de `general_develop` **une fois `feature/relecture` fusionnée** (sinon de
 `feature/relecture`, en le disant à Lucas).
