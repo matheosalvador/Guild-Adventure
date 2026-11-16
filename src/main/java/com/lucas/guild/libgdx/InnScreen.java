@@ -56,10 +56,15 @@ public class InnScreen extends InteriorScreen {
         // Toit
         addBox(20f, 1f, 20f, floor, 0, 20f, 0, null);
 
-        // Escalier
-        for (int i = 0; i < 10; i++) {
-            addBox(4f, 1f, 2f, Color.BROWN, -8, 1f + i, 8f - i * 2f, null);
+        // Escalier le long du mur ouest : vingt marches de 0,5 m (un saut monte de 0,7 m). Les douze premières
+        // passent sous le plancher de l'étage ; les suivantes, plus courtes, s'arrêtent avant le mur de la porte.
+        for (int j = 0; j < 20; j++) {
+            float depth = j < 12 ? 1f : 0.8f;
+            float lowEdge = j < 12 ? 9f - j : -3f - 0.8f * (j - 12);
+            addBox(4f, 1f, depth, Color.BROWN, -8, 0.5f + 0.5f * j, lowEdge - depth / 2f, null);
         }
+        // Palier : du haut de l'escalier au plancher de l'étage
+        addBox(4f, 1f, 4f, floor, -4, 10f, -8f, null);
     }
 
     @Override
