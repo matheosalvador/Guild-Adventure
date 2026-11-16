@@ -6,7 +6,6 @@
     "type": "COMBAT",
     "target": "Rat Géant",
     "goldReward": 20,
-    "experienceReward": 5,
     "proofItem": "Queue de rat"
   },
   {
@@ -16,7 +15,6 @@
     "type": "DELIVERY",
     "target": "Forgeron",
     "goldReward": 10,
-    "experienceReward": 2,
     "giveItem": "Lettre à livrer",
     "proofItem": "Lettre signée"
   },
@@ -27,7 +25,6 @@
     "type": "COMBAT",
     "target": "Gobelin",
     "goldReward": 100,
-    "experienceReward": 15,
     "proofItem": "Insigne de gobelin"
   },
   {
@@ -38,7 +35,6 @@
     "town": "aethelgard",
     "target": "Comptoir du Port",
     "goldReward": 45,
-    "experienceReward": 5,
     "giveItem": "Colis scellé",
     "payOnDelivery": true
   },
@@ -50,7 +46,6 @@
     "town": "aethelgard",
     "target": "Le Filon d'Argent",
     "goldReward": 40,
-    "experienceReward": 5,
     "giveItem": "Pli d'Aethelgard",
     "payOnDelivery": true
   },
@@ -62,7 +57,6 @@
     "town": "portbrume",
     "target": "Gobelin",
     "goldReward": 70,
-    "experienceReward": 8,
     "collectItem": "goblin_ear",
     "collectCount": 4
   },
@@ -74,7 +68,6 @@
     "town": "portbrume",
     "target": "La Pinte qui Chante",
     "goldReward": 60,
-    "experienceReward": 5,
     "giveItem": "Pli du port",
     "payOnDelivery": true
   },
@@ -86,7 +79,6 @@
     "town": "hautevigne",
     "target": "Loup",
     "goldReward": 60,
-    "experienceReward": 8,
     "collectItem": "wolf_pelt",
     "collectCount": 3
   },
@@ -98,7 +90,6 @@
     "town": "hautevigne",
     "target": "La Voile Rouge",
     "goldReward": 95,
-    "experienceReward": 10,
     "giveItem": "Sacoche de mineur",
     "payOnDelivery": true
   },

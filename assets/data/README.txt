@@ -12,7 +12,7 @@ quests.json
     town = la ville dont le tableau propose la quete (absent = la ville de depart : le tableau de la guilde
     d'Aethelgard ; Port-Brume et Hautevigne ont un tableau d'annonces pres de la porte). Chaque quete se
     rend la ou elle a ete prise.
-    rank : rang minimum (0 = F, 1 = E, ...). Le rang monte d'un cran toutes les 3 quetes terminees.
+    rank : rang minimum (0 = F, 1 = E, ...). Les rangs s'obtiennent selon story.json (des quetes terminees ET une etape de l'histoire).
     type :
       COMBAT   : proofItem = objet de quete lache par un monstre (monsters.json "lootItem") tant que la quete
                  est active ; on le rapporte au tableau.
@@ -21,7 +21,7 @@ quests.json
                  remet par le bouton "Remettre la livraison". Avec "payOnDelivery": true, la quete est payee et
                  terminee a la remise (livraison entre villes) ; sinon on recoit proofItem a rapporter au tableau.
       COLLECT  : collectItem (identifiant de items.json) x collectCount sont rapportes au tableau, qui les reprend.
-    goldReward = or verse a la fin. experienceReward n'est plus utilise.
+    goldReward = or verse a la fin.
 
 skills.json
     Les competences. On ne les achete pas : elles progressent quand on fait l'action.
@@ -47,6 +47,15 @@ monsters.json
     on les ramasse avec E. Ce sont en general des "Butin" (a revendre en boutique).
     Pour qu'un monstre apparaisse : Monster.spawn("giant_rat", x, z) dans un ecran (voir CellarScreen),
     ou l'ecrire dans une zone sauvage (zone_*.json).
+    Facultatif, pour l'histoire :
+    flyHeight = hauteur de vol au-dessus du sol (m, une chauve-souris) ; boss = true : sa barre de vie reste en
+    haut de l'ecran tant qu'il est proche ; killFlag / killMessage = drapeau d'histoire pose a sa mort (voir
+    story.json) et la phrase affichee ; yieldPercent / yieldFlag / yieldMessage = il se rend au lieu de mourir
+    quand sa vie passe sous ce % (il ne bouge plus, ne frappe plus) et le drapeau est pose.
+    phases = la suite du combat, de la premiere a la derniere : chaque phase commence quand la vie passe sous
+    "below" % (decroissant d'une phase a l'autre) et peut changer damage / speed / attackCooldown, soigner
+    (healAmount PV toutes les healEvery s, seulement si healRequires est vrai : conditions de story.json),
+    appeler des renforts (summon = id de monstre, summonCount de 1 a 6) et afficher un "message".
 
 classes.json et backgrounds.json
     Les choix de la creation du personnage (4 classes, 4 origines). Chaque choix a des avantages et des
@@ -75,6 +84,10 @@ world.json
     "ambush" (facultatif) = les embuscades entre villes : zoneFile (le decor de la route, zone_route.json),
     monsters (qui attaque) et min/max (combien d'agresseurs). Le voyage est coupe a la moitie ; on repart
     en vainquant les agresseurs. Si on tombe, on se reveille a l'auberge de la ville de depart.
+    Facultatif, pour l'histoire : "requires" = conditions (voir story.json) pour pouvoir s'y rendre, et
+    "lockedText" = la raison affichee sur la carte tant que le lieu est ferme ; "hidden" = true pour une zone
+    qui n'est pas sur la carte (un etage de donjon : on n'y arrive que par une porte, aucune route n'y mene).
+    Le lieu de depart ne peut etre ni ferme ni cache.
 
 zone_foret.json, zone_ruines.json, zone_route.json (une zone sauvage par fichier)
     Un terrain carre : "ground" (couleur), "size" (cote, en m), "arrival" (ou on arrive), "exit" (la borne de
@@ -82,6 +95,22 @@ zone_foret.json, zone_ruines.json, zone_route.json (une zone sauvage par fichier
     "monsters" (id de monsters.json + x/z ; ils reapparaissent a chaque visite) et "chests" (x/z, gold, items =
     identifiants de items.json, respawnDays = jours avant qu'un coffre ouvert se remplisse de nouveau).
     Les objets jetes ou lacher par les monstres restent au sol tant que la partie tourne (non sauvegardes).
+    Les zones de l'histoire (zone_mine_*, zone_fosse, zone_corvenne_*) sont fabriquees par
+    docs/outils-test/gen_story_zones.py : modifier le script puis le relancer plutot que les fichiers a la main.
+    Facultatif :
+    "exit" n'est obligatoire que si la zone n'a aucune porte ;
+    "indoor" = true pour un lieu ferme (mine, salle) : pas de ciel ni d'ombres, lumiere fixe ;
+    "background" = couleur du fond (au-dessus des murs) ; "wall" = couleur du tour de la zone ;
+    "ambient" = lumiere ambiante de 0 a 1 (0 = 0,4 dehors, 0,3 dedans) ;
+    un monstre peut avoir "requires" (conditions de story.json) : il n'est la que si elles sont vraies ;
+    "doors" = portes vers une autre zone : x/z, to (un lieu de world.json qui est une zone), label (texte
+    quand on la vise), spawn (ou on arrive de l'autre cote ; sinon a son "arrival"), color, et s'il faut une
+    condition : requires + lockedText (la raison affichee tant qu'elle est fermee) ;
+    "arena" = une epreuve en vagues : startFlag (le drapeau d'histoire qui la lance), waves (listes de
+    monstres id/x/z), winSets / failSets (drapeaux poses si on gagne, ou si on tombe ou sort avant la fin),
+    winMessage / failMessage. On ne peut pas sauvegarder pendant l'arene ;
+    une partie de decor peut avoir action = "story" + text = un point de story.json ("cairn"...) : E ouvre
+    ses dialogues d'histoire.
 
 town.json, town_portbrume.json, town_hautevigne.json (un fichier par ville)
     La ville. "ground" = couleur du sol. "arrival" = ou on apparait en arrivant par la route (devant la porte).
@@ -134,6 +163,45 @@ lore.json
     "texts" : les textes a lire (id -> title + text), reliés aux panneaux par action "read" (voir town.json
     et zone_*.json). Tout ce qu'on a entendu ou lu est dans le journal (touche J) et sauvegarde.
     Eviter les guillemets francais « » : la police du jeu ne les dessine pas (utiliser des guillemets droits).
+    Une rumeur peut avoir "requires" (conditions de story.json) : elle ne se raconte qu'a partir de ce moment.
+
+story.json
+    L'histoire. Tout repose sur des DRAPEAUX (des noms, sauvegardes avec le personnage, avec l'heure ou ils
+    ont ete poses) et des CONDITIONS. Une liste de conditions est vraie quand toutes le sont. Une condition
+    s'ecrit type:argument, precedee de "!" pour dire le contraire :
+      flag:nom          le drapeau est pose
+      quest:Titre       la quete (quests.json) est terminee
+      lore:text:id      le texte (lore.json) a ete lu ; lore:rumor:id : la rumeur a ete entendue
+      rank:3            le personnage est au moins de ce rang (0 = F, 1 = E...)
+      quests:7          au moins 7 quetes terminees
+      item:id           le personnage porte cet objet (items.json)
+      since:nom:4320    le drapeau a ete pose il y a au moins 4320 minutes de jeu (3 jours)
+      within:nom:840    le drapeau a ete pose il y a au plus 840 minutes (14 heures)
+    Le jeu pose lui-meme : started:<chapitre>, done:<chapitre>, ended:<fin>, trigger:<declencheur>.
+    "ranks" : les rangs de la Guilde a partir de 1 (E), dans l'ordre : rank, label (la lettre), requires.
+      Un rang n'est donne que si le precedent l'est ; il ne redescend jamais.
+    "chapters" : id, title, intro et outro (textes montres au debut et a la fin), requires (quand il
+      commence), objectives (text = la ligne du journal, done = conditions qui la cochent), goldReward et
+      sets (drapeaux en plus a la fin). Un chapitre est fini quand tous ses objectifs sont coches.
+    "points" : les endroits du decor qui ne sont pas des PNJ (id -> nom), relies par action "story".
+    "dialogs" : id, at (ou : guildmaster@ville, innkeeper@ville, blacksmith@ville, shopkeeper@ville, ou un
+      point), requires, label (le bouton), text. Sans "options", ses effets s'appliquent a la lecture ;
+      avec, chaque option (label, text, requires, next = un autre dialogue) a ses effets. Effets : sets /
+      unsets (drapeaux), gives / takes (objets de items.json ; refuse sans rien changer si c'est trop lourd
+      ou si l'objet manque).
+    "pickups" : objets d'histoire au sol (une boite doree) : scene (EcranSimple@lieu, ex. CellarScreen@aethelgard
+      ou ZoneScreen@mine_galeries), x/z, name, flag (pose quand on le ramasse), requires, message.
+    "triggers" : cercles au sol (scene, x/z, radius, requires) qui, la premiere fois qu'on y entre, posent
+      "sets" et affichent "message" (une ligne) ou "title" + "text" (une fenetre).
+    "rules" : des drapeaux poses tout seuls des que requires est vrai.
+    "endings" : id, title, text (l'epilogue, sur son ecran de fin), requires, goldReward. Le jeu continue apres.
+    "boons" : avantages de combat dans certains lieux (places) quand requires est vrai : damagePercent,
+      healthBonus (les sceaux, au chateau).
+    "effects" : ce qu'une fin change au monde tant que requires est vrai : ambushPercent (% de la chance
+      normale d'embuscade), priceFactor (boutique -> nouveau facteur de prix), stopAging (le personnage ne
+      vieillit plus), guildClosed (la Guilde ne lui donne plus de quetes), title (affiche dans le journal).
+    Pour tester sans tout rejouer : mode debug (F10), section Histoire : "Finir le chapitre en cours",
+    "Rang suivant" ; la section "Voyager" mene aussi aux lieux fermes ou caches.
 
 events.json
     Les evenements du monde. "dailyChance" = chance (%) qu'un evenement demarre chaque jour dans une ville qui
