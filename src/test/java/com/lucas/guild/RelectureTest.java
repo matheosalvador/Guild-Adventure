@@ -53,6 +53,45 @@ class RelectureTest {
     }
 
     /**
+     * Garde-fou sur les arrondis des prix : dans une meme boutique, au meme moment, on ne revend jamais un objet
+     * plus cher qu'on ne l'achete (pas d'or infini), et un objet en vente coute toujours au moins 1 Po. Verifie pour
+     * chaque boutique, chaque objet, chaque niveau de Marchandage, sans evenement puis avec chacun d'eux.
+     */
+    @Test
+    void noShopBuysBackForMoreThanItSells() {
+        String[][] shops = {{"forge", "aethelgard"}, {"guild", "aethelgard"}, {"portbrume_store", "portbrume"}, {"hautevigne_store", "hautevigne"}};
+        List<String> events = new java.util.ArrayList<>();
+        events.add(null);
+        GameContent.events().events.forEach(e -> events.add(e.id));
+        int checked = 0;
+        for (String[] s : shops) {
+            com.lucas.guild.game.Shop shop = new com.lucas.guild.game.Shop(s[0]);
+            for (String event : events) {
+                for (int level = 0; level <= 5; level++) {
+                    Adventurer p = GameSession.newGame("normale").getPlayer();
+                    p.setTownId(s[1]);
+                    if (level > 0) {
+                        p.getSkills().setLevel("haggling", level);
+                        p.refreshBonuses();
+                    }
+                    if (event != null) {
+                        com.lucas.guild.game.WorldEvents.start(p, event, s[1], 1);
+                    }
+                    for (com.lucas.guild.model.Item item : shop.getStock()) {
+                        int buy = shop.buyPrice(p, item);
+                        int sell = shop.sellPrice(p, item);
+                        String where = s[0] + " / " + item.getId() + " / marchandage " + level + " / " + event;
+                        assertTrue(buy >= 1, where + " : prix d'achat " + buy);
+                        assertTrue(sell < buy, where + " : rachat " + sell + " Po pour un achat a " + buy + " Po");
+                        checked++;
+                    }
+                }
+            }
+        }
+        assertTrue(checked > 1000, "combinaisons verifiees : " + checked);
+    }
+
+    /**
      * Quete de combat : la preuve n'est donnee qu'une fois. Avant, chaque monstre tue en donnait une nouvelle
      * (trois rats = trois queues) et celles en trop restaient dans l'inventaire apres avoir rendu la quete.
      */
