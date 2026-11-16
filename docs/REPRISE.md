@@ -2,17 +2,14 @@
 
 Tenu à jour à chaque fin d'étape (voir `docs/PLAN-FABLE.md`, §9). Dernière mise à jour : 2026-11-16.
 
-## Les branches (aucune n'est fusionnée ni poussée)
+## Les branches
 
-Elles sont empilées, chacune part de la précédente :
+Les chantiers A, D, B et C sont **fusionnés dans `general_develop`** (local, `54446f9`, en avance rapide, demande de
+Lucas du 2026-11-16). Rien n'est poussé : `origin/general_develop` est resté à la fin du chantier A (`2a8b366`).
 
 ```text
-general_develop (dcffeeb)
- └─ feature/relecture              chantier A : relecture, 7 bugs corrigés, nettoyage (docs/RELECTURE.md)
-     └─ feature/cadrage-monde-ouvert   chantier D : docs/CADRAGE-MONDE-OUVERT.md (décisions de Lucas notées)
-         └─ feature/histoire-cahier        chantier B étape 1 : docs/HISTOIRE.md (validé par Lucas)
-             └─ feature/histoire               chantier B étape 2 : l'histoire jouable
-                 └─ feature/confort                chantier C : dialogues en données, habitants, Options, barre de vie
+general_develop (54446f9)   A + D + B + C
+ └─ feature/java21               chantier E : rapport docs/COMPATIBILITE-JAVA.md, section perf du banc
 ```
 
 ## Où on en est
@@ -51,8 +48,13 @@ dialogues d'histoire) :
 - tests : `NpcsContentErrorsTest` (24 cas), `NpcTalkTest`, `SettingsTest` ; section `confortSection` du banc
   (23 vérifications, 12 captures, dont la couleur de la barre lue à l'écran).
 
-État vérifié : **294 tests JUnit verts** ; parcours complet `FIN: AUCUNE ERREUR`, **257 captures**
-(référence : `target\smoke\confort2`).
+État vérifié : **293 tests JUnit verts** ; parcours complet `FIN: AUCUNE ERREUR`, **257 captures**
+(référence : `target\smoke\java23` ; ne jamais lancer `mvn clean` pendant un parcours : il vide `target/`).
+
+**Chantier E** : terminé sur `feature/java21`. Temurin 21.0.13+9 installé dans `C:\Tools\java\jdk-21.0.13+9` (PATH
+inchangé). Avec Java 21 : 293 tests verts, parcours complet sans erreur, 257 captures identiques au pixel à celles de
+Java 23, même vitesse (ombres : environ -45 % d'images par seconde). Aucune correction nécessaire. Détail et mesures :
+`docs/COMPATIBILITE-JAVA.md` ; mesure : `run-smoke.ps1 -Label perf -Only perf`.
 
 ## En attente de Lucas
 
@@ -65,8 +67,7 @@ dialogues d'histoire) :
 
 ## Ensuite (ne pas commencer sans l'accord de Lucas)
 
-Le prototype du monde ouvert (cadrage validé, « après l'histoire ») ; E (Java 21) quand il autorise le
-téléchargement d'un JDK.
+Le prototype du monde ouvert (cadrage validé, « après l'histoire »). Tous les chantiers du plan (A à E) sont faits.
 
 ## Vérifier l'état
 
@@ -81,7 +82,7 @@ python docs\outils-test\gen_story_zones.py                  # refabriquer les zo
 Comparer deux séries de captures (après un parcours, les classes de l'outil sont dans `target\smoke\<label>\tools`) :
 
 ```powershell
-java -cp target\smoke\essai\tools Compare target\smoke\confort2\shots target\smoke\essai\shots
+java -cp target\smoke\essai\tools Compare target\smoke\java23\shots target\smoke\essai\shots
 ```
 
 Le hasard est fixé par le banc : deux parcours sur le même code donnent les mêmes captures. `target/` n'est pas suivi

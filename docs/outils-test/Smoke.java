@@ -205,6 +205,43 @@ public class Smoke extends ApplicationAdapter {
         confortSection();
     }
 
+    // ------------------------------------------------------------------ mesure des images par seconde (chantier E)
+
+    long perfStart;
+
+    /** Compte les images rendues pendant {@code n} images, ombres allumees ou non (lancer seule : -Only perf). */
+    void measure(String where, boolean shadows, int n) {
+        step(() -> com.lucas.guild.game.Settings.current().shadows = shadows);
+        frames(60);   // mise en route (ombres, caches)
+        step(() -> perfStart = System.nanoTime());
+        frames(n);
+        step(() -> {
+            double seconds = (System.nanoTime() - perfStart) / 1e9;
+            log(String.format(java.util.Locale.ROOT, "PERF %s ombres=%s : %.0f images/s (%d images en %.1f s) java %s",
+                    where, shadows ? "oui" : "non", n / seconds, n, seconds, System.getProperty("java.version")));
+        });
+    }
+
+    /** Images par seconde en ville et en foret, avec et sans ombres, en regardant la scene la plus chargee. */
+    void perfSection() {
+        step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); resetSettings(); });
+        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        frames(30);
+        step(() -> faceAt(0, 2f, -40));
+        for (int round = 0; round < 2; round++) {
+            measure("ville", true, 600);
+            measure("ville", false, 600);
+        }
+        goTo("foret_loups");
+        step(this::clearMonsters);
+        frames(30);
+        for (int round = 0; round < 2; round++) {
+            measure("foret", true, 600);
+            measure("foret", false, 600);
+        }
+        step(this::resetSettings);
+    }
+
     // ------------------------------------------------------------------ confort (chantier C)
 
     /** Reglages par defaut, et plus de settings.json (le dossier du banc est vide a chaque parcours). */

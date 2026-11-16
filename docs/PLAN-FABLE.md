@@ -42,7 +42,7 @@ Dépôt : `C:\MAMP\htdocs\java\Guild-Adventure` (Windows, PowerShell ; le Bash d
 
 | Besoin | Commande |
 |---|---|
-| Tests JUnit (294) | `$env:JAVA_HOME='C:\Tools\java\jdk-23.0.1+11'; & "C:\Users\lucas\.m2\wrapper\dists\apache-maven-3.6.3-bin\1iopthnavndlasol9gbrbg6bf2\apache-maven-3.6.3\bin\mvn.cmd" -q -B test` (Maven n'est **pas** dans le PATH de Lucas) |
+| Tests JUnit (293) | `$env:JAVA_HOME='C:\Tools\java\jdk-23.0.1+11'; & "C:\Users\lucas\.m2\wrapper\dists\apache-maven-3.6.3-bin\1iopthnavndlasol9gbrbg6bf2\apache-maven-3.6.3\bin\mvn.cmd" -q -B test` (Maven n'est **pas** dans le PATH de Lucas) |
 | Parcours complet du jeu (fenêtre cachée, ~257 captures) | `.\docs\outils-test\run-smoke.ps1 -Label essai` → doit finir par `FIN: AUCUNE ERREUR`, captures dans `target\smoke\essai\shots` |
 | Une seule section du parcours (quelques secondes) | `.\docs\outils-test\run-smoke.ps1 -Label essai -Only relecture` (nom de la méthode sans `Section`) |
 | Voir les modèles 3D (face, profil, marche, coup) | `.\docs\outils-test\run-viewer.ps1 -Label essai` |
@@ -51,7 +51,7 @@ Dépôt : `C:\MAMP\htdocs\java\Guild-Adventure` (Windows, PowerShell ; le Bash d
 Détails utiles :
 - Dans PowerShell, **`.\` est obligatoire** devant un `.bat` (même `cmd` ne cherche pas dans le dossier courant sur
   ce PC). Le Java du PATH de Lucas est le **JDK 11** (le code y compile) ; les JDK 23/25/26 sont aussi installés.
-  Aucun JDK 21 : Lucas a demandé s'il pouvait en télécharger un (non fait).
+  Temurin 21 est dans `C:\Tools\java\jdk-21.0.13+9` (chantier E, PATH inchangé) : tout passe avec lui.
 - Les tests tournent dans `target/test-run` : le vrai `save.json` n'est jamais touché.
 - **Toujours regarder les captures** (outil Read sur les PNG) : elles ont révélé des bugs que les tests de logique ne
   voient pas (messages jamais affichés, caméra dans un mur, boutons hors écran...).
@@ -108,11 +108,9 @@ Détails utiles :
   la 3ᵉ personne, 8b PNJ et monstres, 8c décor, 8d finitions. `origin/general_develop` est resté au 7e.
   **Ces 7 commits ne sont pas dans `main` et ceux du bloc 8 ne sont pas poussés.** Ce n'est pas ton affaire : Lucas
   s'occupe de pousser et de la PR quand il l'a décidé.
-- Toutes les branches `feature/*` sont des ancêtres de `general_develop` (chaîne linéaire), **sauf quatre branches
-  empilées du 2026-11-16**, ni fusionnées ni poussées : `feature/relecture` (chantier A) → `feature/cadrage-monde-ouvert`
-  (D) → `feature/histoire-cahier` (B, étape 1) → `feature/histoire` (B, étape 2) → `feature/confort` (C). Détail :
-  `docs/REPRISE.md`.
-- Tests sur `feature/confort` : 294 JUnit verts ; parcours complet : 257 captures, aucune erreur.
+- Les chantiers A, D, B et C sont fusionnés dans `general_develop` (local, `54446f9`, non poussé). Le chantier E est
+  sur `feature/java21`. Détail : `docs/REPRISE.md`.
+- Tests sur `feature/confort` : 293 JUnit verts ; parcours complet : 257 captures, aucune erreur.
 - Lucas a testé à la main jusqu'à 7b (« rien à corriger »). **7c, 7d, 7e et tout le bloc 8 n'ont pas encore été testés
   par lui.**
 
