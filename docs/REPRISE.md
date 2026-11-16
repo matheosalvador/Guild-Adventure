@@ -27,10 +27,24 @@ branche `feature/cadrage-monde-ouvert` (partie de `feature/relecture`, qui n'est
 Il recommande le terrain continu à l'échelle 1 km de carte = 100 m, avec un prototype Aethelgard → Forêt des Loups,
 et se termine par 8 questions. **Ne rien coder du monde ouvert avant les réponses de Lucas.**
 
+Lucas a répondu « oui à tout » aux 8 questions le 2026-11-16 : les défauts du §7 sont les décisions retenues, et le
+prototype du monde ouvert se fera **après** l'histoire.
+
+**Chantier B, étape 1 (cahier d'histoire) : document écrit** le 2026-11-16, `docs/HISTOIRE.md`, sur la branche
+`feature/histoire-cahier` (empilée sur `feature/cadrage-monde-ouvert`). Aucun code. Il attend la validation de Lucas
+sur 8 points (§10) : l'histoire, les noms, l'énigme de la Sagesse, le sceau fêlé, la fin qui arrête le
+vieillissement, les rangs, les chiffres des combats, pas de nouvel équipement. **Ne rien construire avant sa
+réponse.**
+
 ## Ensuite (ne pas commencer sans l'accord de Lucas)
 
-Ordre du plan : `docs/HISTOIRE.md` (le cahier d'histoire, à lui faire valider) ; puis B (réalisation de l'histoire) ;
-puis C (confort de jeu) ; E (Java 21) quand il autorise le téléchargement d'un JDK.
+Ordre du plan : B étape 2 (réalisation de l'histoire, une fois le cahier validé) ; puis C (confort de jeu) ; puis le
+prototype du monde ouvert ; E (Java 21) quand il autorise le téléchargement d'un JDK.
+
+Pour la réalisation de B, proposer d'abord à Lucas un découpage en sous-blocs (moteur d'histoire et rangs ; mine ;
+épreuves ; château et fins), chacun avec ses données, ses tests JUnit et sa section de test visuel. Deux points de
+`docs/RELECTURE.md` §4 deviennent nécessaires à ce moment-là et n'ont pas encore de réponse : les objets de quête
+jetables (point 1) et le hasard sans graine (point 4).
 
 Les nouvelles branches partent de `general_develop` **une fois `feature/relecture` fusionnée** (sinon de
 `feature/relecture`, en le disant à Lucas).
