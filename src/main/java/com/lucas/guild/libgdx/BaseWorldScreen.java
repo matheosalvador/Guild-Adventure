@@ -517,7 +517,14 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         body.setWorldTransform(new com.badlogic.gdx.math.Matrix4().setTranslation(x, y, z));
         body.userData = userData;
         dynamicsWorld.addRigidBody(body);
+        bodies.add(body);
     }
+
+    /**
+     * Les corps solides du décor. Il faut les libérer nous-mêmes en quittant l'écran : LibGDX garde chaque corps
+     * Bullet dans une table globale jusqu'à son {@code dispose()}, sinon ils s'accumulent à chaque changement d'écran.
+     */
+    private final Array<btRigidBody> bodies = new Array<>();
 
     /** Un personnage non joueur : un modèle de models.json qui tourne la tête vers le joueur quand il approche. */
     private static final class Npc {
@@ -970,22 +977,22 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             }
             return true;
         }
+        // Journal, inventaire et personnage ne s'ouvrent que depuis le jeu, jamais par-dessus un autre menu :
+        // en se refermant, ils recaptureraient la souris alors que le menu du dessous attend encore un clic.
         if (keycode == Input.Keys.J) {
-            // le journal ne s'ouvre que depuis le jeu (pas par-dessus un autre menu)
-            if (isJournalOpen || !(inDialog || isInventoryOpen || isSkillsOpen || isPaused || isDebugOpen || isExtraOverlayOpen())) {
+            if (isJournalOpen || !isOverlayOpen()) {
                 toggleJournal();
             }
             return true;
         }
         if (keycode == Input.Keys.I) {
-            if (!isSkillsOpen && !isJournalOpen) {
+            if (isInventoryOpen || !isOverlayOpen()) {
                 toggleInventory();
             }
             return true;
         }
         if (keycode == Input.Keys.K) {
-            // le panneau du personnage ne s'ouvre que depuis le jeu (pas par-dessus un autre menu)
-            if (isSkillsOpen || !(inDialog || isInventoryOpen || isJournalOpen || isPaused || isExtraOverlayOpen())) {
+            if (isSkillsOpen || !isOverlayOpen()) {
                 toggleSkills();
             }
             return true;
@@ -1154,6 +1161,12 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     @Override
     public void dispose() {
         playerController.dispose();
+        // les corps du décor d'abord, tant que le monde physique existe encore
+        for (btRigidBody body : bodies) {
+            dynamicsWorld.removeRigidBody(body);
+            body.dispose();
+        }
+        bodies.clear();
         for (Disposable disposable : disposables) {
             disposable.dispose();
         }
