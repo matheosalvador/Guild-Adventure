@@ -4,7 +4,8 @@
 # Usage (depuis la racine du depot) :   .\docs\outils-test\run-smoke.ps1 -Label essai1
 # Resultats : target\smoke\<label>\shots\*.png (captures) et target\smoke\<label>\log.txt
 # Il faut un JDK (javac et java dans le PATH, ou JAVA_HOME) ; Maven n'est pas necessaire.
-param([Parameter(Mandatory=$true)][string]$Label)
+# Une seule section (rapide) :           .\docs\outils-test\run-smoke.ps1 -Label essai1 -Only relecture
+param([Parameter(Mandatory=$true)][string]$Label, [string]$Only = '')
 $ErrorActionPreference = 'Stop'
 $P = (Resolve-Path "$PSScriptRoot\..\..").Path
 $W = "$P\target\smoke\$Label"
@@ -34,8 +35,11 @@ if ($LASTEXITCODE -ne 0) { throw "compilation du banc de test echouee" }
 # 3) execution (dossier de travail isole : le vrai save.json n'est jamais touche)
 Set-Location $R
 $ErrorActionPreference = 'Continue'
-$out = & java -cp "$T;$full" Smoke $O 2>&1
+$out = & java -cp "$T;$full" Smoke $O $Only 2>&1
 $out | ForEach-Object { "$_" } | Set-Content "$W\log.txt" -Encoding utf8
 $out | Where-Object { "$_" -match 'ECHEC|FIN:|Exception|EXCEPTION' } | ForEach-Object { "$_" } | Select-Object -First 60
+# une ressource native oubliee (liberee par le ramasse-miettes au lieu de dispose) : LibGDX l'ecrit dans le journal
+$leaks = @($out | Where-Object { "$_" -match 'due to garbage collection' }).Count
+if ($leaks -gt 0) { "ATTENTION : $leaks ressource(s) Bullet liberee(s) par le ramasse-miettes (dispose oublie), voir log.txt" }
 "--- captures : $((Get-ChildItem $O -Filter *.png -ErrorAction SilentlyContinue).Count) dans $O"
 Set-Location $P

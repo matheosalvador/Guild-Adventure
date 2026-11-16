@@ -36,7 +36,10 @@ public class Smoke extends ApplicationAdapter {
     final List<Runnable> steps = new ArrayList<>();
     int failures = 0;
 
-    Smoke(String outDir) { this.outDir = outDir; }
+    /** Si non null : ne jouer que cette section (« relecture » = relectureSection), pour iterer vite. */
+    final String only;
+
+    Smoke(String outDir, String only) { this.outDir = outDir; this.only = only; }
 
     public static void main(String[] a) {
         Lwjgl3ApplicationConfiguration cfg = new Lwjgl3ApplicationConfiguration();
@@ -45,7 +48,7 @@ public class Smoke extends ApplicationAdapter {
         cfg.setInitialVisible(false);
         cfg.useVsync(false);
         cfg.setForegroundFPS(0);
-        new Lwjgl3Application(new Smoke(a[0]), cfg);
+        new Lwjgl3Application(new Smoke(a[0], a.length > 1 && !a[1].isEmpty() ? a[1] : null), cfg);
     }
 
     // ------------------------------------------------------------------ cycle
@@ -80,6 +83,15 @@ public class Smoke extends ApplicationAdapter {
 
     // ------------------------------------------------------------------ script
     void script() {
+        if (only != null) {
+            // une seule section (elle demarre sa propre partie)
+            try {
+                getClass().getDeclaredMethod(only + "Section").invoke(this);
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException("section inconnue : " + only, e);
+            }
+            return;
+        }
         // ---- MENU : vrais clics sur les boutons
         shot("00_menu");
         click("Start");   shot("01_menu_start");
@@ -180,6 +192,155 @@ public class Smoke extends ApplicationAdapter {
 
         // =================================================== FINITIONS
         design8dSection();
+
+        // =================================================== RELECTURE (chantier A : bugs corriges)
+        relectureSection();
+    }
+
+    // ------------------------------------------------------------------ relecture (chantier A)
+
+    int bulletBefore;
+    float worstGap, maxY;
+
+    /** Nombre d'objets de collision Bullet encore vivants (LibGDX les garde tous dans une table statique jusqu'a leur dispose). */
+    static int bulletObjects() {
+        try {
+            Field f = com.badlogic.gdx.physics.bullet.collision.btCollisionObject.class.getDeclaredField("instances");
+            f.setAccessible(true);
+            return ((com.badlogic.gdx.utils.LongMap<?>) f.get(null)).size;
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    PlayerController pc() {
+        try { return (PlayerController) findPlayerController(cur()); } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    void teleport(float x, float y, float z) {
+        com.badlogic.gdx.physics.bullet.dynamics.btRigidBody body = pc().getPlayerBody();
+        body.proceedToTransform(new com.badlogic.gdx.math.Matrix4().setTranslation(x, y, z));
+        body.setLinearVelocity(new Vector3());
+    }
+
+    void look(float yaw, float pitch) {
+        try {
+            Object pc = pc();
+            Field f = PlayerController.class.getDeclaredField("yaw"); f.setAccessible(true); f.setFloat(pc, yaw);
+            Field pf = PlayerController.class.getDeclaredField("pitch"); pf.setAccessible(true); pf.setFloat(pc, pitch);
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    /**
+     * Dans une piece carree de demi-cote {@code half} (faces interieures des murs), fait regarder le joueur dans toutes
+     * les directions et renvoie la plus petite distance entre la camera et un mur ou le sol.
+     */
+    float sweepCamera(float half) {
+        com.badlogic.gdx.graphics.Camera cam = (com.badlogic.gdx.graphics.Camera) fieldOf(cur(), "camera");
+        float worst = Float.MAX_VALUE;
+        for (float pitch : new float[] {-45f, -20f, 0f, 20f}) {
+            for (float yaw = 0f; yaw < 360f; yaw += 7.5f) {
+                look(yaw, pitch);
+                pc().updateCamera();
+                float gap = Math.min(Math.min(half - Math.abs(cam.position.x), half - Math.abs(cam.position.z)), cam.position.y - 0.5f);
+                worst = Math.min(worst, gap);
+            }
+        }
+        return worst;
+    }
+
+    /** Les bugs trouves a la relecture : chacun a ici la verification qui echouait avant sa correction. */
+    void relectureSection() {
+        step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); setThirdPerson(false); });
+        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        frames(5);
+
+        // ---------- 1) les corps Bullet d'un ecran sont liberes quand on le quitte
+        step(() -> bulletBefore = bulletObjects());
+        for (int i = 0; i < 4; i++) {
+            step(() -> game.setScreen(new ForgeScreen(game, "facile")));
+            frames(3);
+            step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+            frames(3);
+        }
+        step(() -> log("corps Bullet vivants : " + bulletBefore + " avant, " + bulletObjects() + " apres 4 allers-retours ville/forge"));
+        check("changer d'ecran ne laisse aucun corps Bullet derriere soi", () -> bulletObjects() == bulletBefore);
+
+        // ---------- 2) l'inventaire ne s'ouvre pas par-dessus un autre menu (sinon, en le refermant, la souris est capturee menu ouvert)
+        key(Input.Keys.ESCAPE);
+        key(Input.Keys.I);
+        check("pause : I n'ouvre pas l'inventaire par-dessus", () -> flag("isPaused") && !flag("isInventoryOpen"));
+        key(Input.Keys.I);
+        check("pause : la souris reste libre", () -> flag("isPaused") && !Gdx.input.isCursorCatched());
+        shot("r00_pause_apres_I");
+        key(Input.Keys.ESCAPE);
+        check("pause fermee : la souris est de nouveau capturee", () -> !flag("isPaused") && Gdx.input.isCursorCatched());
+
+        step(() -> game.setScreen(new InnScreen(game, "facile")));
+        frames(5);
+        step(() -> invokeInn("Innkeeper"));
+        key(Input.Keys.I);
+        key(Input.Keys.I);
+        check("dialogue : apres I, I la souris reste libre pour cliquer", () -> flag("inDialog") && !flag("isInventoryOpen") && !Gdx.input.isCursorCatched());
+        shot("r01_dialogue_apres_I");
+        key(Input.Keys.ESCAPE);
+
+        // ---------- 3) a la 3e personne, dans un coin, la camera ne passe pas a travers les murs
+        step(() -> setThirdPerson(true));
+        frames(3);
+        step(() -> teleport(8.9f, 1.6f, 8.9f));
+        frames(20);
+        step(() -> { worstGap = sweepCamera(9.5f); log(String.format("3e personne dans un coin : la camera passe au plus pres a %.2f m d'un mur", worstGap)); });
+        check("3e personne dans un coin : la camera reste a plus de 0,16 m des murs (plan proche)", () -> worstGap >= 0.16f);
+        step(() -> look(205f, -12f));
+        frames(3);
+        shot("r10_coin_camera_a");
+        step(() -> look(250f, 10f));
+        frames(3);
+        shot("r11_coin_camera_b");
+        step(() -> look(30f, -30f));
+        frames(3);
+        shot("r12_coin_camera_c");
+        step(() -> setThirdPerson(false));
+
+        // ---------- 4) garder Espace enfonce : un saut a la fois, on ne s'envole pas
+        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        frames(40);
+        step(() -> maxY = 0f);
+        keyDownHold(Input.Keys.SPACE);
+        for (int i = 0; i < 300; i++) {
+            step(() -> { render1(); maxY = Math.max(maxY, pc().getPlayerBody().getCenterOfMassPosition().y); });
+        }
+        keyUpHold(Input.Keys.SPACE);
+        step(() -> log(String.format("Espace enfonce 5 s : hauteur max du joueur %.2f m (au sol : 1,5)", maxY)));
+        check("Espace enfonce : on ne monte pas plus haut qu'un saut", () -> maxY < 3f);
+        frames(60);
+        shot("r20_apres_sauts");
+
+        // ---------- 5) l'etage de l'auberge reste accessible a pied : escalier (W + Espace), palier, lit
+        step(() -> game.setScreen(new InnScreen(game, "facile")));
+        frames(5);
+        step(() -> { teleport(-5.2f, 1.6f, 8.5f); look(90f, 0f); });   // au pied de l'escalier, de cote
+        frames(20);
+        shot("r30_pied_escalier");
+        keyDownHold(Input.Keys.W); keyDownHold(Input.Keys.SPACE);
+        frames(45);
+        step(() -> look(0f, 0f));                                      // puis on monte, vers la porte
+        frames(700);
+        keyUpHold(Input.Keys.SPACE); keyUpHold(Input.Keys.W);
+        frames(30);
+        step(() -> { Vector3 p = pc().getPlayerBody().getCenterOfMassPosition(); log(String.format("haut de l'escalier : x %.1f  y %.1f  z %.1f", p.x, p.y, p.z)); });
+        check("on monte l'escalier de l'auberge en sautant de marche en marche", () -> pc().getPlayerBody().getCenterOfMassPosition().y > 11.2f);
+        shot("r31_haut_escalier");
+        step(() -> look(-90f, 0f));                                    // le palier, vers l'etage
+        keyDownHold(Input.Keys.W); frames(50); keyUpHold(Input.Keys.W);
+        step(() -> faceAt(5f, 11.5f, 5f));                             // le lit
+        keyDownHold(Input.Keys.W); frames(55); keyUpHold(Input.Keys.W);
+        frames(10);
+        step(() -> { faceAt(5f, 11.5f, 5f); intBefore1 = player().getGold(); });
+        frames(3);
+        shot("r32_devant_le_lit");
+        key(Input.Keys.E);
+        frames(3);
+        check("on atteint le lit a pied et on y dort (10 Po)", () -> player().getGold() == intBefore1 - 10);
     }
 
     double distEmpty, distFull;
