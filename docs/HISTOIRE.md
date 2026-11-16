@@ -265,7 +265,8 @@ normalement équipé passe, et de combien.
 
 ## 10. Ce que j'attends de toi
 
-Les défauts proposés sont ceux du document ; « ok à tout » les valide.
+**Réponse de Lucas le 2026-11-16 : « ok à tout ».** Les huit défauts ci-dessous sont les décisions retenues. Les
+chiffres des combats (point 7) lui seront remontrés une fois réglés par le test automatique.
 
 1. **L'histoire dans son ensemble** (synopsis, retournement, chapitres). *Défaut : telle qu'écrite.*
 2. **Les noms** : Aldric de Corvenne, capitaine Ysolde Varn, sergent Holt, maître Odran, Durgan, Garin, le Sablier
