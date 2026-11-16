@@ -42,8 +42,9 @@ Dépôt : `C:\MAMP\htdocs\java\Guild-Adventure` (Windows, PowerShell ; le Bash d
 
 | Besoin | Commande |
 |---|---|
-| Tests JUnit (188) | `$env:JAVA_HOME='C:\Tools\java\jdk-23.0.1+11'; & "C:\Users\lucas\.m2\wrapper\dists\apache-maven-3.6.3-bin\1iopthnavndlasol9gbrbg6bf2\apache-maven-3.6.3\bin\mvn.cmd" -q -B test` (Maven n'est **pas** dans le PATH de Lucas) |
-| Parcours complet du jeu (fenêtre cachée, ~185 captures) | `.\docs\outils-test\run-smoke.ps1 -Label essai` → doit finir par `FIN: AUCUNE ERREUR`, captures dans `target\smoke\essai\shots` |
+| Tests JUnit (191) | `$env:JAVA_HOME='C:\Tools\java\jdk-23.0.1+11'; & "C:\Users\lucas\.m2\wrapper\dists\apache-maven-3.6.3-bin\1iopthnavndlasol9gbrbg6bf2\apache-maven-3.6.3\bin\mvn.cmd" -q -B test` (Maven n'est **pas** dans le PATH de Lucas) |
+| Parcours complet du jeu (fenêtre cachée, ~194 captures) | `.\docs\outils-test\run-smoke.ps1 -Label essai` → doit finir par `FIN: AUCUNE ERREUR`, captures dans `target\smoke\essai\shots` |
+| Une seule section du parcours (quelques secondes) | `.\docs\outils-test\run-smoke.ps1 -Label essai -Only relecture` (nom de la méthode sans `Section`) |
 | Voir les modèles 3D (face, profil, marche, coup) | `.\docs\outils-test\run-viewer.ps1 -Label essai` |
 | Lancer le jeu | `.\compile_check.bat` puis `.\run-debug.bat` (mode debug, F10) ou `.\run.bat` |
 
@@ -73,6 +74,11 @@ Détails utiles :
   groupes 1 et 2 (Default/Static).
 - La police par défaut ne dessine pas les guillemets français « » : utiliser des guillemets droits dans les textes.
 - Les intérieurs n'ont pas d'ombres portées (le plafond rendrait tout noir) : seulement `hasSky()` (ville, zones).
+- Tout corps Bullet créé doit être libéré (`dispose()`), sinon LibGDX le garde pour toujours : le banc visuel affiche
+  « ATTENTION : ... ressource(s) Bullet » quand il en reste.
+- Un saut monte de 0,70 m : une marche ou un rebord à franchir fait 0,5 m au plus.
+- Le hasard (butin, embuscades, événements) n'a pas de graine : une vingtaine de captures de combat et de butin
+  diffèrent d'un parcours à l'autre sans que rien n'ait changé. Comparer les autres au pixel près.
 
 ## 4. Carte du code (`src/main/java/com/lucas/guild/`)
 
@@ -82,10 +88,12 @@ Détails utiles :
   `Combat`, `Monster`, `QuestLog`, `Shop`, `WorldEvents`, `Lore`, `Chests`, `GroundItems`, `RouteWalker`,
   `DeathPenalty`, `DebugMode`/`DebugActions`, `SaveManager`.
 - `model/` : personnage (`Adventurer`, sauvegardé tel quel avec Gson), inventaire, objets, horloge, calendrier.
-- `libgdx/` : écrans et affichage. `BaseWorldScreen` (1 160 lignes : caméra, physique Bullet, HUD, menus, PNJ, objets
-  au sol, ciel, ombres) → `TownScreen`, `ZoneScreen`, `InteriorScreen` → `ForgeScreen`, `GuildScreen`, `InnScreen`,
-  `StoreScreen`, `CellarScreen`. Aussi : `CharacterModel` (corps articulés d'après `models.json`), `Shapes`,
-  `CombatScene`, `PlayerController`, `SkyDome`, `Sparks`, `QuestBoardPanel`, `JournalPanel`, `WorldMapScreen`.
+- `libgdx/` : écrans et affichage. `BaseWorldScreen` (930 lignes : boucle de jeu, caméra, physique Bullet, décor, HUD,
+  touches) → `TownScreen`, `ZoneScreen`, `InteriorScreen` → `ForgeScreen`, `GuildScreen`, `InnScreen`,
+  `StoreScreen`, `CellarScreen`. Ses collaborateurs : `WorldPanels` (menus), `NpcGroup`, `GroundItemViews`,
+  `SkyAndShadows`, `Readable` (textes à lire), `WaterWaves`, `Toasts`, `CombatScene`. Aussi : `CharacterModel` (corps
+  articulés d'après `models.json`), `Shapes`, `PlayerController`, `SkyDome`, `Sparks`, `QuestBoardPanel`,
+  `JournalPanel`, `WorldMapScreen`.
 - Tests : `src/test/java/com/lucas/guild/`.
 
 ## 5. État du dépôt
@@ -95,8 +103,10 @@ Détails utiles :
   la 3ᵉ personne, 8b PNJ et monstres, 8c décor, 8d finitions. `origin/general_develop` est resté au 7e.
   **Ces 7 commits ne sont pas dans `main` et ceux du bloc 8 ne sont pas poussés.** Ce n'est pas ton affaire : Lucas
   s'occupe de pousser et de la PR quand il l'a décidé.
-- Toutes les branches `feature/*` sont des ancêtres de `general_develop` (chaîne linéaire).
-- Tests : 188 JUnit verts ; parcours complet : 185 captures, aucune erreur.
+- Toutes les branches `feature/*` sont des ancêtres de `general_develop` (chaîne linéaire), **sauf `feature/relecture`**
+  (chantier A, terminé le 2026-11-16, 9 commits au-dessus de `general_develop`, ni fusionnée ni poussée, en attente
+  des tests de Lucas). Son compte rendu : `docs/RELECTURE.md`.
+- Tests sur `feature/relecture` : 191 JUnit verts ; parcours complet : 194 captures, aucune erreur.
 - Lucas a testé à la main jusqu'à 7b (« rien à corriger »). **7c, 7d, 7e et tout le bloc 8 n'ont pas encore été testés
   par lui.**
 
