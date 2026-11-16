@@ -21,5 +21,8 @@
   { "itemType": "Butin", "id": "wolf_fang", "name": "Croc de loup", "description": "Un croc acéré, à revendre.", "poids": 0.2, "prix": 6 },
   { "itemType": "Butin", "id": "goblin_ear", "name": "Oreille de gobelin", "description": "Une preuve de victoire, à revendre.", "poids": 0.2, "prix": 4 },
   { "itemType": "Butin", "id": "rusty_blade", "name": "Lame rouillée", "description": "De la ferraille, à revendre.", "poids": 1.5, "prix": 9 },
-  { "itemType": "Butin", "id": "goblin_trinket", "name": "Breloque de gobelin", "description": "Un bijou volé, à revendre.", "poids": 0.1, "prix": 15 }
+  { "itemType": "Butin", "id": "goblin_trinket", "name": "Breloque de gobelin", "description": "Un bijou volé, à revendre.", "poids": 0.1, "prix": 15 },
+  { "itemType": "Butin", "id": "bat_wing", "name": "Aile de chauve-souris", "description": "Les apothicaires en font quelque chose, à revendre.", "poids": 0.1, "prix": 5 },
+  { "itemType": "Butin", "id": "carved_bone", "name": "Os gravé", "description": "Un os de mineur d'autrefois, couvert de marques. À revendre.", "poids": 0.3, "prix": 11 },
+  { "itemType": "Butin", "id": "oath_ore", "name": "Minerai du serment", "description": "Un bloc de minerai brut, lourd comme un remords. L'épreuve d'Endurance.", "poids": 18.0, "prix": 0 }
 ]

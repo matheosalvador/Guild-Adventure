@@ -53,6 +53,7 @@ public final class GameContent {
     static void overrideDataDirForTests(Path dir) {
         overrideDir = dir;
         TEXT_CACHE.clear();
+        storyCache = null;
     }
 
     // ------------------------------------------------------------------ contenu
@@ -170,6 +171,30 @@ public final class GameContent {
             if (m.w <= 0 || m.h <= 0 || m.d <= 0) throw new IllegalStateException(where + " : \"w\", \"h\" et \"d\" doivent etre > 0");
             if (m.model != null && !models().models.containsKey(m.model)) {
                 throw new IllegalStateException(where + " : \"model\" inconnu \"" + m.model + "\" (voir models.json)");
+            }
+            if (m.flyHeight < 0) throw new IllegalStateException(where + " : \"flyHeight\" doit etre >= 0");
+            if (m.yieldPercent < 0 || m.yieldPercent > 90) throw new IllegalStateException(where + " : \"yieldPercent\" doit etre entre 0 et 90");
+            if (m.yieldPercent > 0 && (m.yieldFlag == null || m.yieldFlag.isEmpty())) {
+                throw new IllegalStateException(where + " : \"yieldPercent\" demande un \"yieldFlag\" (le drapeau pose quand il se rend)");
+            }
+            if (m.phases == null) m.phases = new ArrayList<>();
+            int previousBelow = 100;
+            for (int i = 0; i < m.phases.size(); i++) {
+                MonsterData.Phase phase = m.phases.get(i);
+                String at = where + " : phase n°" + (i + 1);
+                if (phase == null) throw new IllegalStateException(at + " : vide");
+                if (phase.below < 1 || phase.below >= previousBelow) {
+                    throw new IllegalStateException(at + " : \"below\" doit etre entre 1 et 99 et decroitre d'une phase a la suivante");
+                }
+                previousBelow = phase.below;
+                if (phase.damage < 0 || phase.speed < 0 || phase.attackCooldown < 0) throw new IllegalStateException(at + " : \"damage\", \"speed\" et \"attackCooldown\" doivent etre >= 0");
+                if ((phase.healEvery > 0) != (phase.healAmount > 0)) throw new IllegalStateException(at + " : \"healEvery\" et \"healAmount\" vont ensemble");
+                if (phase.healRequires == null) phase.healRequires = new ArrayList<>();
+                StoryData.validateConditions(phase.healRequires, at + " : \"healRequires\"");
+                if (phase.summon != null && !all.containsKey(phase.summon)) {
+                    throw new IllegalStateException(at + " : renfort inconnu \"" + phase.summon + "\" (voir monsters.json)");
+                }
+                if (phase.summon != null && (phase.summonCount < 1 || phase.summonCount > 6)) throw new IllegalStateException(at + " : \"summonCount\" doit etre entre 1 et 6");
             }
             if (m.drops == null) m.drops = new ArrayList<>();
             for (MonsterData.Drop drop : m.drops) {
@@ -419,6 +444,21 @@ public final class GameContent {
                 if (newItem(id) == null) throw new IllegalStateException(file + " : coffre : objet inconnu \"" + id + "\" (voir items.json)");
             }
         }
+        for (ZoneData.DoorData d : zone.doors) {
+            WorldData.PlaceData target = world().place(d.to);
+            if (target == null || target.zoneFile == null) {
+                throw new IllegalStateException(file + " : porte \"" + d.label + "\" : \"to\" doit etre une zone de world.json (" + d.to + ")");
+            }
+        }
+        if (zone.arena != null) {
+            for (List<ZoneData.SpawnData> wave : zone.arena.waves) {
+                for (ZoneData.SpawnData m : wave) {
+                    if (m == null || m.id == null || monsters().get(m.id) == null) {
+                        throw new IllegalStateException(file + " : \"arena\" : monstre inconnu \"" + (m != null ? m.id : null) + "\" (voir monsters.json)");
+                    }
+                }
+            }
+        }
         return zone;
     }
 
@@ -513,6 +553,139 @@ public final class GameContent {
         return data;
     }
 
+    /** Les PNJ auprès de qui un dialogue d'histoire peut se tenir (« guildmaster@aethelgard »). */
+    public static final List<String> STORY_NPCS = java.util.Arrays.asList("guildmaster", "innkeeper", "blacksmith", "shopkeeper");
+
+    private static volatile StoryData storyCache;
+
+    /**
+     * L'histoire (story.json). Contrairement aux autres contenus, l'objet lu est gardé et partagé (l'histoire est
+     * consultée à chaque image) : ne pas le modifier.
+     */
+    public static StoryData story() {
+        StoryData cached = storyCache;
+        if (cached != null) {
+            return cached;
+        }
+        StoryData story = read("story.json", StoryData.class);
+        story.validate("story.json");
+        WorldData world = world();
+        for (StoryData.RankData r : story.ranks) {
+            checkConditions(r.requires, "story.json : rang " + r.label);
+        }
+        for (StoryData.ChapterData c : story.chapters) {
+            String where = "story.json : chapitre \"" + c.id + "\"";
+            checkConditions(c.requires, where);
+            for (StoryData.ObjectiveData o : c.objectives) {
+                checkConditions(o.done, where + " : objectif \"" + o.text + "\"");
+            }
+        }
+        for (StoryData.DialogData d : story.dialogs) {
+            String where = "story.json : dialogue \"" + d.id + "\"";
+            checkStoryPoint(d.at, story, world, where);
+            checkConditions(d.requires, where);
+            checkItems(d.gives, where + " : \"gives\"");
+            checkItems(d.takes, where + " : \"takes\"");
+            for (StoryData.OptionData o : d.options) {
+                checkConditions(o.requires, where + " : option \"" + o.label + "\"");
+                checkItems(o.gives, where + " : option \"" + o.label + "\" : \"gives\"");
+                checkItems(o.takes, where + " : option \"" + o.label + "\" : \"takes\"");
+            }
+        }
+        for (StoryData.PickupData p : story.pickups) {
+            checkConditions(p.requires, "story.json : objet a ramasser \"" + p.name + "\"");
+        }
+        for (StoryData.TriggerData t : story.triggers) {
+            checkConditions(t.requires, "story.json : declencheur \"" + t.id + "\"");
+        }
+        for (StoryData.RuleData r : story.rules) {
+            checkConditions(r.requires, "story.json : regle");
+        }
+        for (StoryData.EndingData e : story.endings) {
+            checkConditions(e.requires, "story.json : fin \"" + e.id + "\"");
+        }
+        for (StoryData.BoonData b : story.boons) {
+            checkConditions(b.requires, "story.json : avantage");
+            for (String place : b.places) {
+                if (world.place(place) == null) throw new IllegalStateException("story.json : avantage : lieu inconnu \"" + place + "\" (voir world.json)");
+            }
+        }
+        for (StoryData.EffectData e : story.effects) {
+            checkConditions(e.requires, "story.json : effet");
+            for (String shopId : e.priceFactor.keySet()) {
+                try {
+                    shop(shopId);
+                } catch (IllegalStateException ex) {
+                    throw new IllegalStateException("story.json : effet : " + ex.getMessage(), ex);
+                }
+            }
+        }
+        storyCache = story;
+        return story;
+    }
+
+    /**
+     * Les noms des points d'histoire, lus sans vérifier le reste de story.json : les fichiers de lieux en ont besoin
+     * pour leur propre vérification, et story.json vérifie à son tour des choses qui dépendent des lieux.
+     */
+    private static Set<String> storyPoints() {
+        StoryData story = read("story.json", StoryData.class);
+        return story.points != null ? story.points.keySet() : new HashSet<String>();
+    }
+
+    /** Un dialogue se tient auprès d'un PNJ d'une ville (« innkeeper@portbrume ») ou à un point nommé de l'histoire. */
+    private static void checkStoryPoint(String at, StoryData story, WorldData world, String where) {
+        if (story.points.containsKey(at)) {
+            return;
+        }
+        int arobase = at.indexOf('@');
+        String npc = arobase > 0 ? at.substring(0, arobase) : "";
+        WorldData.PlaceData town = arobase > 0 ? world.place(at.substring(arobase + 1)) : null;
+        if (!STORY_NPCS.contains(npc) || town == null || town.zoneFile != null) {
+            throw new IllegalStateException(where + " : \"at\" inconnu \"" + at + "\" (attendu : un point de \"points\", ou "
+                    + STORY_NPCS + "@une ville de world.json)");
+        }
+    }
+
+    private static void checkItems(List<String> ids, String where) {
+        for (String id : ids) {
+            if (newItem(id) == null) throw new IllegalStateException(where + " : objet inconnu \"" + id + "\" (voir items.json)");
+        }
+    }
+
+    /** Vérifie que les conditions d'histoire renvoient à des quêtes, des savoirs et des objets qui existent. */
+    static void checkConditions(List<String> conditions, String where) {
+        if (conditions == null) {
+            return;
+        }
+        StoryData.validateConditions(conditions, where);
+        for (String c : conditions) {
+            String body = c.startsWith("!") ? c.substring(1) : c;
+            String type = body.substring(0, body.indexOf(':'));
+            String arg = body.substring(body.indexOf(':') + 1);
+            if ("quest".equals(type)) {
+                boolean found = false;
+                for (Quest q : quests()) {
+                    found |= q.getTitle().equals(arg);
+                }
+                if (!found) throw new IllegalStateException(where + " : quete inconnue \"" + arg + "\" (voir quests.json)");
+            } else if ("lore".equals(type)) {
+                LoreData lore = lore();
+                boolean found = false;
+                if (arg.startsWith("text:")) {
+                    found = lore.texts.containsKey(arg.substring(5));
+                } else if (arg.startsWith("rumor:")) {
+                    for (LoreData.RumorData r : lore.rumors) {
+                        found |= r.id.equals(arg.substring(6));
+                    }
+                }
+                if (!found) throw new IllegalStateException(where + " : savoir inconnu \"" + arg + "\" (attendu : text:... ou rumor:... de lore.json)");
+            } else if ("item".equals(type)) {
+                if (newItem(arg) == null) throw new IllegalStateException(where + " : objet inconnu \"" + arg + "\" (voir items.json)");
+            }
+        }
+    }
+
     /** Vérifie que chaque panneau à lire (action « read ») d'un fichier de lieu renvoie à un texte de lore.json. */
     private static void checkReadable(String file, List<TownData.PartData> parts) {
         if (parts == null) {
@@ -521,6 +694,9 @@ public final class GameContent {
         for (TownData.PartData p : parts) {
             if ("read".equals(p.action) && !lore().texts.containsKey(p.text)) {
                 throw new IllegalStateException(file + " : texte a lire inconnu \"" + p.text + "\" (voir lore.json)");
+            }
+            if ("story".equals(p.action) && !storyPoints().contains(p.text)) {
+                throw new IllegalStateException(file + " : point d'histoire inconnu \"" + p.text + "\" (voir \"points\" dans story.json)");
             }
         }
     }
@@ -592,6 +768,7 @@ public final class GameContent {
         lore();
         events();
         models();
+        story();
     }
 
     // ------------------------------------------------------------------ lecture

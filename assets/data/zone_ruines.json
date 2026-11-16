@@ -905,6 +905,45 @@
    "color": "#6E6E66",
    "action": "read",
    "text": "stele_ruines"
+  },
+  {
+   "x": 0,
+   "z": -60,
+   "y": 0.0,
+   "w": 0.9,
+   "h": 0.5,
+   "d": 0.9,
+   "color": "#2A2A2E"
+  },
+  {
+   "x": 0,
+   "z": -60,
+   "y": 0.5,
+   "w": 0.6,
+   "h": 0.4,
+   "d": 0.6,
+   "color": "#E8862A",
+   "decal": true
+  },
+  {
+   "x": -6,
+   "z": -62,
+   "y": 0.0,
+   "w": 4.5,
+   "h": 3.2,
+   "d": 4.5,
+   "color": "#7A5A3A",
+   "shape": "cone"
+  },
+  {
+   "x": 6,
+   "z": -62,
+   "y": 0.0,
+   "w": 4.0,
+   "h": 2.8,
+   "d": 4.0,
+   "color": "#6B4E32",
+   "shape": "cone"
   }
  ],
  "monsters": [
@@ -932,6 +971,33 @@
    "id": "goblin",
    "x": 8,
    "z": -45
+  },
+  {
+   "id": "goblin_chief",
+   "x": 0,
+   "z": -58,
+   "requires": [
+    "flag:done:prologue",
+    "!flag:registre_found"
+   ]
+  },
+  {
+   "id": "goblin",
+   "x": -4,
+   "z": -55,
+   "requires": [
+    "flag:done:prologue",
+    "!flag:registre_found"
+   ]
+  },
+  {
+   "id": "goblin",
+   "x": 4,
+   "z": -55,
+   "requires": [
+    "flag:done:prologue",
+    "!flag:registre_found"
+   ]
   }
  ],
  "chests": [

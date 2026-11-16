@@ -44,6 +44,7 @@ import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.LoreData;
+import com.lucas.guild.data.StoryData;
 import com.lucas.guild.data.TownData;
 import com.lucas.guild.game.DeathPenalty;
 import com.lucas.guild.game.DebugMode;
@@ -52,6 +53,7 @@ import com.lucas.guild.game.GroundItems;
 import com.lucas.guild.game.Monster;
 import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.game.Shop;
+import com.lucas.guild.game.Story;
 import com.lucas.guild.game.WorldEvents;
 import com.lucas.guild.model.ActiveEvent;
 import com.lucas.guild.model.Adventurer;
@@ -116,6 +118,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     private SkyAndShadows outdoors;
     private NpcGroup npcs;
     private GroundItemViews groundItems;
+    /** L'histoire dans cet écran : objets à ramasser, déclencheurs, avancement. */
+    private StoryScene storyScene;
     private WorldPanels panels;
     private final WaterWaves water = new WaterWaves();
     private final Toasts toasts = new Toasts();
@@ -140,6 +144,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected boolean isPaused = false;
 
     private boolean deathPending = false;
+    /** Une fin de l'histoire vient d'être atteinte : l'écran de fin s'ouvre à la fin de l'image. */
+    private boolean endingPending = false;
     /** Le lieu affiché sur le HUD (le nom de la ville ou de la zone). */
     protected String townName = "";
 
@@ -148,7 +154,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     private float lastZ;
     private boolean hasLastPosition = false;
 
-    private final java.util.Random eventRandom = new java.util.Random();
+    private final java.util.Random eventRandom = com.lucas.guild.game.GameRandom.create();
 
     protected BaseWorldScreen(MainGame game, String difficulty) {
         this.game = game;
@@ -277,8 +283,40 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         npcs = new NpcGroup(instances);
         disposables.add(npcs);
         groundItems = new GroundItemViews(session.getGround(), sceneKey(), instances, this::addVisualBox);
+        storyScene = new StoryScene(session, sceneKey(), instances, this::addVisualBox);
+        combat.setListener(new CombatScene.Listener() {
+            @Override
+            public void killed(Monster monster) {
+                String message = storyScene.story().onKill(monster.data);
+                if (message != null) {
+                    gameClock.postMessage(message);
+                }
+            }
+
+            @Override
+            public void yielded(Monster monster) {
+                storyScene.story().onYield(monster.data);
+                if (monster.data.yieldMessage != null) {
+                    gameClock.postMessage(monster.data.yieldMessage);
+                }
+            }
+
+            @Override
+            public void message(String text) {
+                gameClock.postMessage(text);
+            }
+
+            @Override
+            public boolean holds(java.util.List<String> conditions) {
+                return storyScene.story().holds(conditions);
+            }
+        });
+        // les avantages de l'histoire propres à ce lieu (les sceaux, au château) ; aucun ailleurs
+        int[] boons = storyScene.story().boonsIn(player.getTownId());
+        player.setStoryBoons(boons[0], boons[1]);
         buildWorld();
         groundItems.showExisting();
+        storyScene.showPickups();
         WorldEvents.update(player, gameClock.getCurrentDay(), eventRandom);
         if (announcesEvents()) {
             String market = WorldEvents.describeAt(player, player.getTownId());
@@ -482,8 +520,12 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
         if (deathPending) {
             deathPending = false;
+            endingPending = false;
             gameClock.postMessage(DeathPenalty.apply(game.getSession()));
             game.setScreen(new InnScreen(game, difficulty));
+        } else if (endingPending) {
+            endingPending = false;
+            game.setScreen(new EndingScreen(game, difficulty));
         }
     }
 
@@ -508,6 +550,29 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             if (combat.update(delta, player, playerPosition())) {
                 onPlayerDeath();
             }
+            advanceStory();
+        }
+    }
+
+    /** L'histoire avance (déclencheurs, chapitres) ; un texte d'histoire en attente s'ouvre, un épilogue a son écran. */
+    private void advanceStory() {
+        Vector3 p = playerPosition();
+        storyScene.update(p.x, p.z);
+        if (deathPending) {
+            return;
+        }
+        if (StoryScene.textsEnabled && storyScene.hasSceneText()) {
+            toggleDialog(SCENE_TEXT_DIALOG);
+            return;
+        }
+        Story.Text text = storyScene.story().nextText();
+        if (text == null || (!StoryScene.textsEnabled && !text.ending)) {
+            return;
+        }
+        if (text.ending) {
+            endingPending = true;   // jamais de changement d'écran au milieu d'une image
+        } else {
+            toggleDialog(STORY_TEXT_DIALOG);
         }
     }
 
@@ -659,8 +724,17 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
         if (objectInView != null && objectInView.userData instanceof Readable) {
             text = ((Readable) objectInView.userData).prompt();
+        } else if (objectInView != null && objectInView.userData instanceof StoryPoint) {
+            text = ((StoryPoint) objectInView.userData).prompt();
         } else if (objectInView != null) {
             text = getInteractionPrompt(objectInView.userData);
+        }
+        if (text == null) {
+            Vector3 p = playerPosition();
+            StoryData.PickupData pickup = storyScene.nearestPickup(p.x, p.z);
+            if (pickup != null) {
+                text = "Ramasser : " + pickup.name + " (E)";
+            }
         }
         if (text == null) {
             GroundItems.Drop drop = nearestGroundItem();
@@ -749,7 +823,17 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
                 read((Readable) objectInView.userData);
                 return true;
             }
+            if (objectInView != null && objectInView.userData instanceof StoryPoint) {
+                toggleDialog(STORY_POINT_DIALOG + ((StoryPoint) objectInView.userData).id);
+                return true;
+            }
             if (objectInView != null && onInteract(objectInView.userData)) {
+                return true;
+            }
+            Vector3 p = playerPosition();
+            String picked = storyScene.pickUpNearest(p.x, p.z);
+            if (picked != null) {
+                gameClock.postMessage(picked);
                 return true;
             }
             if (pickUpNearest()) {
@@ -827,9 +911,133 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         panels.show(dialogTable, inDialog);
 
         dialogTable.clear();
-        if (inDialog) {
+        if (inDialog && !buildStoryDialog(dialogType)) {
             buildDialog(dialogType);
         }
+    }
+
+    // ================================================================== dialogues d'histoire
+
+    private static final String STORY_TEXT_DIALOG = "StoryText";
+    private static final String SCENE_TEXT_DIALOG = "SceneText";
+    private static final String STORY_POINT_DIALOG = "StoryPoint:";
+
+    /** Les dialogues que tous les écrans partagent : un texte d'histoire, un point d'histoire du décor. @return false si ce n'en est pas un */
+    private boolean buildStoryDialog(String dialogType) {
+        if (SCENE_TEXT_DIALOG.equals(dialogType)) {
+            StoryData.TriggerData scene = storyScene.pollSceneText();
+            if (scene != null) {
+                if (scene.title != null) {
+                    Label title = UiKit.label(skin, scene.title);
+                    title.setColor(Color.GOLD);
+                    dialogTable.add(title).pad(10).row();
+                }
+                addWrappedText(scene.text);
+            }
+            addDialogButton("Continuer", () -> toggleDialog(null));
+            return true;
+        }
+        if (STORY_TEXT_DIALOG.equals(dialogType)) {
+            final Story.Text text = storyScene.story().nextText();
+            if (text == null) {
+                addLeaveButton();
+                return true;
+            }
+            Label title = UiKit.label(skin, text.title);
+            title.setColor(Color.GOLD);
+            dialogTable.add(title).pad(10).row();
+            addWrappedText(text.body);
+            storyScene.story().markShown(text);   // montré : il ne reviendra pas, même si on ferme avec Échap
+            addDialogButton("Continuer", () -> toggleDialog(null));
+            return true;
+        }
+        if (dialogType != null && dialogType.startsWith(STORY_POINT_DIALOG)) {
+            final String point = dialogType.substring(STORY_POINT_DIALOG.length());
+            java.util.List<StoryData.DialogData> dialogs = storyScene.story().dialogsAt(point);
+            Runnable close = () -> toggleDialog(null);
+            if (dialogs.size() == 1) {
+                openStoryDialog(dialogs.get(0), close);
+                return true;
+            }
+            String name = Story.pointName(point);
+            dialogTable.add(UiKit.label(skin, name != null ? name : point)).pad(10).row();
+            if (dialogs.isEmpty()) {
+                addWrappedText("Rien à faire ici pour l'instant.");
+            }
+            for (final StoryData.DialogData dialog : dialogs) {
+                addDialogButton(dialog.label, () -> openStoryDialog(dialog, close));
+            }
+            addLeaveButton();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Ajoute au dialogue d'un PNJ les boutons des dialogues d'histoire qu'il propose en ce moment.
+     *
+     * @param npc    son rôle dans story.json (« guildmaster », « innkeeper », « blacksmith », « shopkeeper »)
+     * @param onBack ce que fait « Continuer » à la fin : en général, réafficher le dialogue du PNJ
+     */
+    protected void addStoryDialogs(String npc, final Runnable onBack) {
+        for (final StoryData.DialogData dialog : storyScene.story().dialogsAt(npc + "@" + player.getTownId())) {
+            TextButton button = addDialogButton(dialog.label, () -> openStoryDialog(dialog, onBack));
+            button.getLabel().setColor(Color.GOLD);
+        }
+    }
+
+    /** Affiche un dialogue d'histoire dans la fenêtre de dialogue : son texte, puis ses choix s'il en a. */
+    private void openStoryDialog(final StoryData.DialogData dialog, final Runnable onBack) {
+        final Story story = storyScene.story();
+        dialogTable.clear();
+        java.util.List<StoryData.OptionData> options = story.optionsOf(dialog);
+        if (dialog.options.isEmpty()) {
+            String refusal = story.apply(dialog);
+            if (refusal != null) {
+                dialogTable.add(UiKit.message(skin, refusal)).pad(10).row();
+            } else {
+                addWrappedText(dialog.text);
+            }
+            addDialogButton("Continuer", onBack);
+            return;
+        }
+        addWrappedText(dialog.text);
+        for (final StoryData.OptionData option : options) {
+            addDialogButton(option.label, () -> {
+                String refusal = story.choose(option);
+                final Runnable then = option.next != null && refusal == null
+                        ? () -> openStoryDialog(GameContent.story().dialog(option.next), onBack)
+                        : onBack;
+                if (refusal == null && option.text == null) {
+                    then.run();
+                    return;
+                }
+                dialogTable.clear();
+                if (refusal != null) {
+                    dialogTable.add(UiKit.message(skin, refusal)).pad(10).row();
+                } else {
+                    addWrappedText(option.text);
+                }
+                addDialogButton("Continuer", then);
+            });
+        }
+        addDialogButton("Plus tard", onBack);
+    }
+
+    /** Ce qu'on obtient en visant une partie de décor d'action « read » (un texte) ou « story » (un point d'histoire), sinon null. */
+    protected Object decorUserData(TownData.PartData part) {
+        if ("read".equals(part.action)) {
+            return new Readable(part.text);
+        }
+        if ("story".equals(part.action)) {
+            return new StoryPoint(part.text);
+        }
+        return null;
+    }
+
+    /** L'histoire du personnage, pour les écrans qui en dépendent (portes fermées, épreuves...). */
+    protected Story story() {
+        return storyScene.story();
     }
 
     /** Ouvre la lecture d'un texte du décor ; la première lecture l'ajoute au journal. */
@@ -924,6 +1132,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         instances.clear();
         shapeModels.clear();
         groundItems.clear();
+        storyScene.clear();
         skin.dispose();
     }
 }

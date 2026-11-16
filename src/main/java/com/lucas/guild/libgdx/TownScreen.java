@@ -145,7 +145,7 @@ public class TownScreen extends BaseWorldScreen {
         }
         buildVillagers(town);
         for (TownData.PartData part : town.decor) {
-            addPart(part, 0, 0, "decor", "gate".equals(part.action) ? GATE : "board".equals(part.action) ? BOARD : "read".equals(part.action) ? new Readable(part.text) : null);
+            addPart(part, 0, 0, "decor", "gate".equals(part.action) ? GATE : "board".equals(part.action) ? BOARD : decorUserData(part));
         }
     }
 

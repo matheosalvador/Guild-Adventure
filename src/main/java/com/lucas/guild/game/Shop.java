@@ -19,10 +19,12 @@ import com.lucas.guild.model.Item;
  */
 public class Shop {
 
+    private final String shopId;
     private final ShopData data;
 
     /** @param shopId identifiant dans shops.json (« forge », « guild »...) */
     public Shop(String shopId) {
+        this.shopId = shopId;
         this.data = GameContent.shop(shopId);
     }
 
@@ -44,10 +46,17 @@ public class Shop {
         return (int) Math.round(item.getPrix() * data.priceFactor / 100.0);
     }
 
+    /** Le même prix pour ce personnage : une fin de l'histoire peut avoir changé le {@code priceFactor} de la boutique. */
+    private int shopPrice(Adventurer player, Item item) {
+        int factor = new Story(player, null).priceFactor(shopId, data.priceFactor);
+        return (int) Math.round(item.getPrix() * factor / 100.0);
+    }
+
     /** Prix d'achat de l'objet ici, avec les événements en cours dans la ville (fête, pénurie...). */
     private int eventPrice(Adventurer player, Item item) {
         int percent = WorldEvents.buyPercent(player, player.getTownId(), item);
-        return percent == 100 ? shopPrice(item) : (int) Math.round(shopPrice(item) * percent / 100.0);
+        int price = shopPrice(player, item);
+        return percent == 100 ? price : (int) Math.round(price * percent / 100.0);
     }
 
     /** Une phrase sur les événements qui jouent sur les prix de cette ville, ou null s'il n'y en a pas. */
@@ -74,7 +83,7 @@ public class Shop {
     /** Prix que {@code player} reçoit pour {@code item} : la part de base, augmentée par son Marchandage. */
     public int sellPrice(Adventurer player, Item item) {
         int percent = data.sellPercent + (int) Math.round(player.getSkillBonus("sellBonusPercent"));
-        return (int) ((long) shopPrice(item) * Math.min(percent, 100) * WorldEvents.sellPercent(player, player.getTownId(), item) / 10000L);
+        return (int) ((long) shopPrice(player, item) * Math.min(percent, 100) * WorldEvents.sellPercent(player, player.getTownId(), item) / 10000L);
     }
 
     /** Le joueur achète l'objet {@code wanted} (un élément de {@link #getStock()}). */

@@ -22,11 +22,14 @@ public final class World {
         public final WorldData.PlaceData place;
         public final double km;
         public final int minutes;
+        /** Pourquoi la route est fermée à ce personnage (histoire), ou null si elle est ouverte. */
+        public final String lockedReason;
 
-        Route(WorldData.PlaceData place, double km, int minutes) {
+        Route(WorldData.PlaceData place, double km, int minutes, String lockedReason) {
             this.place = place;
             this.km = km;
             this.minutes = minutes;
+            this.lockedReason = lockedReason;
         }
     }
 
@@ -44,9 +47,10 @@ public final class World {
         WorldData world = GameContent.world();
         String here = player.getTownId();
         List<Route> routes = new ArrayList<>();
+        Story story = new Story(player, null);
         for (WorldData.PlaceData neighbor : world.neighbors(here)) {
             double km = world.distanceKm(here, neighbor.id);
-            routes.add(new Route(neighbor, km, travelMinutes(km, world.walkingKmh, player.getSpeedFactor())));
+            routes.add(new Route(neighbor, km, travelMinutes(km, world.walkingKmh, player.getSpeedFactor()), story.lockReason(neighbor.id)));
         }
         return routes;
     }
@@ -75,7 +79,9 @@ public final class World {
         if (DebugMode.isForceAmbush()) {
             return true;
         }
-        return random.nextInt(100) < GameContent.ambushPercent(session.getDifficulty());
+        // une fin de l'histoire peut rendre les routes plus sûres
+        int percent = new Story(session).ambushPercent(GameContent.ambushPercent(session.getDifficulty()));
+        return random.nextInt(100) < percent;
     }
 
     /**
@@ -86,7 +92,7 @@ public final class World {
      */
     public static String startAmbushedTravel(GameSession session, String placeId) {
         for (Route route : routesFrom(session.getPlayer())) {
-            if (route.place.id.equals(placeId)) {
+            if (route.place.id.equals(placeId) && route.lockedReason == null) {
                 int before = (route.minutes / 2) / 5 * 5;
                 session.getClock().advanceMinutes(before);
                 session.setPendingTravel(placeId, route.minutes - before);
@@ -120,7 +126,7 @@ public final class World {
     public static String travel(GameSession session, String placeId) {
         Adventurer player = session.getPlayer();
         for (Route route : routesFrom(player)) {
-            if (route.place.id.equals(placeId)) {
+            if (route.place.id.equals(placeId) && route.lockedReason == null) {   // un lieu fermé par l'histoire : pas de voyage
                 session.getClock().advanceMinutes(route.minutes);
                 player.setTownId(placeId);
                 player.markVisited(placeId);

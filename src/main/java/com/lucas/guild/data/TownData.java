@@ -55,7 +55,10 @@ public class TownData {
         public float[] rot;
         /** « water » : la surface ondule doucement. */
         public String anim;
-        /** Pour l'action « read » : l'identifiant du texte à lire dans lore.json (panneau, stèle, livre...). */
+        /**
+         * Pour l'action « read » : l'identifiant du texte à lire dans lore.json (panneau, stèle, livre...).
+         * Pour l'action « story » : le point d'histoire de story.json (« cairn »...) dont les dialogues se tiennent ici.
+         */
         public String text;
     }
 
@@ -104,8 +107,11 @@ public class TownData {
             String at = where + " n°" + (i + 1);
             if (p == null) throw new IllegalStateException(at + " : vide");
             if (p.color == null) throw new IllegalStateException(at + " : \"color\" manquant");
-            if (p.action != null && !"gate".equals(p.action) && !"read".equals(p.action) && !"board".equals(p.action)) throw new IllegalStateException(at + " : \"action\" inconnue \"" + p.action + "\" (attendu : gate, read ou board)");
+            if (p.action != null && !"gate".equals(p.action) && !"read".equals(p.action) && !"board".equals(p.action) && !"story".equals(p.action)) {
+                throw new IllegalStateException(at + " : \"action\" inconnue \"" + p.action + "\" (attendu : gate, read, board ou story)");
+            }
             if ("read".equals(p.action) && (p.text == null || p.text.isEmpty())) throw new IllegalStateException(at + " : l'action \"read\" demande un \"text\" (un identifiant de lore.json)");
+            if ("story".equals(p.action) && (p.text == null || p.text.isEmpty())) throw new IllegalStateException(at + " : l'action \"story\" demande un \"text\" (un point de story.json)");
             if (p.w <= 0 || p.h <= 0 || p.d <= 0) throw new IllegalStateException(at + " : \"w\", \"h\" et \"d\" doivent etre > 0");
             if (p.shape == null || !java.util.Arrays.asList("box", "cylinder", "sphere", "cone", "gable").contains(p.shape)) {
                 throw new IllegalStateException(at + " : \"shape\" inconnue \"" + p.shape + "\" (attendu : box, cylinder, sphere, cone ou gable)");

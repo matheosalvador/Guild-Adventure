@@ -72,5 +72,90 @@
     "h": 1.3,
     "d": 0.7,
     "model": "goblin"
+  },
+  "bat": {
+    "name": "Chauve-souris",
+    "health": 12, "damage": 4, "speed": 6.5,
+    "aggroRange": 14, "attackRange": 1.5, "attackCooldown": 0.9,
+    "goldMin": 0, "goldMax": 1,
+    "drops": [ { "item": "bat_wing", "chance": 60 } ],
+    "color": "#2E2A33", "w": 0.7, "h": 0.6, "d": 0.7,
+    "model": "bat", "flyHeight": 0.9
+  },
+  "skeleton_miner": {
+    "name": "Mineur d'autrefois",
+    "health": 45, "damage": 10, "speed": 3.0,
+    "aggroRange": 12, "attackRange": 1.7, "attackCooldown": 1.3,
+    "goldMin": 2, "goldMax": 6,
+    "drops": [ { "item": "carved_bone", "chance": 60 } ],
+    "color": "#E6E0CF", "w": 0.7, "h": 1.8, "d": 0.7,
+    "model": "skeleton"
+  },
+  "goblin_chief": {
+    "name": "Chef gobelin",
+    "health": 90, "damage": 11, "speed": 3.8,
+    "aggroRange": 14, "attackRange": 1.7, "attackCooldown": 1.1,
+    "goldMin": 15, "goldMax": 25,
+    "drops": [ { "item": "goblin_trinket", "chance": 100 }, { "item": "rusty_blade", "chance": 100 } ],
+    "color": "#7A2E2E", "w": 0.8, "h": 1.6, "d": 0.8,
+    "model": "goblin_chief", "boss": true,
+    "killFlag": "registre_found",
+    "killMessage": "Dans la besace du chef : le registre de la garnison."
+  },
+  "garrison_soldier": {
+    "name": "Soldat de la garnison",
+    "health": 60, "damage": 13, "speed": 4.0,
+    "aggroRange": 13, "attackRange": 1.9, "attackCooldown": 1.2,
+    "goldMin": 4, "goldMax": 10,
+    "color": "#2F3E5C", "w": 0.7, "h": 1.8, "d": 0.7,
+    "model": "guard"
+  },
+  "ageless_soldier": {
+    "name": "Soldat sans âge",
+    "health": 55, "damage": 13, "speed": 3.6,
+    "aggroRange": 40, "attackRange": 1.9, "attackCooldown": 1.3,
+    "goldMin": 0, "goldMax": 0,
+    "color": "#B9B4A6", "w": 0.7, "h": 1.8, "d": 0.7,
+    "model": "ageless"
+  },
+  "sergeant_holt": {
+    "name": "Sergent Holt",
+    "health": 220, "damage": 16, "speed": 3.2,
+    "aggroRange": 22, "attackRange": 2.0, "attackCooldown": 1.4,
+    "goldMin": 30, "goldMax": 40,
+    "color": "#6E737A", "w": 0.8, "h": 2.0, "d": 0.8,
+    "model": "sergeant_holt", "boss": true,
+    "killFlag": "letter_found",
+    "killMessage": "Sur le corps du sergent, une lettre au sceau de Corvenne.",
+    "phases": [
+      { "below": 50, "summon": "skeleton_miner", "summonCount": 2, "message": "Holt frappe le sol. Deux mineurs d'autrefois se relèvent." }
+    ]
+  },
+  "captain_varn": {
+    "name": "Capitaine Varn",
+    "health": 320, "damage": 20, "speed": 4.6,
+    "aggroRange": 26, "attackRange": 2.0, "attackCooldown": 1.1,
+    "goldMin": 40, "goldMax": 60,
+    "color": "#8E949B", "w": 0.75, "h": 1.9, "d": 0.75,
+    "model": "captain_varn", "boss": true,
+    "killFlag": "varn_defeated",
+    "killMessage": "Varn vous tend une clé, sans se relever. \"En bas. Il compte ses grains.\""
+  },
+  "lord_aldric": {
+    "name": "Aldric de Corvenne",
+    "health": 600, "damage": 22, "speed": 4.0,
+    "aggroRange": 30, "attackRange": 2.1, "attackCooldown": 1.2,
+    "goldMin": 0, "goldMax": 0,
+    "color": "#5A1420", "w": 0.75, "h": 1.9, "d": 0.75,
+    "model": "lord_aldric", "boss": true,
+    "yieldPercent": 5, "yieldFlag": "aldric_yielded",
+    "yieldMessage": "Aldric tombe à genoux. Le Sablier est à portée de main.",
+    "phases": [
+      { "below": 60, "healEvery": 12, "healAmount": 40, "healRequires": ["!flag:seal_sagesse_intact"],
+        "summon": "ageless_soldier", "summonCount": 2,
+        "message": "Aldric retourne le Sablier. La cendre remonte, et deux soldats sans âge se lèvent." },
+      { "below": 25, "damage": 30, "speed": 3.0, "attackCooldown": 1.6,
+        "message": "L'âge le rattrape : Aldric frappe plus lourd, plus lentement." }
+    ]
   }
 }

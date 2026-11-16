@@ -56,6 +56,7 @@ public class Smoke extends ApplicationAdapter {
     public void create() {
         try {
             Files.createDirectories(Paths.get(outDir));
+            com.lucas.guild.game.GameRandom.setSeedForTests(20261116L);   // meme hasard a chaque parcours : captures comparables
             game = new MainGame();
             game.create();
             game.resize(800, 600);

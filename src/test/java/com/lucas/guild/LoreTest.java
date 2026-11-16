@@ -27,7 +27,7 @@ class LoreTest {
             if (place.zoneFile == null) {
                 assertTrue(lore.rumors.stream().anyMatch(r -> place.id.equals(r.town)), place.id + " : des rumeurs");
                 assertTrue(GameContent.town(place.id).decor.stream().anyMatch(p -> "read".equals(p.action)), place.id + " : un panneau");
-            } else {
+            } else if (!place.hidden) {   // un etage cache de donjon n'a pas forcement son panneau
                 assertTrue(GameContent.zone(place.id).decor.stream().anyMatch(p -> "read".equals(p.action)), place.id + " : un panneau ou une stele");
             }
         }

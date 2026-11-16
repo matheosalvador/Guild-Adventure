@@ -41,8 +41,10 @@ public final class Lore {
 
     /** La prochaine rumeur que l'aubergiste de {@code townId} peut raconter (dans l'ordre du fichier), ou null s'il n'a plus rien de neuf. */
     public static LoreData.RumorData nextRumor(Adventurer player, String townId) {
+        Story story = new Story(player, null);
         for (LoreData.RumorData rumor : GameContent.lore().rumors) {
-            if ((rumor.town == null || rumor.town.equals(townId)) && !isKnown(player, rumorKey(rumor.id))) {
+            // certaines rumeurs ne se racontent qu'à partir d'un moment de l'histoire
+            if ((rumor.town == null || rumor.town.equals(townId)) && !isKnown(player, rumorKey(rumor.id)) && story.holds(rumor.requires)) {
                 return rumor;
             }
         }

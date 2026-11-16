@@ -44,7 +44,7 @@ public final class Combat {
         if (DebugMode.isInvincible()) {
             return 0;
         }
-        int damage = Math.max(1, monster.data.damage - player.getDefense());
+        int damage = Math.max(1, monster.getDamage() - player.getDefense());
         player.perdreVie(damage);
         player.train("robustness", 1);
         return damage;

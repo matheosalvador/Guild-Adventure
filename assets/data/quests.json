@@ -101,5 +101,76 @@
     "experienceReward": 10,
     "giveItem": "Sacoche de mineur",
     "payOnDelivery": true
+  },
+  {
+    "title": "Ailes pour l'apothicaire",
+    "description": "L'apothicaire de Hautevigne broie des ailes de chauve-souris dans ses onguents. La mine en est pleine. Rapportez-en cinq.",
+    "rank": 2,
+    "type": "COLLECT",
+    "town": "hautevigne",
+    "collectItem": "bat_wing",
+    "collectCount": 5,
+    "goldReward": 120
+  },
+  {
+    "title": "Les os gravés",
+    "description": "Les mineurs d'autrefois portent des marques que personne ne sait lire. Le contremaître veut en voir quatre.",
+    "rank": 2,
+    "type": "COLLECT",
+    "town": "hautevigne",
+    "collectItem": "carved_bone",
+    "collectCount": 4,
+    "goldReward": 150
+  },
+  {
+    "title": "Lames pour le port",
+    "description": "Le forgeron du port refond tout ce qui coupe. Rapportez trois lames rouillées prises aux gobelins.",
+    "rank": 2,
+    "type": "COLLECT",
+    "town": "portbrume",
+    "collectItem": "rusty_blade",
+    "collectCount": 3,
+    "goldReward": 130
+  },
+  {
+    "title": "Crocs pour les amulettes",
+    "description": "Les marins ne prennent plus la mer sans un croc de loup au cou. Il en faut six.",
+    "rank": 3,
+    "type": "COLLECT",
+    "town": "portbrume",
+    "collectItem": "wolf_fang",
+    "collectCount": 6,
+    "goldReward": 210
+  },
+  {
+    "title": "Pli pour la Guilde",
+    "description": "Le contremaître écrit à Aethelgard ce qu'il n'ose pas dire tout haut. Remettez son pli à La Pinte qui Chante : 28 km de route.",
+    "rank": 3,
+    "type": "DELIVERY",
+    "town": "hautevigne",
+    "target": "La Pinte qui Chante",
+    "goldReward": 230,
+    "giveItem": "Pli du contremaître",
+    "payOnDelivery": true
+  },
+  {
+    "title": "Breloques volées",
+    "description": "Les gobelins dépouillent les voyageurs depuis un an. La Guilde rachète ce qu'on leur reprend : trois breloques.",
+    "rank": 3,
+    "type": "COLLECT",
+    "town": "aethelgard",
+    "collectItem": "goblin_trinket",
+    "collectCount": 3,
+    "goldReward": 240
+  },
+  {
+    "title": "Vider la mine",
+    "description": "Tant que les mineurs d'autrefois marchent, personne ne redescendra. Rapportez huit os gravés.",
+    "rank": 4,
+    "type": "COLLECT",
+    "town": "hautevigne",
+    "collectItem": "carved_bone",
+    "collectCount": 8,
+    "goldReward": 400
   }
 ]

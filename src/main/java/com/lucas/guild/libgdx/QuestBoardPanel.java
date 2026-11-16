@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.lucas.guild.game.QuestLog;
+import com.lucas.guild.game.Story;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.Guild;
 import com.lucas.guild.model.Quest;
@@ -118,8 +119,11 @@ class QuestBoardPanel {
                 table.add(UiKit.button(skin, text, () -> drawDetail(quest, null))).pad(5).row();
             }
         }
-        table.add(UiKit.label(skin, "Rang : " + player.getRank() + " - quêtes terminées : " + player.getDoneQuests().size()
-                + " (un rang de plus toutes les " + QuestLog.QUESTS_PER_RANK + ")")).pad(5).row();
+        table.add(UiKit.label(skin, "Rang : " + Story.rankLabel(player.getRank()) + " - quêtes terminées : " + player.getDoneQuests().size())).pad(5).row();
+        String hint = new Story(player, null).nextRankHint();
+        if (hint != null) {
+            table.add(UiKit.label(skin, hint)).pad(2).row();
+        }
         table.add(UiKit.button(skin, "Retour", onBack)).pad(10).row();
     }
 

@@ -38,7 +38,7 @@ class Sparks implements Disposable {
     private final Array<ModelInstance> sink;
     private final Model cube;
     private final List<Spark> active = new ArrayList<>();
-    private final Random random = new Random();
+    private final Random random = com.lucas.guild.game.GameRandom.create();
 
     Sparks(Array<ModelInstance> sink) {
         this.sink = sink;

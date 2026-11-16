@@ -1,0 +1,378 @@
+{
+  "ranks": [
+    { "rank": 1, "label": "E", "requires": ["flag:done:prologue"] },
+    { "rank": 2, "label": "D", "requires": ["flag:done:chapitre1", "quests:4"] },
+    { "rank": 3, "label": "C", "requires": ["flag:done:chapitre2", "quests:7"] },
+    { "rank": 4, "label": "B", "requires": ["flag:done:chapitre3", "quests:10"] }
+  ],
+
+  "chapters": [
+    {
+      "id": "prologue",
+      "title": "Prologue : Le rang F",
+      "intro": "La Guilde d'Aethelgard prend tout le monde. Elle ne garde que ceux qui reviennent. Au tableau, deux annonces pour débutants : des rats, une lettre. Il faut bien commencer.",
+      "outro": "Odran retourne la plaque entre ses doigts. \"Tour du nord. Ils étaient quarante. Un matin, plus personne, et pas un corps.\" Il vous la rend. \"Les gobelins y sont, maintenant. Allez voir ce qu'ils ont trouvé.\"",
+      "goldReward": 30,
+      "objectives": [
+        { "text": "Nettoyer la cave de l'auberge (quête de la Guilde)", "done": ["quest:Nettoyage de la cave"] },
+        { "text": "Porter la lettre au forgeron (quête de la Guilde)", "done": ["quest:Livraison express"] },
+        { "text": "Fouiller la cave : il y a quelque chose derrière les tonneaux", "done": ["flag:plaque_found"] },
+        { "text": "Montrer la plaque au maître de guilde", "done": ["flag:plaque_shown"] }
+      ]
+    },
+    {
+      "id": "chapitre1",
+      "title": "Chapitre 1 : La tour vide",
+      "requires": ["flag:done:prologue"],
+      "intro": "Les ruines, à l'est. On dit \"les ruines\" depuis un an seulement : avant, c'était une tour, avec des hommes dedans.",
+      "outro": "La dernière page du registre tient en trois lignes. \"Ordre du château. Tout le monde à Hautevigne, de nuit. Laisser les feux allumés.\" Odran relit deux fois. \"Du château\", répète-t-il.",
+      "goldReward": 100,
+      "objectives": [
+        { "text": "Lire la stèle des Ruines gobelines", "done": ["lore:text:stele_ruines"] },
+        { "text": "Reprendre le registre de la garnison au chef des gobelins, au fond des ruines", "done": ["flag:registre_found"] },
+        { "text": "Montrer le registre au maître de guilde", "done": ["flag:registre_shown"] }
+      ]
+    },
+    {
+      "id": "chapitre2",
+      "title": "Chapitre 2 : Ce qui cogne au fond",
+      "requires": ["flag:done:chapitre1", "rank:2"],
+      "intro": "Hautevigne. La mine est fermée depuis les éboulements, et la Guilde n'y a jamais mis les pieds. Il vous faut un mandat, et quelqu'un qui accepte d'ouvrir.",
+      "outro": "La lettre porte le sceau de Corvenne. \"Capitaine Varn. La tour ne sert plus à rien. Vos hommes creuseront là où je vous l'ai montré. Ceux qui refusent, laissez-les aux routes : on les prendra pour des brigands. Je n'ai plus beaucoup de sable. Aldric.\" Les soldats ne sont pas morts. Ils obéissent.",
+      "goldReward": 250,
+      "objectives": [
+        { "text": "Demander un mandat pour Hautevigne au maître de guilde", "done": ["flag:mandat"] },
+        { "text": "Trouver Garin, le contremaître, à l'auberge de Hautevigne", "done": ["flag:garin_met"] },
+        { "text": "Dans les galeries de la mine, trouver la clé de la grille", "done": ["flag:mine_key"] },
+        { "text": "Vaincre le gardien de la chambre et prendre ce qu'il porte", "done": ["flag:letter_found"] },
+        { "text": "Montrer la lettre au maître de guilde", "done": ["flag:letter_shown"] }
+      ]
+    },
+    {
+      "id": "chapitre3",
+      "title": "Chapitre 3 : Les trois sceaux",
+      "requires": ["flag:done:chapitre2", "rank:3"],
+      "intro": "Odran pose la lettre. \"Si je l'accuse, il me fait pendre, et il en a le droit. Mais il y a une loi plus vieille que lui. Trois sceaux. Force, à la Fosse de Port-Brume. Sagesse, au cairn de la forêt. Endurance, sur la route de Hautevigne à Port-Brume. Celui qui les porte entre où il veut.\"",
+      "outro": "Trois sceaux de cire, pas plus lourds que des pièces. Odran les regarde sans les toucher. \"Il vous reste à être quelqu'un qu'un seigneur doit recevoir. Rang B. Ensuite, la herse.\"",
+      "goldReward": 450,
+      "objectives": [
+        { "text": "Sceau de Force : l'épreuve de la Fosse des Débardeurs, à Port-Brume", "done": ["flag:seal_force"] },
+        { "text": "Sceau de Sagesse : l'énigme du Cairn des Anciens, dans la Forêt des Loups", "done": ["flag:seal_sagesse"] },
+        { "text": "Sceau d'Endurance : porter le Minerai du serment de Hautevigne à Port-Brume", "done": ["flag:seal_endurance"] }
+      ]
+    },
+    {
+      "id": "chapitre4",
+      "title": "Chapitre 4 : Corvenne",
+      "requires": ["flag:done:chapitre3", "rank:4"],
+      "intro": "Trois sceaux, et le rang qu'il faut pour les porter. Sur la carte, au sud des ruines, un nom que vous n'aviez jamais regardé : Corvenne. La tour du nord, c'était le nord de quelque chose.",
+      "outro": "Vous remontez de la crypte. Dans la grande salle, dans la cour, personne ne vous arrête.",
+      "objectives": [
+        { "text": "Entrer au château de Corvenne, au sud des Ruines gobelines", "done": ["flag:trigger:corvenne_herse"] },
+        { "text": "Vaincre la capitaine Varn dans la grande salle", "done": ["flag:varn_defeated"] },
+        { "text": "Affronter Aldric dans la crypte", "done": ["flag:aldric_yielded"] },
+        { "text": "Décider du sort du Sablier de Cendre", "done": ["flag:ending_chosen"] }
+      ]
+    }
+  ],
+
+  "points": {
+    "fosse_master": "Le maître de la Fosse",
+    "cairn": "Le Cairn des Anciens",
+    "sablier": "Le Sablier de Cendre"
+  },
+
+  "rules": [
+    { "requires": ["lore:rumor:haute_vin", "lore:rumor:haute_mine", "lore:text:panneau_hautevigne", "flag:letter_found"], "sets": ["sagesse_ready"] }
+  ],
+
+  "dialogs": [
+    {
+      "id": "odran_plaque", "at": "guildmaster@aethelgard",
+      "requires": ["flag:plaque_found", "!flag:plaque_shown"],
+      "label": "Montrer la plaque de soldat",
+      "text": "Odran prend la plaque et la tourne vers la lumière. \"Où avez-vous trouvé ça ?\" Vous le lui dites. Il ne sourit plus.",
+      "sets": ["plaque_shown"]
+    },
+    {
+      "id": "durgan_lames", "at": "blacksmith@aethelgard",
+      "requires": ["flag:started:chapitre1", "!flag:durgan_lames"],
+      "label": "Parler des lames des gobelins",
+      "text": "Durgan crache par terre. \"Ces lames rouillées qu'ils traînent ? C'est moi qui les ai forgées. Pour la garnison. Une lame, on la lâche en tombant. Celles-là, on les a posées. Ils ne sont pas morts avec, vos soldats.\"",
+      "sets": ["durgan_lames"]
+    },
+    {
+      "id": "odran_registre", "at": "guildmaster@aethelgard",
+      "requires": ["flag:registre_found", "!flag:registre_shown"],
+      "label": "Montrer le registre de la garnison",
+      "text": "Odran ouvre le registre à la dernière page et ne dit plus rien pendant un long moment.",
+      "sets": ["registre_shown"]
+    },
+    {
+      "id": "odran_mandat_attente", "at": "guildmaster@aethelgard",
+      "requires": ["flag:done:chapitre1", "!rank:2", "!flag:mandat"],
+      "label": "Demander un mandat pour Hautevigne",
+      "text": "\"Un mandat pour la mine ? Je n'en signe pas pour un rang E. Faites vos preuves au tableau : quatre quêtes rendues, et on en reparle.\""
+    },
+    {
+      "id": "odran_mandat", "at": "guildmaster@aethelgard",
+      "requires": ["flag:done:chapitre1", "rank:2", "!flag:mandat"],
+      "label": "Demander un mandat pour Hautevigne",
+      "text": "\"Rang D. Bien. Voilà un mandat de la Guilde : avec ça, on vous ouvrira la mine. Demandez Garin, le contremaître. Il passe ses soirées à l'auberge du Filon d'Argent.\"",
+      "sets": ["mandat"]
+    },
+    {
+      "id": "garin_mine", "at": "innkeeper@hautevigne",
+      "requires": ["flag:mandat", "!flag:garin_met"],
+      "label": "Demander Garin, le contremaître",
+      "text": "Un homme gris se lève du fond de la salle et lit votre mandat sans se presser. \"Les éboulements, je les ai vus. Ils sont tombés du bon côté, tous. Comme une porte qu'on ferme.\" Il vous rend le papier. \"Les coups, c'est en bas. Ça n'a jamais arrêté. La mine est à vous.\"",
+      "sets": ["garin_met"]
+    },
+    {
+      "id": "odran_lettre", "at": "guildmaster@aethelgard",
+      "requires": ["flag:letter_found", "!flag:letter_shown"],
+      "label": "Montrer la lettre trouvée dans la mine",
+      "text": "Odran lit. Puis il relit, plus lentement, en suivant les lignes du doigt.",
+      "sets": ["letter_shown"]
+    },
+
+    {
+      "id": "force_avant", "at": "fosse_master",
+      "requires": ["!flag:started:chapitre3"],
+      "label": "Parler au maître de la Fosse",
+      "text": "\"On ne descend pas dans la Fosse pour s'amuser. Revenez avec une raison.\""
+    },
+    {
+      "id": "force_depart", "at": "fosse_master",
+      "requires": ["flag:started:chapitre3", "!flag:force_answered", "!flag:force_running"],
+      "label": "Demander l'épreuve de Force",
+      "text": "\"Le sceau de Force ? Alors c'est simple. Trois vagues : des loups, des gobelins, puis ce que la mine nous a rendu. Vous tenez debout jusqu'au bout, le sceau est à vous. Vous tombez, ou vous sortez avant la fin, il sera fêlé.\"",
+      "options": [
+        { "label": "Je descends", "sets": ["force_running"], "text": "\"Alors reculez-vous du bord. Ça commence.\"" }
+      ]
+    },
+    {
+      "id": "force_attente", "at": "fosse_master",
+      "requires": ["flag:seal_force_cracked", "!since:seal_force_cracked:4320"],
+      "label": "Redemander l'épreuve de Force",
+      "text": "\"Vous êtes tombé. Ça arrive aux meilleurs. La Fosse ne reprend personne avant trois jours : revenez.\""
+    },
+    {
+      "id": "force_retour", "at": "fosse_master",
+      "requires": ["flag:seal_force_cracked", "since:seal_force_cracked:4320", "!flag:force_running"],
+      "label": "Redemander l'épreuve de Force",
+      "text": "\"Encore vous. Bien. Les mêmes trois vagues, le même sceau, entier cette fois si vous tenez.\"",
+      "options": [
+        { "label": "Je redescends", "unsets": ["seal_force_cracked", "force_answered"], "sets": ["force_running"], "text": "\"Reculez-vous du bord.\"" }
+      ]
+    },
+    {
+      "id": "force_faite", "at": "fosse_master",
+      "requires": ["flag:seal_force_intact"],
+      "label": "Parler au maître de la Fosse",
+      "text": "\"Vous avez tenu. Je n'ai rien d'autre à vous apprendre.\""
+    },
+
+    {
+      "id": "cairn_avant", "at": "cairn",
+      "requires": ["!flag:started:chapitre3"],
+      "label": "Lire le cairn",
+      "text": "Des vers usés par la pluie. Vous les lisez sans savoir de quoi ils parlent. Pas encore."
+    },
+    {
+      "id": "cairn_mince", "at": "cairn",
+      "requires": ["flag:started:chapitre3", "!flag:sagesse_answered", "!flag:sagesse_ready"],
+      "label": "Lire l'énigme du cairn",
+      "text": "Vous lisez les vers, et rien ne vient. Votre journal est trop mince pour cette question. On raconte des choses, à l'auberge de Hautevigne, et le panneau du village en dit une autre."
+    },
+    {
+      "id": "cairn_enigme", "at": "cairn",
+      "requires": ["flag:started:chapitre3", "!flag:sagesse_answered", "flag:sagesse_ready", "!flag:riddle_step2"],
+      "label": "Lire l'énigme du cairn",
+      "text": "\"Je porte le nom d'un fruit que ma terre refuse.\nOn m'a fermé la bouche pour qu'on n'entende plus ce qui cogne.\nCelui qui me prend mes saisons a peur des siennes.\nDis mon nom, et dis ce qu'on me vole.\"\n\nD'abord : son nom.",
+      "options": [
+        { "label": "Aethelgard", "unsets": ["riddle_name_ok"], "sets": ["riddle_step2"], "next": "cairn_enigme2" },
+        { "label": "Port-Brume", "unsets": ["riddle_name_ok"], "sets": ["riddle_step2"], "next": "cairn_enigme2" },
+        { "label": "Hautevigne", "sets": ["riddle_name_ok", "riddle_step2"], "next": "cairn_enigme2" },
+        { "label": "La Forêt des Loups", "unsets": ["riddle_name_ok"], "sets": ["riddle_step2"], "next": "cairn_enigme2" }
+      ]
+    },
+    {
+      "id": "cairn_enigme2", "at": "cairn",
+      "requires": ["flag:riddle_step2"],
+      "label": "Répondre au cairn",
+      "text": "Les pierres attendent la suite. Et ce qu'on lui vole ?",
+      "options": [
+        { "label": "L'or", "unsets": ["riddle_step2", "riddle_name_ok"], "sets": ["seal_sagesse", "seal_sagesse_cracked", "sagesse_answered"],
+          "text": "Rien ne bouge. Puis une pierre du sommet glisse et se fend en tombant. Dessous, un sceau de cire, fêlé par le milieu. Ce n'était pas la réponse." },
+        { "label": "Les peaux", "unsets": ["riddle_step2", "riddle_name_ok"], "sets": ["seal_sagesse", "seal_sagesse_cracked", "sagesse_answered"],
+          "text": "Rien ne bouge. Puis une pierre du sommet glisse et se fend en tombant. Dessous, un sceau de cire, fêlé par le milieu. Ce n'était pas la réponse." },
+        { "label": "Le vin", "unsets": ["riddle_step2", "riddle_name_ok"], "sets": ["seal_sagesse", "seal_sagesse_cracked", "sagesse_answered"],
+          "text": "Rien ne bouge. Puis une pierre du sommet glisse et se fend en tombant. Dessous, un sceau de cire, fêlé par le milieu. Ce n'était pas la réponse." },
+        { "label": "Le temps", "requires": ["flag:riddle_name_ok"], "unsets": ["riddle_step2", "riddle_name_ok"], "sets": ["seal_sagesse", "seal_sagesse_intact", "sagesse_answered"],
+          "text": "Hautevigne. Le temps. Les pierres du sommet s'écartent sans bruit. Dessous, un sceau de cire intact, et froid comme s'il n'avait jamais vu le jour." },
+        { "label": "Le temps", "requires": ["!flag:riddle_name_ok"], "unsets": ["riddle_step2", "riddle_name_ok"], "sets": ["seal_sagesse", "seal_sagesse_cracked", "sagesse_answered"],
+          "text": "Le temps, oui. Mais pas à celle-là. Une pierre glisse et se fend en tombant. Dessous, un sceau de cire, fêlé par le milieu." }
+      ]
+    },
+    {
+      "id": "cairn_attente", "at": "cairn",
+      "requires": ["flag:seal_sagesse_cracked", "!since:seal_sagesse_cracked:4320"],
+      "label": "Relire le cairn",
+      "text": "Le cairn reste muet. Il faudra laisser passer trois jours avant qu'il ne repose sa question."
+    },
+    {
+      "id": "cairn_retour", "at": "cairn",
+      "requires": ["flag:seal_sagesse_cracked", "since:seal_sagesse_cracked:4320"],
+      "label": "Relire le cairn",
+      "text": "Les pierres sont de nouveau en place, comme si vous n'étiez jamais venu.",
+      "options": [
+        { "label": "Reposer la question", "unsets": ["seal_sagesse_cracked", "sagesse_answered"], "text": "Les vers sont toujours là. Relisez-les." }
+      ]
+    },
+    {
+      "id": "cairn_fait", "at": "cairn",
+      "requires": ["flag:seal_sagesse_intact"],
+      "label": "Lire le cairn",
+      "text": "Le cairn n'a plus rien à vous demander."
+    },
+
+    {
+      "id": "endurance_depart", "at": "innkeeper@hautevigne",
+      "requires": ["flag:started:chapitre3", "!flag:endurance_answered", "!flag:endurance_started"],
+      "label": "Demander l'épreuve d'Endurance",
+      "text": "L'aubergiste pose sur le comptoir un bloc de minerai brut. \"Le Minerai du serment. Dix-huit kilos. Vous le portez à La Voile Rouge, à Port-Brume, par la grand-route. Quatorze heures, pas une de plus, comptées dès que vous le prenez. Videz vos poches avant : il ne pardonne pas.\"",
+      "options": [
+        { "label": "Je le prends, le compte commence", "gives": ["oath_ore"], "sets": ["endurance_started"], "text": "\"Alors ne restez pas là.\"" }
+      ]
+    },
+    {
+      "id": "endurance_remise", "at": "innkeeper@portbrume",
+      "requires": ["flag:endurance_started", "item:oath_ore", "within:endurance_started:840"],
+      "label": "Remettre le Minerai du serment",
+      "text": "L'aubergiste de La Voile Rouge soupèse le bloc, regarde l'heure, et sort un sceau de cire de sous le comptoir. Intact. \"Dans les temps. Peu de gens le font.\"",
+      "takes": ["oath_ore"],
+      "unsets": ["endurance_started"],
+      "sets": ["seal_endurance", "seal_endurance_intact", "endurance_answered"]
+    },
+    {
+      "id": "endurance_retard", "at": "innkeeper@portbrume",
+      "requires": ["flag:endurance_started", "item:oath_ore", "!within:endurance_started:840"],
+      "label": "Remettre le Minerai du serment",
+      "text": "L'aubergiste de La Voile Rouge soupèse le bloc et regarde l'heure. \"Trop tard.\" Il vous tend quand même un sceau, fêlé par le milieu. \"Vous l'avez porté. C'est déjà ça.\"",
+      "takes": ["oath_ore"],
+      "unsets": ["endurance_started"],
+      "sets": ["seal_endurance", "seal_endurance_cracked", "endurance_answered"]
+    },
+    {
+      "id": "endurance_perdu_port", "at": "innkeeper@portbrume",
+      "requires": ["flag:endurance_started", "!item:oath_ore"],
+      "label": "Avouer que le minerai est perdu",
+      "text": "\"Perdu ? Dix-huit kilos, ça ne se perd pas, ça se pose.\" Il soupire et vous tend un sceau fêlé. \"Tenez. Vous avez fait la route.\"",
+      "unsets": ["endurance_started"],
+      "sets": ["seal_endurance", "seal_endurance_cracked", "endurance_answered"]
+    },
+    {
+      "id": "endurance_perdu_haute", "at": "innkeeper@hautevigne",
+      "requires": ["flag:endurance_started", "!item:oath_ore"],
+      "label": "Avouer que le minerai est perdu",
+      "text": "\"Vous l'avez posé en route.\" Ce n'est pas une question. L'aubergiste vous tend un sceau fêlé. \"L'épreuve est finie. Vous pourrez la retenter.\"",
+      "unsets": ["endurance_started"],
+      "sets": ["seal_endurance", "seal_endurance_cracked", "endurance_answered"]
+    },
+    {
+      "id": "endurance_attente", "at": "innkeeper@hautevigne",
+      "requires": ["flag:seal_endurance_cracked", "!since:seal_endurance_cracked:4320"],
+      "label": "Redemander l'épreuve d'Endurance",
+      "text": "\"Reposez-vous. Le minerai ne ressort pas avant trois jours.\""
+    },
+    {
+      "id": "endurance_retour", "at": "innkeeper@hautevigne",
+      "requires": ["flag:seal_endurance_cracked", "since:seal_endurance_cracked:4320", "!flag:endurance_started"],
+      "label": "Redemander l'épreuve d'Endurance",
+      "text": "\"Le même bloc, la même route, les mêmes quatorze heures.\"",
+      "options": [
+        { "label": "Je le reprends", "gives": ["oath_ore"], "unsets": ["seal_endurance_cracked", "endurance_answered"], "sets": ["endurance_started"], "text": "\"Le compte commence.\"" }
+      ]
+    },
+
+    {
+      "id": "sablier_garde", "at": "sablier",
+      "requires": ["!flag:aldric_yielded"],
+      "label": "S'approcher du Sablier",
+      "text": "Un sablier haut comme un homme, plein d'une cendre grise qui ne coule pas. Aldric ne vous laissera pas y toucher."
+    },
+    {
+      "id": "sablier_choix", "at": "sablier",
+      "requires": ["flag:aldric_yielded", "!flag:ending_chosen"],
+      "label": "Poser la main sur le Sablier",
+      "text": "La cendre remue sous le verre, comme si elle vous avait reconnu. Aldric, à genoux, vous regarde faire. \"Vous n'aurez plus jamais mal au dos\", dit-il. \"Plus jamais un an de plus. Il suffit de le garder.\"",
+      "options": [
+        { "label": "Briser le Sablier", "sets": ["ending_chosen", "ending_break"],
+          "text": "Le verre cède d'un seul coup. La cendre se répand sur les dalles, et quelque chose, très loin au-dessus de vous, se remet à tourner." },
+        { "label": "Garder le Sablier", "sets": ["ending_chosen", "ending_keep"],
+          "text": "Vous le soulevez. Il ne pèse presque rien. Aldric rit, tousse, et ne se relève pas." }
+      ]
+    },
+    {
+      "id": "sablier_brise", "at": "sablier",
+      "requires": ["flag:ending_break"],
+      "label": "Regarder ce qu'il reste du Sablier",
+      "text": "Du verre, et une cendre froide que le courant d'air emporte peu à peu."
+    },
+    {
+      "id": "sablier_pris", "at": "sablier",
+      "requires": ["flag:ending_keep"],
+      "label": "Regarder le socle vide",
+      "text": "Un socle de pierre, et la marque ronde de ce qui y a reposé très longtemps."
+    }
+  ],
+
+  "pickups": [
+    { "scene": "CellarScreen@aethelgard", "x": -5.5, "z": 6.8, "name": "Plaque de soldat", "flag": "plaque_found",
+      "message": "Dans un nid de rats, une plaque de soldat : \"Garnison de la tour du nord\"." },
+    { "scene": "ZoneScreen@mine_galeries", "x": -24, "z": -18, "name": "Clé de la grille", "flag": "mine_key",
+      "requires": ["flag:mandat"],
+      "message": "Sur le corps d'un contremaître d'autrefois, une clé de fer." }
+  ],
+
+  "triggers": [
+    { "id": "corvenne_herse", "scene": "ZoneScreen@corvenne_cour", "x": 0, "z": 40, "radius": 8,
+      "title": "Corvenne",
+      "text": "La herse se lève toute seule devant les sceaux, comme si elle avait honte. Dans la cour, des soldats de la garnison. Ils ne sont pas morts. Ils vous regardent arriver." },
+    { "id": "corvenne_varn", "scene": "ZoneScreen@corvenne_salle", "x": 0, "z": 8, "radius": 7,
+      "requires": ["!flag:varn_defeated"],
+      "title": "La capitaine Varn",
+      "text": "\"Je sais ce que vous avez lu\", dit Varn. \"C'est moi qui l'ai reçue. J'ai obéi. On n'apprend pas autre chose, ici.\" Elle tire son épée. \"Passez-moi dessus, ou repartez.\"" },
+    { "id": "corvenne_aldric", "scene": "ZoneScreen@corvenne_crypte", "x": 0, "z": 9, "radius": 7,
+      "requires": ["!flag:aldric_yielded"],
+      "title": "Aldric de Corvenne",
+      "text": "Il a quarante ans, peut-être. Derrière lui, un sablier haut comme un homme, plein de cendre grise. \"Vous vieillissez\", dit-il doucement. \"Je le vois d'ici. Ça ne vous fait rien ?\"" }
+  ],
+
+  "endings": [
+    {
+      "id": "briser",
+      "title": "Le Sablier brisé",
+      "requires": ["flag:ending_break"],
+      "goldReward": 600,
+      "text": "Aldric a pris ses cent dix ans d'un seul coup. Les soldats du fond de la mine sont remontés sans comprendre.\n\nAu printemps suivant, pour la première fois, les vignes de Hautevigne ont donné. On en rit toujours à l'auberge, mais plus de la même façon. La tour du nord a de nouveau des feux, et des hommes pour les allumer.\n\nVous, vous avez un an de plus."
+    },
+    {
+      "id": "garder",
+      "title": "Le Sablier gardé",
+      "requires": ["flag:ending_keep"],
+      "text": "Aldric est mort quand même, de son âge.\n\nVous avez descendu la colline avec le Sablier sous le bras. Il ne pèse presque rien. À Hautevigne, on vous a demandé si c'était fini, et vous avez dit oui.\n\nLes vignes n'ont pas donné, cette année-là non plus."
+    }
+  ],
+
+  "boons": [
+    { "requires": ["flag:seal_force_intact"], "places": ["corvenne_cour", "corvenne_salle", "corvenne_crypte"], "damagePercent": 15 },
+    { "requires": ["flag:seal_endurance_intact"], "places": ["corvenne_cour", "corvenne_salle", "corvenne_crypte"], "healthBonus": 20 }
+  ],
+
+  "effects": [
+    { "requires": ["flag:ending_break"], "ambushPercent": 40, "priceFactor": { "hautevigne_store": 100 }, "title": "Protecteur du pays" },
+    { "requires": ["flag:ending_keep"], "stopAging": true, "guildClosed": true }
+  ]
+}

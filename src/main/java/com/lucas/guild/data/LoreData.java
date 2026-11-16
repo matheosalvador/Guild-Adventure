@@ -21,6 +21,8 @@ public class LoreData {
         public String id;
         public String town;
         public String text;
+        /** Conditions d'histoire (voir StoryData) pour que l'aubergiste la raconte ; absent = toujours. */
+        public List<String> requires = new ArrayList<>();
     }
 
     /** Un texte à lire. */
@@ -42,6 +44,8 @@ public class LoreData {
             if (seen.contains(r.id)) throw new IllegalStateException(where + " : \"id\" en double");
             seen.add(r.id);
             if (r.text == null || r.text.isEmpty()) throw new IllegalStateException(where + " : \"text\" manquant");
+            if (r.requires == null) r.requires = new ArrayList<>();
+            StoryData.validateConditions(r.requires, where + " : \"requires\"");
         }
         for (Map.Entry<String, TextData> e : texts.entrySet()) {
             TextData t = e.getValue();

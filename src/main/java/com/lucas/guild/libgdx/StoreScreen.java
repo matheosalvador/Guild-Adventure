@@ -62,6 +62,10 @@ public class StoreScreen extends InteriorScreen {
         }
         dialogTable.add("Bienvenue au " + storeName + " ! Je regarde ce qu'il vous faut ?").row();
 
+        addStoryDialogs("shopkeeper", () -> {
+            dialogTable.clear();
+            buildDialog(SHOPKEEPER);
+        });
         final QuestLog questLog = new QuestLog(player);
         if (questLog.canDeliver(storeName, GameContent.quests())) {
             addDialogButton("Remettre la livraison", () -> {

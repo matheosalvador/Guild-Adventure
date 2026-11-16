@@ -47,6 +47,10 @@ public class ForgeScreen extends InteriorScreen {
         }
         dialogTable.add("Que puis-je faire pour vous ?").row();
 
+        addStoryDialogs("blacksmith", () -> {
+            dialogTable.clear();
+            buildDialog(BLACKSMITH);
+        });
         final QuestLog questLog = new QuestLog(player);
         if (questLog.canDeliver("Forgeron", GameContent.quests())) {
             addDialogButton("Remettre la lettre", () -> {

@@ -54,6 +54,12 @@ class JournalPanel {
         list.top().left();
 
         WorldData world = GameContent.world();
+        section(list, "-- Histoire --");
+        for (String storyLine : new com.lucas.guild.game.Story(player, null).journalLines()) {
+            line(list, storyLine);
+        }
+        line(list, "Rang de la Guilde : " + com.lucas.guild.game.Story.rankLabel(player.getRank()));
+
         section(list, "-- Quêtes en cours --");
         if (player.getActiveQuests().isEmpty()) {
             line(list, "Aucune. Le tableau de la guilde en propose.");

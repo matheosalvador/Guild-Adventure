@@ -120,26 +120,38 @@ class QuestBoardsTest {
         assertEquals(QuestLog.Status.DONE, log.status(trophies));
     }
 
+    /** Le rang ne vient plus d'un simple compte de quetes : il faut aussi l'etape de l'histoire (story.json). */
     @Test
-    void rankRisesEveryThreeQuests() {
-        Adventurer p = GameSession.newGame("facile").getPlayer();
+    void rankNeedsTheStoryAsWellAsQuests() {
+        GameSession s = GameSession.newGame("facile");
+        Adventurer p = s.getPlayer();
         QuestLog log = new QuestLog(p);
         Quest hunt = quest("Chasse aux gobelins");
-        assertNotNull(log.accept(hunt), "rang 0 : refuse");
+        assertNotNull(log.accept(hunt), "rang F : refuse");
 
         for (String title : new String[] {"Colis pour Port-Brume", "Pli pour Hautevigne"}) {
             Quest q = quest(title);
             assertNull(log.accept(q));
             assertNotNull(log.deliver(q.getTarget(), GameContent.quests()));
         }
-        assertEquals(0, p.getRank(), "2 quetes terminees : toujours rang 0");
-
         Quest rats = quest("Nettoyage de la cave");
         assertNull(log.accept(rats));
         p.addItem(new ObjetDeQuete("Queue de rat"));
         assertNull(log.turnIn(rats));
         assertEquals(3, p.getDoneQuests().size());
-        assertEquals(1, p.getRank(), "3 quetes terminees : rang 1");
+        assertEquals(0, p.getRank(), "3 quetes terminees ne suffisent plus : le rang E demande le prologue");
+
+        // le prologue : les deux quetes de depart, la plaque trouvee dans la cave et montree au maitre de guilde
+        Quest letter = quest("Livraison express");
+        assertNull(log.accept(letter));
+        log.deliver("Forgeron", GameContent.quests());
+        assertNull(log.turnIn(letter));
+        com.lucas.guild.game.Story story = new com.lucas.guild.game.Story(s);
+        story.advance();
+        story.set("plaque_found");
+        story.set("plaque_shown");
+        story.advance();
+        assertEquals(1, p.getRank(), "prologue termine : rang E");
         assertNull(log.accept(hunt), "la chasse aux gobelins est ouverte");
     }
 

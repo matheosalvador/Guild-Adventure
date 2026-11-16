@@ -114,6 +114,10 @@ public class InnScreen extends InteriorScreen {
                 + " ! Que désirez-vous ?").row();
 
         final String innName = com.lucas.guild.data.GameContent.town(player.getTownId()).findByInterior("inn").name;
+        addStoryDialogs("innkeeper", () -> {
+            dialogTable.clear();
+            buildDialog(INNKEEPER);
+        });
         final QuestLog questLog = new QuestLog(player);
         if (questLog.canDeliver(innName, GameContent.quests())) {
             addDialogButton("Remettre la livraison", () -> {

@@ -247,6 +247,87 @@
         { "shape": "sphere", "w": 0.27, "h": 0.22, "d": 0.28, "x": 0, "y": 1.76, "z": 0.0, "color": "#C8A64A", "joint": "head" },
         { "shape": "box", "w": 0.06, "h": 0.05, "d": 0.04, "x": 0, "y": 1.79, "z": -0.15, "color": "#FFE08A", "joint": "head" }
       ]
+    },
+    "bat": {
+      "base": "quadruped",
+      "scale": [0.5, 0.5, 0.5],
+      "strideLength": 0.7,
+      "roles": { "body": "#2E2A33", "snout": "#3A3440", "nose": "#1A1A1A", "eye": "#D94A3A" },
+      "hide": ["legs", "paws", "tail"],
+      "walk": {
+        "legFL": { "axis": "z", "amp": 38, "phase": 0 },
+        "legFR": { "axis": "z", "amp": 38, "phase": 180 }
+      },
+      "extra": [
+        { "shape": "box", "w": 0.95, "h": 0.04, "d": 0.5, "x": -0.62, "y": 0.66, "z": 0.0, "color": "#3A3440", "joint": "legFL" },
+        { "shape": "box", "w": 0.95, "h": 0.04, "d": 0.5, "x": 0.62, "y": 0.66, "z": 0.0, "color": "#3A3440", "joint": "legFR" }
+      ]
+    },
+    "skeleton": {
+      "base": "human",
+      "scale": [0.9, 1.0, 0.78],
+      "roles": { "skin": "#E6E0CF", "tunic": "#D8D2C0", "pants": "#CFC9B8", "boots": "#BDB7A6", "belt": "#8A8474", "eye": "#101010", "eyeWhite": "#101010" },
+      "hide": ["cloak", "hair"],
+      "gear": ["prop_pickaxe"]
+    },
+    "ageless": {
+      "base": "human",
+      "scale": [0.95, 1.0, 0.85],
+      "roles": { "skin": "#CFCABA", "tunic": "#3A4250", "pants": "#33333B", "boots": "#2A2A30", "belt": "#2A2018", "eye": "#101010", "eyeWhite": "#101010" },
+      "hide": ["cloak", "hair"],
+      "gear": ["prop_spear"],
+      "extra": [
+        { "shape": "sphere", "w": 0.27, "h": 0.23, "d": 0.28, "x": 0, "y": 1.75, "z": 0.0, "color": "#6E737A", "joint": "head" }
+      ]
+    },
+    "goblin_chief": {
+      "base": "human",
+      "scale": [0.98, 0.9, 0.98],
+      "roles": { "skin": "#4F8A34", "tunic": "#7A2E2E", "pants": "#3A2A22", "boots": "#2A2018", "belt": "#C8A64A", "eyeWhite": "#F2D43A" },
+      "hide": ["cloak", "hair"],
+      "gear": ["prop_rusty_blade"],
+      "pose": {
+        "torso": { "axis": "x", "from": -12 },
+        "armR": { "axis": "x", "from": 25 },
+        "handR": { "axis": "x", "from": 22 }
+      },
+      "extra": [
+        { "shape": "cone", "w": 0.1, "h": 0.26, "d": 0.06, "x": 0.17, "y": 1.72, "z": 0.0, "color": "#4F8A34", "joint": "head", "rot": [0, 0, -78] },
+        { "shape": "cone", "w": 0.1, "h": 0.26, "d": 0.06, "x": -0.17, "y": 1.72, "z": 0.0, "color": "#4F8A34", "joint": "head", "rot": [0, 0, 78] },
+        { "shape": "cylinder", "w": 0.3, "h": 0.1, "d": 0.3, "x": 0, "y": 1.86, "z": 0.0, "color": "#C8A64A", "joint": "head" }
+      ]
+    },
+    "sergeant_holt": {
+      "base": "human",
+      "scale": [1.12, 1.1, 1.12],
+      "roles": { "skin": "#B9B4A6", "tunic": "#3A4250", "cloak": "#5A2020", "pants": "#33333B", "belt": "#2A2018", "eye": "#101010", "eyeWhite": "#D8D2C0" },
+      "hide": ["hair"],
+      "gear": ["prop_spear"],
+      "extra": [
+        { "shape": "sphere", "w": 0.27, "h": 0.23, "d": 0.28, "x": 0, "y": 1.75, "z": 0.0, "color": "#6E737A", "joint": "head" },
+        { "shape": "box", "w": 0.42, "h": 0.42, "d": 0.3, "x": 0, "y": 1.3, "z": 0, "color": "#6E737A", "joint": "torso" }
+      ]
+    },
+    "captain_varn": {
+      "base": "human",
+      "scale": [1.0, 1.04, 1.0],
+      "roles": { "skin": "#D9A87C", "hair": "#8A2E1E", "tunic": "#8E949B", "cloak": "#1F2C5A", "pants": "#4A4E55", "belt": "#C8A64A" },
+      "gear": ["long_sword"],
+      "extra": [
+        { "shape": "box", "w": 0.44, "h": 0.42, "d": 0.3, "x": 0, "y": 1.3, "z": 0, "color": "#B8C0CC", "joint": "torso" },
+        { "shape": "sphere", "w": 0.2, "h": 0.14, "d": 0.2, "x": -0.24, "y": 1.5, "z": 0, "color": "#B8C0CC", "joint": "torso" },
+        { "shape": "sphere", "w": 0.2, "h": 0.14, "d": 0.2, "x": 0.24, "y": 1.5, "z": 0, "color": "#B8C0CC", "joint": "torso" }
+      ]
+    },
+    "lord_aldric": {
+      "base": "human",
+      "scale": [1.0, 1.05, 1.0],
+      "roles": { "skin": "#E6C9A8", "hair": "#1E1A1A", "tunic": "#5A1420", "cloak": "#2A0A10", "pants": "#1E1A1A", "belt": "#C8A64A" },
+      "gear": ["long_sword"],
+      "extra": [
+        { "shape": "cylinder", "w": 0.54, "h": 0.72, "d": 0.42, "x": 0, "y": 0.56, "z": 0, "color": "#5A1420", "joint": "torso", "role": "tunic" },
+        { "shape": "cylinder", "w": 0.26, "h": 0.05, "d": 0.26, "x": 0, "y": 1.84, "z": 0.0, "color": "#C8A64A", "joint": "head" }
+      ]
     }
   },
   "armorColors": { "leather_armor": "#6B4A2B", "chain_mail": "#8E949B", "plate_armor": "#B8C0CC" },

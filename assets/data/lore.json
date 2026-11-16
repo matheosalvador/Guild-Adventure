@@ -14,6 +14,13 @@
     { "id": "haute_loups", "town": "hautevigne", "text": "Quand l'hiver est dur, les loups de la forêt descendent jusqu'aux premières maisons. Un chasseur qui rapporte des peaux est toujours bien reçu." },
     { "id": "haute_vin", "town": "hautevigne", "text": "Le village doit son nom à des vignes qui n'ont jamais donné. On en rit encore, à l'auberge." },
 
+    { "id": "aeth_tour", "town": "aethelgard", "requires": ["flag:done:prologue"], "text": "La tour du nord ? Ma soeur y portait le pain. Un matin la porte était ouverte et la soupe encore chaude." },
+    { "id": "port_pas", "town": "portbrume", "requires": ["flag:done:chapitre1"], "text": "Les brigands de la route du nord marchent au pas. Vous en connaissez beaucoup, vous, des brigands qui marchent au pas ?" },
+    { "id": "haute_garin", "town": "hautevigne", "requires": ["flag:done:chapitre2"], "text": "Garin ne dort plus. Il dit que les coups ont changé : avant ils creusaient, maintenant ils frappent contre quelque chose." },
+    { "id": "haute_vendanges", "town": "hautevigne", "requires": ["flag:ending_break"], "text": "Les vignes ont des grappes. Le vieux Garin a pleuré devant tout le monde, et personne ne s'est moqué." },
+    { "id": "any_seigneur", "requires": ["flag:ending_break"], "text": "Il paraît que le seigneur de Corvenne est mort de vieillesse en une seule nuit. Cent dix ans, d'un coup." },
+    { "id": "any_sans_rides", "requires": ["flag:ending_keep"], "text": "On raconte qu'un aventurier ne prend plus une ride, depuis Corvenne. On raconte aussi que les vignes ne donneront jamais." },
+
     { "id": "any_coffres", "text": "Les coffres oubliés dans les bois se remplissent de nouveau avec le temps. Quelqu'un les approvisionne, ou quelque chose." },
     { "id": "any_sommeil", "text": "Un aventurier prudent dort à l'auberge avant de reprendre la route : on y récupère toute sa vie, et on y apprend à encaisser." }
   ],
@@ -34,6 +41,18 @@
     "panneau_foret": {
       "title": "Panneau de la forêt",
       "text": "FORÊT DES LOUPS. Voyageur, restez sur le chemin. Ceux qui l'ont quitté n'ont pas toujours retrouvé leur peau."
+    },
+    "inscription_mine": {
+      "title": "Inscription des premiers mineurs",
+      "text": "\"Nous l'avons trouvé. Nous l'avons refermé. Que personne ne compte ses jours ici.\""
+    },
+    "pierre_corvenne": {
+      "title": "Pierre de fondation de Corvenne",
+      "text": "CORVENNE. Ce château garde la route du sud depuis sept seigneurs. Aldric est le septième. La pierre ne dit pas depuis quand."
+    },
+    "plaque_fosse": {
+      "title": "Règle de la Fosse",
+      "text": "FOSSE DES DÉBARDEURS. Trois vagues. On entre debout, on sort debout ou on ne sort pas vainqueur. Celui qui quitte la fosse avant la fin a perdu."
     },
     "stele_ruines": {
       "title": "Stèle des ruines",

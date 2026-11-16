@@ -93,6 +93,17 @@ public class WorldMapScreen implements Screen {
             if (WorldData.isZone(route.place)) {
                 text += " [zone sauvage]";
             }
+            if (route.lockedReason != null) {
+                // un lieu fermé par l'histoire : on le voit, avec la raison, mais on ne peut pas y aller
+                Label closed = UiKit.label(skin, route.place.name + " - fermé");
+                closed.setColor(Color.GRAY);
+                side.add(closed).pad(5).padBottom(0).row();
+                Label reason = UiKit.message(skin, route.lockedReason);
+                reason.setWrap(true);
+                reason.setAlignment(com.badlogic.gdx.utils.Align.center);
+                side.add(reason).width(330f).padBottom(5).row();
+                continue;
+            }
             if (arrival < 6 || arrival >= 20) {
                 text += " (arrivée de nuit)";
             }
@@ -128,7 +139,7 @@ public class WorldMapScreen implements Screen {
 
     private void travel(String placeId) {
         GameSession session = game.getSession();
-        if (World.shouldAmbush(session, placeId, new java.util.Random())) {
+        if (World.shouldAmbush(session, placeId, com.lucas.guild.game.GameRandom.create())) {
             String warning = World.startAmbushedTravel(session, placeId);
             if (warning != null) {
                 session.getClock().postMessage(warning);
@@ -162,6 +173,9 @@ public class WorldMapScreen implements Screen {
     private float[] project(WorldData.PlaceData p) {
         float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE, minZ = Float.MAX_VALUE, maxZ = -Float.MAX_VALUE;
         for (WorldData.PlaceData q : world.places) {
+            if (q.hidden) {
+                continue;
+            }
             minX = Math.min(minX, q.x);
             maxX = Math.max(maxX, q.x);
             minZ = Math.min(minZ, q.z);
@@ -198,6 +212,9 @@ public class WorldMapScreen implements Screen {
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (WorldData.PlaceData p : world.places) {
+            if (p.hidden) {
+                continue;   // un étage de donjon : pas sur la carte
+            }
             float[] xy = project(p);
             boolean zone = WorldData.isZone(p);
             shapes.setColor(p.id.equals(here) ? Color.YELLOW
@@ -213,6 +230,9 @@ public class WorldMapScreen implements Screen {
 
         batch.begin();
         for (WorldData.PlaceData p : world.places) {
+            if (p.hidden) {
+                continue;
+            }
             float[] xy = project(p);
             boolean known = player.getVisitedPlaces().contains(p.id) || isNeighborOfHere(p.id);
             font.draw(batch, known ? p.name : "???", xy[0] - 30f, xy[1] - 16f);

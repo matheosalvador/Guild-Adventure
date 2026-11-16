@@ -19,9 +19,6 @@ public class QuestLog {
 
     public enum Status { AVAILABLE, ACTIVE, DONE }
 
-    /** Combien de quetes terminees pour monter d'un rang (rang = quetes terminees / ce nombre). */
-    public static final int QUESTS_PER_RANK = 3;
-
     private final Adventurer player;
 
     public QuestLog(Adventurer player) {
@@ -108,12 +105,15 @@ public class QuestLog {
         return null;
     }
 
-    /** La quete est terminee : or verse, quete rangee, rang remonte si le personnage en a fait assez. */
+    /**
+     * La quete est terminee : or verse, quete rangee. Le rang monte si le personnage remplit les conditions du rang
+     * suivant (story.json : un nombre de quetes et une etape de l'histoire).
+     */
     private void finish(Quest quest) {
         player.getActiveQuests().remove(quest.getTitle());
         player.getDoneQuests().add(quest.getTitle());
         player.addGold(quest.getGoldReward());
-        player.setRank(Math.max(player.getRank(), player.getDoneQuests().size() / QUESTS_PER_RANK));
+        new Story(player, null).refreshRank();
     }
 
     // ------------------------------------------------------------------ livraisons

@@ -50,10 +50,20 @@ public class GuildScreen extends InteriorScreen {
         }
         dialogTable.add("Bienvenue à la guilde, aventurier. Que puis-je faire pour vous ?").row();
 
-        addDialogButton("Voir les quêtes", () -> {
-            toggleDialog(null);
-            questBoard.toggle();
+        addStoryDialogs("guildmaster", () -> {
+            dialogTable.clear();
+            buildDialog(GUILD_MASTER);
         });
+
+        if (story().guildClosed()) {
+            // une fin de l'histoire : la Guilde ne confie plus rien à ce personnage
+            dialogTable.add(UiKit.message(skin, "\"Je n'ai plus de travail pour vous.\"")).pad(10).row();
+        } else {
+            addDialogButton("Voir les quêtes", () -> {
+                toggleDialog(null);
+                questBoard.toggle();
+            });
+        }
 
         addDialogButton("Acheter du matériel", () -> showShop("guild", () -> {
             dialogTable.clear();
