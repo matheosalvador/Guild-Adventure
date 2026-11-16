@@ -151,10 +151,10 @@ public class Monster {
      * @return true si le monstre frappe le joueur à cet instant
      */
     public boolean update(float dt, float playerX, float playerZ) {
+        hurtTimer = Math.max(0f, hurtTimer - dt);   // le clignotement s'éteint même s'il ne se bat plus
         if (isDead() || yielded) {
             return false;
         }
-        hurtTimer = Math.max(0f, hurtTimer - dt);
         cooldown = Math.max(0f, cooldown - dt);
         heal(dt);
 

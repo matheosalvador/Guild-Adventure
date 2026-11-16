@@ -235,9 +235,24 @@ public class WorldMapScreen implements Screen {
             }
             float[] xy = project(p);
             boolean known = player.getVisitedPlaces().contains(p.id) || isNeighborOfHere(p.id);
-            font.draw(batch, known ? p.name : "???", xy[0] - 30f, xy[1] - 16f);
+            // un lieu collé à une ville (sa mine, son arène) : son nom s'écrit au-dessus, pour ne pas recouvrir celui de la ville
+            float labelY = isNextToATown(p) ? xy[1] + 26f : xy[1] - 16f;
+            font.draw(batch, known ? p.name : "???", xy[0] - 30f, labelY);
         }
         batch.end();
+    }
+
+    /** Une zone à moins de 4 km d'une ville : sur la carte, les deux points se touchent presque. */
+    private boolean isNextToATown(WorldData.PlaceData place) {
+        if (!WorldData.isZone(place)) {
+            return false;
+        }
+        for (WorldData.PlaceData other : world.places) {
+            if (!WorldData.isZone(other) && world.distanceKm(place.id, other.id) < 4.0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isNeighborOfHere(String id) {

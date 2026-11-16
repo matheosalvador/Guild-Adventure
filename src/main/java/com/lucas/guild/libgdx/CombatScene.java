@@ -415,12 +415,13 @@ class CombatScene implements Disposable {
         if (boss != null) {
             Monster m = boss.monster;
             layout.setText(font, m.hasYielded() ? m.getName() + " se rend" : m.getName());
-            font.draw(batch, layout, w / 2f - layout.width / 2f, h - 48);
+            // sous les lignes du HUD (en haut à gauche) et sous les messages (en haut au centre)
+            font.draw(batch, layout, w / 2f - layout.width / 2f, h - 128);
             float barWidth = 320f;
             batch.setColor(0.15f, 0.15f, 0.15f, 0.9f);
-            batch.draw(pixel, w / 2f - barWidth / 2f, h - 78, barWidth, 10);
+            batch.draw(pixel, w / 2f - barWidth / 2f, h - 158, barWidth, 10);
             batch.setColor(0.75f, 0.12f, 0.12f, 1f);
-            batch.draw(pixel, w / 2f - barWidth / 2f, h - 78, barWidth * m.getHealth() / m.getMaxHealth(), 10);
+            batch.draw(pixel, w / 2f - barWidth / 2f, h - 158, barWidth * m.getHealth() / m.getMaxHealth(), 10);
             batch.setColor(Color.WHITE);
         }
         Entry target = targetOf(eye, direction, TARGET_RANGE + rangeBonus);

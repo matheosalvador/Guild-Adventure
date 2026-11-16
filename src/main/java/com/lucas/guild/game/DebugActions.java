@@ -42,6 +42,49 @@ public final class DebugActions {
         return n + " événement(s) effacé(s).";
     }
 
+    // ------------------------------------------------------------------ histoire
+
+    /**
+     * Termine le chapitre en cours en forçant chacun de ses objectifs (drapeau posé, quête notée terminée, texte
+     * noté lu). Les sceaux forcés ainsi ne sont ni intacts ni fêlés : ils ouvrent le château sans avantage.
+     */
+    public String finishChapter() {
+        Story story = new Story(session);
+        story.advance();
+        com.lucas.guild.data.StoryData.ChapterData chapter = story.currentChapter();
+        if (chapter == null) {
+            String hint = story.nextRankHint();
+            return "Aucun chapitre en cours" + (hint != null ? " (" + hint + ")" : ".");
+        }
+        for (com.lucas.guild.data.StoryData.ObjectiveData objective : chapter.objectives) {
+            for (String condition : objective.done) {
+                String type = condition.substring(0, condition.indexOf(':'));
+                String arg = condition.substring(condition.indexOf(':') + 1);
+                if ("flag".equals(type)) {
+                    story.set(arg);
+                } else if ("quest".equals(type) && !player().getDoneQuests().contains(arg)) {
+                    player().getActiveQuests().remove(arg);
+                    player().getDoneQuests().add(arg);
+                } else if ("lore".equals(type)) {
+                    Lore.learn(player(), arg);
+                }
+            }
+        }
+        story.advance();
+        return "Chapitre terminé : " + chapter.title + ".";
+    }
+
+    /** Donne le rang suivant de la Guilde sans en remplir les conditions. */
+    public String nextRank() {
+        int max = com.lucas.guild.data.GameContent.story().ranks.size();
+        if (player().getRank() >= max) {
+            return "Rang " + Story.rankLabel(player().getRank()) + " : c'est le plus haut.";
+        }
+        player().setRank(player().getRank() + 1);
+        new Story(session).advance();
+        return "Rang " + Story.rankLabel(player().getRank()) + " (forcé).";
+    }
+
     // ------------------------------------------------------------------ personnage
 
     public String addGold(int amount) {

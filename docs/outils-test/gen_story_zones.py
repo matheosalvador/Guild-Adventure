@@ -295,7 +295,7 @@ def add_cairn():
         # des pierres plates qui quittent le chemin vers le cairn
         decal(-12, 20, 1.6, 1.2, stone), decal(-24, 14, 1.6, 1.2, stone), decal(-36, 8, 1.6, 1.2, stone), decal(-48, 3, 1.6, 1.2, stone),
     ]
-    zone["monsters"] += [spawn("wolf", -56, -8), spawn("wolf", -58, 6)]
+    # pas de loups en plus : ceux de l'ouest (-30, 10) sont deja sur le passage
     save("zone_foret.json", zone)
 
 

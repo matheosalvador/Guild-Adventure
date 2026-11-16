@@ -57,6 +57,7 @@ public class Smoke extends ApplicationAdapter {
         try {
             Files.createDirectories(Paths.get(outDir));
             com.lucas.guild.game.GameRandom.setSeedForTests(20261116L);   // meme hasard a chaque parcours : captures comparables
+            setStoryTexts(false);   // les textes de chapitre ne s'ouvrent que dans la section de l'histoire
             game = new MainGame();
             game.create();
             game.resize(800, 600);
@@ -196,6 +197,342 @@ public class Smoke extends ApplicationAdapter {
 
         // =================================================== RELECTURE (chantier A : bugs corriges)
         relectureSection();
+
+        // =================================================== HISTOIRE (chantier B)
+        storySection();
+    }
+
+    // ------------------------------------------------------------------ histoire (chantier B)
+
+    com.lucas.guild.game.Story story() { return new com.lucas.guild.game.Story(game.getSession()); }
+
+    com.lucas.guild.game.Monster bossRef;
+
+    /** Appelle onNpcInteract(userData) de l'interieur courant : simule E sur un PNJ sans avoir a le viser. */
+    void invokeNpc(String userData) {
+        try {
+            java.lang.reflect.Method m = cur().getClass().getDeclaredMethod("onNpcInteract", Object.class);
+            m.setAccessible(true);
+            m.invoke(cur(), userData);
+        } catch (Exception e) { throw new RuntimeException(e); }
+        render1();
+    }
+
+    /** Le monstre de l'ecran le plus proche du point (x, z). */
+    com.lucas.guild.game.Monster monsterNear(float x, float z) {
+        try {
+            Object c = combatOf();
+            java.lang.reflect.Method m = c.getClass().getDeclaredMethod("nearest", float.class, float.class);
+            m.setAccessible(true);
+            return (com.lucas.guild.game.Monster) m.invoke(c, x, z);
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    /** Retire tous les monstres de l'ecran (comme le bouton de debug), sans butin. */
+    void clearMonsters() {
+        try {
+            Object c = combatOf();
+            java.lang.reflect.Method m = c.getClass().getDeclaredMethod("clearAll");
+            m.setAccessible(true);
+            m.invoke(c);
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    /** Fait une quete de bout en bout par les regles (comme le test JUnit de l'histoire). */
+    void doQuest(String title) {
+        com.lucas.guild.game.QuestLog log = new com.lucas.guild.game.QuestLog(player());
+        Quest quest = GameContent.quests().stream().filter(q -> q.getTitle().equals(title)).findFirst().get();
+        if (log.accept(quest) != null) throw new IllegalStateException("quete refusee : " + title);
+        if (quest.getType() == QuestType.DELIVERY) {
+            log.deliver(quest.getTarget(), GameContent.quests());
+            if (!quest.isPayOnDelivery()) log.turnIn(quest);
+        } else if (quest.getType() == QuestType.COLLECT) {
+            for (int i = 0; i < quest.getCollectCount(); i++) player().addItem(GameContent.newItem(quest.getCollectItem()));
+            log.turnIn(quest);
+        } else {
+            player().addItem(new ObjetDeQuete(quest.getProofItem()));
+            log.turnIn(quest);
+        }
+    }
+
+    /** Marque comme lus tous les textes d'histoire en attente (ceux des chapitres passes par le debug). */
+    void readStoryTexts() {
+        com.lucas.guild.game.Story s = story();
+        s.advance();
+        com.lucas.guild.game.Story.Text t;
+        while ((t = s.nextText()) != null) s.markShown(t);
+    }
+
+    void goTo(String placeId) {
+        step(() -> { player().setTownId(placeId); player().markVisited(placeId); game.setScreen(game.screenAt(placeId, "facile")); });
+        frames(5);
+    }
+
+    /** Toute l'histoire a l'ecran : prologue, mine, fosse, cairn, endurance, chateau, fin. */
+    void storySection() {
+        step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); setThirdPerson(false); setStoryTexts(true); });
+        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        frames(4);
+        check("l'ouverture du prologue s'affiche au debut de la partie", () -> flag("inDialog"));
+        shot("s00_prologue_ouverture");
+        click("Continuer");
+        check("on la ferme, on joue", () -> !flag("inDialog"));
+        key(Input.Keys.J);
+        shot("s01_journal_histoire");
+        key(Input.Keys.J);
+
+        // ---------- prologue : la plaque dans la cave, puis le maitre de guilde
+        step(() -> game.setScreen(new CellarScreen(game, "facile")));
+        frames(3);
+        step(this::clearMonsters);
+        step(() -> { teleport(-4.4f, 1.6f, 5.4f); faceAt(-5.5f, 0.8f, 6.8f); });
+        frames(10);
+        shot("s02_cave_plaque");
+        key(Input.Keys.E);
+        frames(3);
+        check("la plaque est ramassee", () -> story().has("plaque_found"));
+        shot("s03_cave_plaque_ramassee");
+        step(() -> { doQuest("Nettoyage de la cave"); doQuest("Livraison express"); });
+        step(() -> game.setScreen(new GuildScreen(game, "facile")));
+        frames(3);
+        step(() -> invokeNpc("GuildMaster"));
+        shot("s04_guilde_bouton_histoire");
+        click("Montrer la plaque de soldat");
+        shot("s05_odran_plaque");
+        click("Continuer");
+        key(Input.Keys.ESCAPE);
+        frames(3);
+        check("la conclusion du prologue s'ouvre toute seule", () -> flag("inDialog") && story().isDone("prologue"));
+        shot("s06_prologue_conclusion");
+        click("Continuer");
+        frames(3);
+        check("puis l'ouverture du chapitre 1", () -> flag("inDialog"));
+        shot("s07_chapitre1_ouverture");
+        click("Continuer");
+        check("prologue termine : rang E", () -> player().getRank() == 1);
+
+        // ---------- la carte : la mine est fermee, avec la raison
+        step(() -> { player().setTownId("hautevigne"); game.setScreen(new WorldMapScreen(game, "facile")); });
+        frames(3);
+        shot("s10_carte_mine_fermee");
+        check("pas de voyage vers un lieu ferme", () -> com.lucas.guild.game.World.travel(game.getSession(), "mine_galeries") == null);
+
+        // ---------- chapitre 1 : le chef gobelin, au fond des ruines
+        step(() -> setStoryTexts(false));
+        goTo("ruines_gobelines");
+        step(() -> { com.lucas.guild.game.DebugMode.setEnabled(true); com.lucas.guild.game.DebugMode.setInvincible(true); });
+        step(() -> { teleport(0f, 1.6f, -46f); faceAt(0f, 1.4f, -58f); });
+        frames(25);
+        shot("s12_chef_gobelin");
+        step(() -> new com.lucas.guild.game.DebugActions(game.getSession()).finishChapter());
+        check("chapitre 1 termine", () -> story().isDone("chapitre1"));
+        step(() -> new com.lucas.guild.game.DebugActions(game.getSession()).nextRank());
+        step(() -> { story().set("mandat"); story().set("garin_met"); });
+        check("rang D : le chapitre 2 commence et la mine s'ouvre", () -> "chapitre2".equals(story().currentChapter().id) && story().lockReason("mine_galeries") == null);
+
+        // ---------- chapitre 2 : la mine
+        goTo("mine_galeries");
+        shot("s20_mine_entree");
+        step(() -> { teleport(4f, 1.6f, 28.5f); faceAt(6f, 1.8f, 25f); });
+        frames(5);
+        shot("s21_mine_inscription");
+        step(() -> { teleport(-8f, 1.6f, 25f); faceAt(-10f, 1.8f, 17f); });
+        frames(35);
+        shot("s22_mine_chauves_souris");
+        step(() -> { teleport(0.7f, 1.6f, -29f); faceAt(0.7f, 2.5f, -34.2f); });
+        frames(5);
+        shot("s23_mine_grille_fermee");
+        key(Input.Keys.E);
+        frames(3);
+        check("sans la cle, la grille reste fermee", () -> "mine_galeries".equals(player().getTownId()));
+        step(() -> { teleport(-22.6f, 1.6f, -16.6f); faceAt(-24f, 0.6f, -18f); });
+        frames(8);
+        shot("s24_mine_cle");
+        key(Input.Keys.E);
+        frames(3);
+        check("la cle est ramassee", () -> story().has("mine_key"));
+        step(() -> { teleport(0.7f, 1.6f, -29f); faceAt(0.7f, 2.5f, -34.2f); });
+        frames(5);
+        key(Input.Keys.E);
+        frames(5);
+        check("la grille mene a la chambre du gardien", () -> "mine_chambre".equals(player().getTownId()) && cur() instanceof ZoneScreen);
+        step(() -> { teleport(0f, 1.6f, 8f); faceAt(0f, 1.6f, -9f); });
+        frames(20);
+        shot("s25_chambre_holt");
+        step(() -> monsterNear(0f, -9f).takeDamage(120));
+        frames(45);
+        check("a la moitie de sa vie, Holt appelle deux renforts", () -> monsterCount() == 3);
+        shot("s26_holt_renforts");
+        step(() -> new com.lucas.guild.game.DebugActions(game.getSession()).finishChapter());
+        step(() -> new com.lucas.guild.game.DebugActions(game.getSession()).nextRank());
+        check("rang C : le chapitre 3 commence", () -> "chapitre3".equals(story().currentChapter().id));
+
+        // ---------- chapitre 3, Force : la Fosse des Debardeurs
+        goTo("fosse_debardeurs");
+        shot("s30_fosse");
+        step(() -> { teleport(7f, 1.6f, 12.5f); faceAt(7f, 1.2f, 15.5f); });
+        frames(5);
+        shot("s31_maitre_de_la_fosse");
+        key(Input.Keys.E);
+        shot("s32_epreuve_de_force");
+        click("Je descends");
+        click("Continuer");
+        frames(4);
+        check("premiere vague : trois loups", () -> monsterCount() == 3);
+        step(() -> { teleport(0f, 1.6f, 6f); faceAt(0f, 1.2f, -10f); });
+        frames(25);
+        shot("s33_fosse_vague_1");
+        step(this::clearMonsters);
+        frames(4);
+        check("deuxieme vague", () -> monsterCount() == 4);
+        step(this::clearMonsters);
+        frames(4);
+        check("troisieme vague", () -> monsterCount() == 5);
+        step(() -> { teleport(0f, 1.6f, 6f); faceAt(0f, 1.2f, -10f); });
+        frames(25);
+        shot("s34_fosse_vague_3");
+        step(this::clearMonsters);
+        frames(4);
+        check("les trois vagues vaincues : sceau de Force intact", () -> story().has("seal_force_intact") && !story().has("force_running"));
+        shot("s35_fosse_gagnee");
+
+        // ---------- chapitre 3, Sagesse : le cairn
+        goTo("foret_loups");
+        step(() -> { teleport(-57f, 1.6f, -2f); faceAt(-62f, 1.4f, -2f); });
+        frames(10);
+        shot("s40_cairn");
+        key(Input.Keys.E);
+        shot("s41_cairn_journal_trop_mince");
+        check("journal trop mince : pas d'enigme, pas d'echec", () -> flag("inDialog") && !story().has("seal_sagesse"));
+        click("Continuer");
+        step(() -> {
+            com.lucas.guild.game.Lore.learn(player(), "rumor:haute_vin");
+            com.lucas.guild.game.Lore.learn(player(), "rumor:haute_mine");
+            com.lucas.guild.game.Lore.learn(player(), "text:panneau_hautevigne");
+        });
+        frames(3);
+        key(Input.Keys.E);
+        shot("s42_enigme");
+        click("Hautevigne");
+        shot("s43_enigme_suite");
+        click("Le temps");
+        shot("s44_sceau_de_sagesse");
+        click("Continuer");
+        check("bonne reponse : sceau de Sagesse intact", () -> story().has("seal_sagesse_intact"));
+
+        // ---------- chapitre 3, Endurance : le minerai, de Hautevigne a Port-Brume
+        step(() -> { player().setTownId("hautevigne"); game.setScreen(new InnScreen(game, "facile")); });
+        frames(3);
+        step(() -> invokeNpc("Innkeeper"));
+        shot("s46_auberge_epreuve_d_endurance");
+        click("Demander l'épreuve d'Endurance");
+        shot("s47_minerai_du_serment");
+        click("Je le prends, le compte commence");
+        click("Continuer");
+        key(Input.Keys.ESCAPE);
+        check("le minerai est dans le sac", () -> hasItem(player(), "oath_ore"));
+        key(Input.Keys.I);
+        shot("s48_inventaire_minerai");
+        key(Input.Keys.I);
+        step(() -> { com.lucas.guild.game.World.travel(game.getSession(), "portbrume"); game.setScreen(new InnScreen(game, "facile")); });
+        frames(3);
+        step(() -> invokeNpc("Innkeeper"));
+        click("Remettre le Minerai du serment");
+        shot("s49_sceau_d_endurance");
+        click("Continuer");
+        key(Input.Keys.ESCAPE);
+        frames(3);
+        check("dans les temps : sceau d'Endurance intact, chapitre 3 termine", () -> story().has("seal_endurance_intact") && story().isDone("chapitre3"));
+
+        // ---------- chapitre 4 : Corvenne
+        step(() -> new com.lucas.guild.game.DebugActions(game.getSession()).nextRank());
+        step(this::readStoryTexts);
+        check("rang B : le chateau s'ouvre", () -> story().lockReason("corvenne_cour") == null);
+        step(() -> { player().setTownId("ruines_gobelines"); game.setScreen(new WorldMapScreen(game, "facile")); });
+        frames(3);
+        shot("s50_carte_chateau_ouvert");
+        step(() -> setStoryTexts(true));
+        goTo("corvenne_cour");
+        check("le texte de la herse s'ouvre en arrivant", () -> flag("inDialog"));
+        shot("s51_corvenne_herse");
+        click("Continuer");
+        frames(10);
+        shot("s52_corvenne_cour");
+        step(() -> { teleport(0f, 1.6f, -29f); faceAt(0f, 2.5f, -35.6f); });
+        frames(6);
+        shot("s53_porte_de_la_grande_salle");
+        key(Input.Keys.E);
+        frames(5);
+        check("la porte mene a la grande salle", () -> "corvenne_salle".equals(player().getTownId()));
+        step(() -> { teleport(0f, 1.6f, 11f); faceAt(0f, 1.6f, -10f); });
+        frames(4);
+        check("Varn parle avant de se battre", () -> flag("inDialog"));
+        shot("s54_varn_parle");
+        click("Continuer");
+        frames(15);
+        shot("s55_varn");
+        // un vrai coup du joueur doit la vaincre : c'est le chemin qui prévient l'histoire
+        step(() -> { com.lucas.guild.game.Monster varn = monsterNear(0f, -10f); varn.takeDamage(varn.getHealth() - 1); });
+        for (int i = 0; i < 8; i++) {
+            step(this::aimFromCamera);
+            click1();
+            frames(38);
+        }
+        check("Varn vaincue par un coup du joueur : l'histoire le sait", () -> story().has("varn_defeated"));
+        shot("s56_varn_vaincue");
+        step(() -> { teleport(6f, 1.6f, -17f); faceAt(6f, 2.5f, -22.2f); });
+        frames(6);
+        shot("s57_porte_de_la_crypte");
+        key(Input.Keys.E);
+        frames(5);
+        check("la crypte s'ouvre apres Varn, et Aldric parle", () -> "corvenne_crypte".equals(player().getTownId()) && flag("inDialog"));
+        shot("s58_aldric_parle");
+        click("Continuer");
+        step(() -> { teleport(0f, 1.6f, 8f); faceAt(0f, 1.8f, -10f); });
+        frames(20);
+        shot("s59_aldric_et_le_sablier");
+        step(() -> { bossRef = monsterNear(0f, -6f); bossRef.takeDamage(bossRef.getHealth() - (int) (bossRef.getMaxHealth() * 0.55f)); });
+        frames(45);
+        check("phase 2 : deux soldats sans age se levent", () -> monsterCount() == 3);
+        shot("s60_aldric_phase_2");
+        step(() -> bossRef.takeDamage(100000));
+        frames(4);
+        check("a bout de forces, Aldric se rend au lieu de mourir : l'histoire le sait", () -> bossRef.hasYielded() && bossRef.getHealth() > 0 && story().has("aldric_yielded"));
+        shot("s62_aldric_a_genoux");
+        step(this::clearMonsters);
+        frames(3);
+        step(() -> { teleport(0f, 1.6f, -10.2f); faceAt(0f, 1.2f, -14f); });
+        frames(6);
+        shot("s63_le_sablier");
+        key(Input.Keys.E);
+        shot("s64_le_choix");
+        click("Briser le Sablier");
+        shot("s65_sablier_brise");
+        click("Continuer");
+        frames(3);
+        check("la conclusion du chapitre 4 s'ouvre", () -> flag("inDialog") && story().isDone("chapitre4"));
+        shot("s66_chapitre4_conclusion");
+        click("Continuer");
+        frames(3);
+        check("puis l'ecran de fin", () -> cur() instanceof EndingScreen);
+        shot("s67_epilogue");
+        click("Continuer à jouer");
+        frames(5);
+        check("apres la fin, on rejoue la ou l'on etait", () -> cur() instanceof ZoneScreen && "corvenne_crypte".equals(player().getTownId()));
+        shot("s68_apres_la_fin");
+        key(Input.Keys.J);
+        shot("s69_journal_apres_la_fin");
+        key(Input.Keys.J);
+        step(() -> { com.lucas.guild.game.DebugMode.setInvincible(false); com.lucas.guild.game.DebugMode.setEnabled(false); setStoryTexts(false); });
+    }
+
+    /** Les textes d'histoire (ouverture / conclusion de chapitre) s'ouvrent-ils tout seuls ? Coupes hors de la section histoire. */
+    static void setStoryTexts(boolean on) {
+        try {
+            Field f = Class.forName("com.lucas.guild.libgdx.StoryScene").getDeclaredField("textsEnabled");
+            f.setAccessible(true);
+            f.setBoolean(null, on);
+        } catch (Exception e) { throw new RuntimeException(e); }
     }
 
     // ------------------------------------------------------------------ relecture (chantier A)
