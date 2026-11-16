@@ -12,6 +12,7 @@ general_develop (dcffeeb)
      └─ feature/cadrage-monde-ouvert   chantier D : docs/CADRAGE-MONDE-OUVERT.md (décisions de Lucas notées)
          └─ feature/histoire-cahier        chantier B étape 1 : docs/HISTOIRE.md (validé par Lucas)
              └─ feature/histoire               chantier B étape 2 : l'histoire jouable
+                 └─ feature/confort                chantier C : dialogues en données, habitants, Options, barre de vie
 ```
 
 ## Où on en est
@@ -36,12 +37,27 @@ Ce que contient `feature/histoire` :
   section `storySection` du banc visuel (33 vérifications, 51 captures) ; debug F10 « Histoire » : finir le
   chapitre, rang suivant.
 
-État vérifié : **250 tests JUnit verts** ; parcours complet `FIN: AUCUNE ERREUR`, **245 captures**
-(référence : `target\smoke\histoire3`).
+**Chantier C** : terminé sur `feature/confort` (empilée sur `feature/histoire` : les PNJ y proposent les
+dialogues d'histoire) :
+
+- `assets/data/npcs.json` + `data/NpcsData` + `game/NpcTalk` : l'accueil et les choix des quatre PNJ (mêmes textes,
+  prix et comportements qu'avant : repas, bière, rumeurs, nouvelles, livraisons, boutiques, quêtes), plus un choix
+  « talk » de démonstration chez le maître de guilde ; un seul constructeur de dialogue dans `InteriorScreen` ;
+- les habitants : `talk` dans `town*.json` → leurs répliques dans `npcs.json` (par ville, selon l'histoire) ; ils
+  s'arrêtent et se tournent vers le joueur à moins de 3 m, E ouvre leur réplique (« Autre chose ? », « Au revoir ») ;
+- menu **Options** (menu principal, et pause > Options) : sensibilité de la souris, vue au lancement, ombres, plein
+  écran ; `game/Settings` lit et écrit `settings.json` à côté de `save.json` (absent ou cassé : réglages par défaut) ;
+- barre de vie en bas à gauche du HUD (remplace la ligne « HP »), qui pulse sous 25 %.
+- tests : `NpcsContentErrorsTest` (24 cas), `NpcTalkTest`, `SettingsTest` ; section `confortSection` du banc
+  (23 vérifications, 12 captures, dont la couleur de la barre lue à l'écran).
+
+État vérifié : **294 tests JUnit verts** ; parcours complet `FIN: AUCUNE ERREUR`, **257 captures**
+(référence : `target\smoke\confort2`).
 
 ## En attente de Lucas
 
-1. Ses tests à la main du chantier A (l'escalier de l'auberge) et de l'histoire.
+1. Ses tests à la main du chantier A (l'escalier de l'auberge), de l'histoire et du chantier C (parler aux
+   habitants, Options, plein écran : le banc ne le clique pas, la fenêtre de test est cachée).
 2. Les **chiffres des combats** : ils sont ceux du cahier (§9), **pas encore réglés par un vrai combat simulé**.
    Le test de l'histoire vérifie les phases, les renforts, le soin et la reddition, pas la difficulté.
 3. Les autres points de `RELECTURE.md` §4 (3 et 5 à 11), toujours sans réponse.
@@ -49,8 +65,8 @@ Ce que contient `feature/histoire` :
 
 ## Ensuite (ne pas commencer sans l'accord de Lucas)
 
-C (confort de jeu : dialogues en données, villageois interpellables, menu Options, barre de vie) ; puis le
-prototype du monde ouvert ; E (Java 21) quand il autorise le téléchargement d'un JDK.
+Le prototype du monde ouvert (cadrage validé, « après l'histoire ») ; E (Java 21) quand il autorise le
+téléchargement d'un JDK.
 
 ## Vérifier l'état
 
@@ -65,7 +81,7 @@ python docs\outils-test\gen_story_zones.py                  # refabriquer les zo
 Comparer deux séries de captures (après un parcours, les classes de l'outil sont dans `target\smoke\<label>\tools`) :
 
 ```powershell
-java -cp target\smoke\essai\tools Compare target\smoke\histoire3\shots target\smoke\essai\shots
+java -cp target\smoke\essai\tools Compare target\smoke\confort2\shots target\smoke\essai\shots
 ```
 
 Le hasard est fixé par le banc : deux parcours sur le même code donnent les mêmes captures. `target/` n'est pas suivi

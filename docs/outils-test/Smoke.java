@@ -200,6 +200,173 @@ public class Smoke extends ApplicationAdapter {
 
         // =================================================== HISTOIRE (chantier B)
         storySection();
+
+        // =================================================== CONFORT (chantier C)
+        confortSection();
+    }
+
+    // ------------------------------------------------------------------ confort (chantier C)
+
+    /** Reglages par defaut, et plus de settings.json (le dossier du banc est vide a chaque parcours). */
+    void resetSettings() {
+        try { Files.deleteIfExists(Paths.get("settings.json")); } catch (Exception e) { throw new RuntimeException(e); }
+        com.lucas.guild.game.Settings.setCurrent(new com.lucas.guild.game.Settings());
+        setThirdPerson(false);
+    }
+
+    Stage stageOf() {
+        return (Stage) fieldOf(cur(), "stage");
+    }
+
+    boolean buttonShown(String text) {
+        return findButton(stageOf().getRoot(), text) != null;
+    }
+
+    /** La couleur d'un point de l'image affichee (x, y depuis le bas a gauche), en RGBA 8 bits. */
+    int[] pixelAt(int x, int y) {
+        Pixmap pm = Pixmap.createFromFrameBuffer(x, y, 1, 1);
+        try {
+            int c = pm.getPixel(0, 0);
+            return new int[] {(c >>> 24) & 0xff, (c >>> 16) & 0xff, (c >>> 8) & 0xff, c & 0xff};
+        } finally {
+            pm.dispose();
+        }
+    }
+
+    int[] lifePixel;
+
+    /** L'habitant n°index de la ville affichee (objet prive de TownScreen). */
+    Object villager(int index) {
+        return ((java.util.List<?>) fieldOf(cur(), "villagers")).get(index);
+    }
+
+    com.lucas.guild.game.RouteWalker walkerOf(Object villager) {
+        return (com.lucas.guild.game.RouteWalker) fieldOf(villager, "walker");
+    }
+
+    Object aimed() {
+        try {
+            java.lang.reflect.Method m = BaseWorldScreen.class.getDeclaredMethod("aimedUserData");
+            m.setAccessible(true);
+            return m.invoke(cur());
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    float vx;
+    float vz;
+    int healthBefore;
+
+    /** Dialogues des PNJ lus dans npcs.json, habitants a qui parler, menu Options, barre de vie. */
+    void confortSection() {
+        step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); resetSettings(); });
+        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        frames(5);
+
+        // ---------- la barre de vie : pleine, puis basse
+        shot("c01_barre_de_vie_pleine");
+        step(() -> { render1(); lifePixel = pixelAt(60, 44); });
+        check("la barre de vie est rouge quand la vie est pleine", () -> lifePixel[0] > 150 && lifePixel[1] < 90);
+        step(() -> player().perdreVie(player().getHealth() - 9));
+        frames(2);
+        shot("c02_barre_de_vie_basse");
+        step(() -> { render1(); lifePixel = pixelAt(60, 44); });
+        check("vie basse : la barre est presque vide a 60 px", () -> lifePixel[0] < 110);
+        step(() -> { render1(); lifePixel = pixelAt(13, 44); });
+        check("vie basse : le debut de la barre reste rouge", () -> lifePixel[0] > 150);
+
+        // ---------- un habitant : il s'arrete, se tourne, et parle
+        step(() -> {
+            Object v = villager(0);   // Aubin, le lavandier : il va et vient sur la rue z = 10
+            vx = walkerOf(v).getX();
+            vz = walkerOf(v).getZ();
+            teleport(vx + 2.2f, 2f, vz);
+            faceAt(vx, 1.6f, vz);
+        });
+        frames(30);
+        step(() -> faceAt(vx, 1.6f, vz));
+        frames(2);
+        check("l'habitant s'arrete quand le joueur est pres de lui", () -> Math.abs(walkerOf(villager(0)).getX() - vx) < 0.01f);
+        check("le joueur la vise", () -> aimed() != null && aimed().getClass().getSimpleName().equals("Villager"));
+        shot("c03_habitant_vise");
+        key(Input.Keys.E);
+        check("E ouvre sa replique", () -> flag("inDialog"));
+        shot("c04_habitant_parle");
+        click("Autre chose ?");
+        shot("c05_habitant_autre_replique");
+        click("Au revoir");
+        check("Au revoir ferme le dialogue", () -> !flag("inDialog"));
+        // apres le mandat, le garde de Hautevigne ne dit plus la meme chose (verifie par NpcTalkTest)
+
+        // ---------- les PNJ : les memes choix qu'avant, lus dans npcs.json
+        step(() -> { player().heal(player().getMaxHealth()); player().perdreVie(40); player().addGold(50); });
+        step(() -> game.setScreen(new InnScreen(game, "facile")));
+        frames(3);
+        step(() -> invokeNpc("Innkeeper"));
+        shot("c06_aubergiste_npcs_json");
+        check("l'aubergiste propose le repas avec son prix", () -> buttonShown("Manger un repas (5 Po)"));
+        check("et les rumeurs", () -> buttonShown("Offrir une bière et écouter les rumeurs (2 Po)"));
+        step(() -> { goldBefore = player().getGold(); healthBefore = player().getHealth(); });
+        click("Manger un repas (5 Po)");
+        check("le repas coute 5 Po", () -> player().getGold() == goldBefore - 5);
+        check("et rend 20 PV", () -> player().getHealth() == healthBefore + 20);
+        step(() -> game.setScreen(new GuildScreen(game, "facile")));
+        frames(3);
+        step(() -> invokeNpc("GuildMaster"));
+        check("le maitre de guilde a un choix de conversation", () -> buttonShown("Comment monter en rang ?"));
+        click("Comment monter en rang ?");
+        shot("c07_maitre_de_guilde_conversation");
+        click("Merci");
+        check("Merci revient a l'accueil", () -> buttonShown("Voir les quêtes"));
+        click("Partir");
+        step(() -> game.setScreen(new ForgeScreen(game, "facile")));
+        frames(3);
+        step(() -> invokeNpc("Blacksmith"));
+        check("le forgeron ouvre sa boutique", () -> buttonShown("Armes et armures"));
+        click("Partir");
+
+        // ---------- le menu Options, depuis la pause
+        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        frames(3);
+        key(Input.Keys.ESCAPE);
+        shot("c08_pause_avec_options");
+        click("Options");
+        shot("c09_options");
+        click("  +  ");
+        check("+ monte la sensibilite a 1,1", () -> Math.abs(com.lucas.guild.game.Settings.current().mouseSensitivity - 1.1f) < 1e-4);
+        check("le reglage est ecrit dans settings.json", () -> new String(Files.readAllBytes(Paths.get("settings.json")), "UTF-8").contains("1.1"));
+        click("Vue au lancement : 1re personne");
+        check("la vue choisie vaut tout de suite", () -> thirdPerson());
+        click("Ombres : oui");
+        check("ombres coupees et enregistrees", () -> !shadowsOn()
+                && com.lucas.guild.game.Settings.load(Paths.get("settings.json").toAbsolutePath()).shadows == false);
+        shot("c10_options_changees");
+        click("Retour");
+        check("Retour revient aux boutons de la pause", () -> buttonShown("Continuer") && buttonShown("Options"));
+        key(Input.Keys.ESCAPE);
+        frames(5);
+        shot("c11_vue_3e_personne_sans_ombres");
+
+        // ---------- relance du jeu : les reglages sont relus ; un fichier casse ne plante pas
+        check("settings.json relu au lancement", () -> {
+            com.lucas.guild.game.Settings.setCurrent(null);
+            return com.lucas.guild.game.Settings.current().thirdPerson && !com.lucas.guild.game.Settings.current().shadows;
+        });
+        check("settings.json casse : reglages par defaut", () -> {
+            Files.write(Paths.get("settings.json"), "{ casse".getBytes("UTF-8"));
+            com.lucas.guild.game.Settings.setCurrent(null);
+            return com.lucas.guild.game.Settings.current().shadows && !com.lucas.guild.game.Settings.current().thirdPerson;
+        });
+
+        // ---------- le menu Options, depuis le menu principal
+        step(this::resetSettings);
+        step(() -> game.setScreen(new MainMenuScreen(game)));
+        frames(3);
+        click("Options");
+        shot("c12_menu_principal_options");
+        check("le plein ecran est propose", () -> buttonShown("Plein écran : non"));
+        click("Retour");
+        check("Retour revient au menu", () -> buttonShown("Start"));
+        step(this::resetSettings);
     }
 
     // ------------------------------------------------------------------ histoire (chantier B)
@@ -1834,11 +2001,7 @@ public class Smoke extends ApplicationAdapter {
     // ------------------------------------------------------------------ finitions : ciel, ombres, eclats, chute (8d)
 
     boolean shadowsOn() {
-        try {
-            java.lang.reflect.Field f = Class.forName("com.lucas.guild.libgdx.ViewSettings").getDeclaredField("shadows");
-            f.setAccessible(true);
-            return f.getBoolean(null);
-        } catch (Exception e) { throw new RuntimeException(e); }
+        return com.lucas.guild.game.Settings.current().shadows;
     }
 
     void design8dSection() {
@@ -1863,13 +2026,14 @@ public class Smoke extends ApplicationAdapter {
         step(() -> new com.lucas.guild.game.DebugActions(game.getSession()).advanceToHour(12));
         frames(5);
 
-        // ombres coupees depuis le menu pause
+        // ombres coupees depuis les Options du menu pause
         key(Input.Keys.ESCAPE);
+        click("Options");
         shot("f06_pause_menu_shadows_button");
         click("Ombres : oui");
         check("le bouton coupe les ombres", () -> !shadowsOn());
         key(Input.Keys.ESCAPE);
-        step(() -> { try { java.lang.reflect.Field f = Class.forName("com.lucas.guild.libgdx.ViewSettings").getDeclaredField("shadows"); f.setAccessible(true); f.setBoolean(null, true); } catch (Exception e) { throw new RuntimeException(e); } });
+        step(this::resetSettings);
 
         // combat : eclats et chute des monstres (cave)
         step(() -> game.setScreen(new CellarScreen(game, "facile")));

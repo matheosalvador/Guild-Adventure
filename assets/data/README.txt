@@ -126,7 +126,8 @@ town.json, town_portbrume.json, town_hautevigne.json (un fichier par ville)
     d = largeur, h = hauteur ; la crete court le long de X) ; une forme autre que box est VISUELLE seulement
     (on ne la heurte pas), comme "rot" [x, y, z] (rotation en degres) ; anim = "water" : la surface ondule.
     "villagers" (au niveau de la ville) : les habitants qui se promenent : model (models.json), speed (m/s) et route
-    (au moins 2 points {x, z}, parcourus en boucle). On ne leur parle pas.
+    (au moins 2 points {x, z}, parcourus en boucle) et "talk" = ses repliques (un habitant de npcs.json). Avec
+    "talk", il s'arrete et se tourne vers le joueur qui s'approche, et E lui parle ; sans, il ne fait que passer.
     action = "board" pour un tableau d'annonces (E l'ouvre : les quetes de la ville, voir quests.json) ;
     action = "read" + text = un identifiant de lore.json pour un panneau, une stele, un livre : E le lit
     (la premiere lecture l'ajoute au journal).
@@ -202,6 +203,35 @@ story.json
       vieillit plus), guildClosed (la Guilde ne lui donne plus de quetes), title (affiche dans le journal).
     Pour tester sans tout rejouer : mode debug (F10), section Histoire : "Finir le chapitre en cours",
     "Rang suivant" ; la section "Voyager" mene aussi aux lieux fermes ou caches.
+
+npcs.json
+    Ce que disent les personnages.
+    "npcs" : les quatre PNJ des batiments, chacun une fois : guildmaster, innkeeper, blacksmith, shopkeeper.
+      prompt (le texte quand on le vise, sans "(E)"), greeting (la premiere ligne ; {lieu} = le nom du batiment),
+      leave (le bouton qui ferme, "Partir" par defaut) et options, montrees dans l'ordre apres les dialogues
+      d'histoire de story.json. Chaque option : action, label (le prix s'y ajoute : "Manger un repas (5 Po)"),
+      requires (conditions de story.json : l'option n'apparait qu'a ce moment), et selon l'action :
+        quests   le tableau des quetes (a la guilde) ; closedText = la reponse quand la Guilde ne donne plus
+                 rien (fin "garder" de l'histoire)
+        shop     shop = une boutique de shops.json ; chez le commercant, sans shop : celle du batiment (town.json)
+        deliver  remettre une livraison ; target = le destinataire des quetes (sans : le nom du batiment)
+        serve    un service paye : price, heal (PV rendus), vigor (entrainement de la Vigueur), text (le message),
+                 noGoldText (quand l'or manque ; {prix} = le prix)
+        rumor    une rumeur de lore.json : price, intro, emptyText (plus rien a raconter : rien n'est paye),
+                 noGoldText
+        news     les evenements des autres villes : intro, emptyText (aucun)
+        talk     une simple replique : text
+      rumor, news et talk ont un bouton "back" ("Merci" par defaut) qui revient a l'accueil.
+    "villagers" : les repliques des habitants qui se promenent (relies par "talk" dans town*.json) : id, name
+      (affiche au-dessus du dialogue) et lines. Chaque ligne : text, town (seulement dans cette ville) et
+      requires (seulement a ce moment de l'histoire). L'habitant dit d'abord la DERNIERE ligne qui vaut (ecrire
+      les lignes d'histoire a la fin), puis fait le tour des autres ("Autre chose ?").
+
+settings.json (pas dans ce dossier : a cote de save.json, cree par le jeu)
+    Les reglages du menu Options (menu principal, ou pause > Options), communs a toutes les parties :
+    mouseSensitivity (0,2 a 3 ; 1 = vitesse d'origine), thirdPerson (la vue au lancement ; V la bascule
+    toujours), shadows, fullscreen. Chaque changement est enregistre tout de suite. Fichier absent ou illisible :
+    reglages par defaut ; valeur hors limites : ramenee dans les limites. Le jeu ne plante jamais a cause de lui.
 
 events.json
     Les evenements du monde. "dailyChance" = chance (%) qu'un evenement demarre chaque jour dans une ville qui

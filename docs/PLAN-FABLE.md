@@ -42,8 +42,8 @@ Dépôt : `C:\MAMP\htdocs\java\Guild-Adventure` (Windows, PowerShell ; le Bash d
 
 | Besoin | Commande |
 |---|---|
-| Tests JUnit (250) | `$env:JAVA_HOME='C:\Tools\java\jdk-23.0.1+11'; & "C:\Users\lucas\.m2\wrapper\dists\apache-maven-3.6.3-bin\1iopthnavndlasol9gbrbg6bf2\apache-maven-3.6.3\bin\mvn.cmd" -q -B test` (Maven n'est **pas** dans le PATH de Lucas) |
-| Parcours complet du jeu (fenêtre cachée, ~245 captures) | `.\docs\outils-test\run-smoke.ps1 -Label essai` → doit finir par `FIN: AUCUNE ERREUR`, captures dans `target\smoke\essai\shots` |
+| Tests JUnit (294) | `$env:JAVA_HOME='C:\Tools\java\jdk-23.0.1+11'; & "C:\Users\lucas\.m2\wrapper\dists\apache-maven-3.6.3-bin\1iopthnavndlasol9gbrbg6bf2\apache-maven-3.6.3\bin\mvn.cmd" -q -B test` (Maven n'est **pas** dans le PATH de Lucas) |
+| Parcours complet du jeu (fenêtre cachée, ~257 captures) | `.\docs\outils-test\run-smoke.ps1 -Label essai` → doit finir par `FIN: AUCUNE ERREUR`, captures dans `target\smoke\essai\shots` |
 | Une seule section du parcours (quelques secondes) | `.\docs\outils-test\run-smoke.ps1 -Label essai -Only relecture` (nom de la méthode sans `Section`) |
 | Voir les modèles 3D (face, profil, marche, coup) | `.\docs\outils-test\run-viewer.ps1 -Label essai` |
 | Lancer le jeu | `.\compile_check.bat` puis `.\run-debug.bat` (mode debug, F10) ou `.\run.bat` |
@@ -81,6 +81,9 @@ Détails utiles :
   Ne pas écrire `new Random()`.
 - L'histoire : les textes de chapitre s'ouvrent seuls ; le banc les coupe (`StoryScene.textsEnabled`) hors de sa
   section `storySection`. Les zones de l'histoire se fabriquent avec `docs/outils-test/gen_story_zones.py`.
+- Les réglages (`game/Settings`, `settings.json`) sont lus une fois et gardés : le banc les remet à zéro avec
+  `resetSettings()` après les avoir changés. Une vérification de `npcs.json` appelée depuis une ville bouclerait
+  (npcs → conditions → quêtes → villes) : les villes ne lisent que les identifiants des habitants.
 
 ## 4. Carte du code (`src/main/java/com/lucas/guild/`)
 
@@ -107,8 +110,9 @@ Détails utiles :
   s'occupe de pousser et de la PR quand il l'a décidé.
 - Toutes les branches `feature/*` sont des ancêtres de `general_develop` (chaîne linéaire), **sauf quatre branches
   empilées du 2026-11-16**, ni fusionnées ni poussées : `feature/relecture` (chantier A) → `feature/cadrage-monde-ouvert`
-  (D) → `feature/histoire-cahier` (B, étape 1) → `feature/histoire` (B, étape 2). Détail : `docs/REPRISE.md`.
-- Tests sur `feature/histoire` : 250 JUnit verts ; parcours complet : 245 captures, aucune erreur.
+  (D) → `feature/histoire-cahier` (B, étape 1) → `feature/histoire` (B, étape 2) → `feature/confort` (C). Détail :
+  `docs/REPRISE.md`.
+- Tests sur `feature/confort` : 294 JUnit verts ; parcours complet : 257 captures, aucune erreur.
 - Lucas a testé à la main jusqu'à 7b (« rien à corriger »). **7c, 7d, 7e et tout le bloc 8 n'ont pas encore été testés
   par lui.**
 

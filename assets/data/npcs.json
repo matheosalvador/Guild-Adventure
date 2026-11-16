@@ -51,8 +51,8 @@
   ],
   "villagers": [
     {
-      "id": "lavandiere",
-      "name": "Maëlle, lavandière",
+      "id": "lavandier",
+      "name": "Aubin, lavandier",
       "lines": [
         { "text": "Le lavoir est plein de ragots. Les meilleurs, c'est à l'auberge qu'on les paie." },
         { "text": "Ma soeur a épousé un marin de Port-Brume. Elle dit que là-bas, même le pain sent le poisson." },
@@ -134,8 +134,8 @@
       ]
     },
     {
-      "id": "poissonniere",
-      "name": "Nella, poissonnière",
+      "id": "poissonnier",
+      "name": "Nello, poissonnier",
       "lines": [
         { "text": "Du poisson frais ! Enfin... frais de ce matin. Ou d'hier." },
         { "text": "Le Comptoir du Port achète tout ce que les marins rapportent. Il revend le double, évidemment." }
