@@ -39,6 +39,16 @@ public class GameSession {
     private final float savedX;
     private final float savedY;
     private final float savedZ;
+    /** L'écran de la sauvegarde (« Town », « Zone », « World » pour le monde ouvert), ou null. */
+    private String savedScreen;
+
+    /**
+     * Le joueur est-il dans le monde ouvert (prototype) ? Les intérieurs y ramènent, et la carte y affiche sa
+     * position. Pas sauvegardé : la sauvegarde le dit par son écran « World ».
+     */
+    private boolean inOpenWorld;
+    private float worldX;
+    private float worldZ;
 
     /** Les objets au sol (en mémoire, pas sauvegardés). */
     private final GroundItems ground = new GroundItems();
@@ -158,7 +168,36 @@ public class GameSession {
 
         // currentScreen n'est renseigné que par les sauvegardes qui contiennent une position
         boolean hasPosition = data.currentScreen != null;
-        return new GameSession(player, clock, diff, hasPosition, data.playerX, data.playerY, data.playerZ);
+        GameSession session = new GameSession(player, clock, diff, hasPosition, data.playerX, data.playerY, data.playerZ);
+        session.savedScreen = data.currentScreen;
+        return session;
+    }
+
+    /** L'écran de la sauvegarde chargée (« Town », « Zone », « World »), ou null. */
+    public String getSavedScreen() {
+        return savedScreen;
+    }
+
+    public boolean isInOpenWorld() {
+        return inOpenWorld;
+    }
+
+    public void setInOpenWorld(boolean inOpenWorld) {
+        this.inOpenWorld = inOpenWorld;
+    }
+
+    /** Monde ouvert : la dernière position connue du joueur, en m (pour la carte et le retour depuis un menu). */
+    public void setWorldPosition(float x, float z) {
+        this.worldX = x;
+        this.worldZ = z;
+    }
+
+    public float getWorldX() {
+        return worldX;
+    }
+
+    public float getWorldZ() {
+        return worldZ;
     }
 
     private static String normalizeDifficulty(String difficulty) {

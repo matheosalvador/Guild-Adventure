@@ -109,6 +109,15 @@ class DebugPanel {
                     return "Embuscade à chaque voyage : " + (DebugMode.isForceAmbush() ? "oui" : "non") + ".";
                 }));
 
+        section(list, "Aller à");
+        buttons(list,
+                action("Ville", () -> go(new TownScreen(game, difficulty))),
+                action("Forge", () -> go(new ForgeScreen(game, difficulty))),
+                action("Guilde", () -> go(new GuildScreen(game, difficulty))),
+                action("Auberge", () -> go(new InnScreen(game, difficulty))),
+                action("Cave", () -> go(new CellarScreen(game, difficulty))));
+
+        // tous les lieux, même ceux que l'histoire tient fermés ou cachés (les étages de donjon)
         section(list, "Voyager (sans durée)");
         java.util.List<Object[]> places = new java.util.ArrayList<>();
         for (final com.lucas.guild.data.WorldData.PlaceData place : GameContent.world().places) {
@@ -120,13 +129,18 @@ class DebugPanel {
         }
         buttons(list, places.toArray());
 
-        section(list, "Aller à");
+        section(list, "Histoire");
         buttons(list,
-                action("Ville", () -> go(new TownScreen(game, difficulty))),
-                action("Forge", () -> go(new ForgeScreen(game, difficulty))),
-                action("Guilde", () -> go(new GuildScreen(game, difficulty))),
-                action("Auberge", () -> go(new InnScreen(game, difficulty))),
-                action("Cave", () -> go(new CellarScreen(game, difficulty))));
+                action("Finir le chapitre en cours", actions::finishChapter),
+                action("Rang suivant", actions::nextRank));
+
+        section(list, "Événements du monde (dans cette ville)");
+        java.util.List<Object[]> events = new java.util.ArrayList<>();
+        for (final com.lucas.guild.data.EventsData.EventData event : GameContent.events().events) {
+            events.add(action(event.name, () -> actions.startEvent(event.id)));
+        }
+        events.add(action("Tout effacer", actions::clearEvents));
+        buttons(list, events.toArray());
 
         section(list, "Objets");
         java.util.List<Object[]> items = new java.util.ArrayList<>();

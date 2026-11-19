@@ -2,6 +2,7 @@ package com.lucas.guild.libgdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.lucas.guild.data.GameContent;
 
 /** Intérieur de l'auberge « La Pinte qui Chante » : l'aubergiste, un lit à l'étage. */
 public class InnScreen extends InteriorScreen {
@@ -10,9 +11,7 @@ public class InnScreen extends InteriorScreen {
     private static final String BED = "Bed";
     private static final String CELLAR = "Cellar";
 
-    // Prix en Po
-    private static final int MEAL_PRICE = 5;
-    private static final int BEER_PRICE = 2;
+    /** Prix d'une nuit en Po (les repas et boissons sont dans npcs.json). */
     private static final int BED_PRICE = 10;
 
     public InnScreen(MainGame game, String difficulty) {
@@ -32,7 +31,7 @@ public class InnScreen extends InteriorScreen {
         buildRoom(20f, floor, wall);
 
         // Aubergiste (PNJ)
-        addBox(1f, 2f, 1f, Color.ORANGE, 0, 1.5f, 5f, INNKEEPER);
+        addNpc("innkeeper", 0, 5f, INNKEEPER);
 
         // Trappe de la cave
         addBox(3f, 0.2f, 3f, new Color(0.23f, 0.14f, 0.07f, 1f), 6f, 0.6f, -4f, CELLAR);
@@ -51,16 +50,21 @@ public class InnScreen extends InteriorScreen {
         // Toit
         addBox(20f, 1f, 20f, floor, 0, 20f, 0, null);
 
-        // Escalier
-        for (int i = 0; i < 10; i++) {
-            addBox(4f, 1f, 2f, Color.BROWN, -8, 1f + i, 8f - i * 2f, null);
+        // Escalier le long du mur ouest : vingt marches de 0,5 m (un saut monte de 0,7 m). Les douze premières
+        // passent sous le plancher de l'étage ; les suivantes, plus courtes, s'arrêtent avant le mur de la porte.
+        for (int j = 0; j < 20; j++) {
+            float depth = j < 12 ? 1f : 0.8f;
+            float lowEdge = j < 12 ? 9f - j : -3f - 0.8f * (j - 12);
+            addBox(4f, 1f, depth, Color.BROWN, -8, 0.5f + 0.5f * j, lowEdge - depth / 2f, null);
         }
+        // Palier : du haut de l'escalier au plancher de l'étage
+        addBox(4f, 1f, 4f, floor, -4, 10f, -8f, null);
     }
 
     @Override
     protected String getNpcPrompt(Object userData) {
         if (INNKEEPER.equals(userData)) {
-            return "Parler à l'aubergiste (E)";
+            return npcPrompt("innkeeper");
         }
         if (CELLAR.equals(userData)) {
             return "Descendre à la cave (E)";
@@ -100,31 +104,6 @@ public class InnScreen extends InteriorScreen {
         if (!INNKEEPER.equals(dialogType)) {
             return;
         }
-        dialogTable.add("Bienvenue à " + com.lucas.guild.data.GameContent.town(player.getTownId()).findByInterior("inn").name
-                + " ! Que désirez-vous ?").row();
-
-        addDialogButton("Manger un repas (" + MEAL_PRICE + " Po)", () -> {
-            toggleDialog(null);
-            if (!player.spendGold(MEAL_PRICE)) {
-                gameClock.postMessage("Pas assez d'or : un repas coûte " + MEAL_PRICE + " Po.");
-                return;
-            }
-            Gdx.app.log("Auberge", "Le joueur mange un repas.");
-            player.heal(20);
-            gameClock.postMessage("Vous mangez un bon repas (+20 PV).");
-            player.train("vigor", 1);
-        });
-
-        addDialogButton("Boire une bière (" + BEER_PRICE + " Po)", () -> {
-            toggleDialog(null);
-            if (!player.spendGold(BEER_PRICE)) {
-                gameClock.postMessage("Pas assez d'or : une bière coûte " + BEER_PRICE + " Po.");
-                return;
-            }
-            Gdx.app.log("Auberge", "Le joueur boit une bière.");
-            gameClock.postMessage("Vous buvez une bière. Ça fait du bien.");
-        });
-
-        addLeaveButton();
+        buildNpcDialog("innkeeper", INNKEEPER, GameContent.town(player.getTownId()).findByInterior("inn").name, null, null);
     }
 }

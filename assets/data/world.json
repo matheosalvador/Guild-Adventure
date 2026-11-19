@@ -6,7 +6,17 @@
     { "id": "portbrume", "name": "Port-Brume", "townFile": "town_portbrume.json", "x": 30, "z": -14 },
     { "id": "hautevigne", "name": "Hautevigne", "townFile": "town_hautevigne.json", "x": -22, "z": -18 },
     { "id": "foret_loups", "name": "Forêt des Loups", "zoneFile": "zone_foret.json", "x": -9, "z": -12 },
-    { "id": "ruines_gobelines", "name": "Ruines gobelines", "zoneFile": "zone_ruines.json", "x": 17, "z": 6 }
+    { "id": "ruines_gobelines", "name": "Ruines gobelines", "zoneFile": "zone_ruines.json", "x": 17, "z": 6 },
+
+    { "id": "mine_galeries", "name": "Mine de Hautevigne", "zoneFile": "zone_mine_galeries.json", "x": -23, "z": -19.5,
+      "requires": ["flag:mandat"], "lockedText": "La mine est fermée. Le contremaître ne laisse descendre que sur mandat de la Guilde." },
+    { "id": "mine_chambre", "name": "Mine de Hautevigne, la chambre", "zoneFile": "zone_mine_chambre.json", "x": -23, "z": -19.5, "hidden": true },
+    { "id": "fosse_debardeurs", "name": "Fosse des Débardeurs", "zoneFile": "zone_fosse.json", "x": 31, "z": -13.2 },
+    { "id": "corvenne_cour", "name": "Château de Corvenne", "zoneFile": "zone_corvenne_cour.json", "x": 24, "z": 19,
+      "requires": ["flag:seal_force", "flag:seal_sagesse", "flag:seal_endurance", "rank:4"],
+      "lockedText": "La herse ne s'ouvre qu'aux porteurs des trois sceaux de la Guilde, de rang B." },
+    { "id": "corvenne_salle", "name": "Château de Corvenne, la grande salle", "zoneFile": "zone_corvenne_salle.json", "x": 24, "z": 19, "hidden": true },
+    { "id": "corvenne_crypte", "name": "Château de Corvenne, la crypte", "zoneFile": "zone_corvenne_crypte.json", "x": 24, "z": 19, "hidden": true }
   ],
   "links": [
     ["aethelgard", "portbrume"],
@@ -15,7 +25,10 @@
     ["aethelgard", "foret_loups"],
     ["foret_loups", "hautevigne"],
     ["aethelgard", "ruines_gobelines"],
-    ["ruines_gobelines", "portbrume"]
+    ["ruines_gobelines", "portbrume"],
+    ["hautevigne", "mine_galeries"],
+    ["portbrume", "fosse_debardeurs"],
+    ["ruines_gobelines", "corvenne_cour"]
   ],
   "ambush": { "zoneFile": "zone_route.json", "monsters": ["wolf", "goblin"], "min": 1, "max": 2 }
 }

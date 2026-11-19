@@ -10,6 +10,8 @@ set ARGSFILE=compile_args.tmp
 
 REM Start the args file with compiler options
 echo -d out> "%ARGSFILE%"
+REM Les sources sont en UTF-8 (sans ceci, javac sous Windows les lit en cp1252 : accents casses en jeu)
+echo -encoding UTF-8>> "%ARGSFILE%"
 echo -cp>> "%ARGSFILE%"
 
 REM Append classpath as a single continuous line (no newlines between entries)

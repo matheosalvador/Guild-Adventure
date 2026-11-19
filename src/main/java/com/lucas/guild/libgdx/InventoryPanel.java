@@ -123,6 +123,12 @@ class InventoryPanel {
             out.add(UiKit.label(skin, "")).pad(3);
         }
 
+        if (item instanceof com.lucas.guild.model.ObjetDeQuete) {
+            // un objet de quête ne se jette pas : perdu, sa quête ne pourrait plus jamais être rendue
+            out.add(UiKit.label(skin, "")).pad(3);
+            out.row();
+            return;
+        }
         out.add(UiKit.button(skin, "Jeter", new Runnable() {
             @Override
             public void run() {

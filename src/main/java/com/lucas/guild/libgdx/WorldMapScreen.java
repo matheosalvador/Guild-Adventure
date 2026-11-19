@@ -11,7 +11,6 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -83,7 +82,9 @@ public class WorldMapScreen implements Screen {
         stage.addActor(side);
 
         side.add(UiKit.label(skin, "Carte du monde")).pad(5).row();
-        side.add(UiKit.label(skin, "Vous êtes à " + world.place(here).name)).pad(3).row();
+        boolean onTheWay = session.isInOpenWorld()
+                && com.lucas.guild.game.WorldLayout.standard().placeAt(session.getWorldX(), session.getWorldZ()) == null;
+        side.add(UiKit.label(skin, onTheWay ? "Vous êtes en chemin (point rouge)" : "Vous êtes à " + world.place(here).name)).pad(3).row();
         side.add(UiKit.label(skin, session.getClock().getDate() + " - " + session.getClock().formatTime())).pad(3).row();
         side.add(UiKit.label(skin, "-- Routes --")).pad(10).row();
 
@@ -93,6 +94,17 @@ public class WorldMapScreen implements Screen {
             int arrival = (session.getClock().getCurrentHour() * 60 + session.getClock().getCurrentMinute() + route.minutes) / 60 % 24;
             if (WorldData.isZone(route.place)) {
                 text += " [zone sauvage]";
+            }
+            if (route.lockedReason != null) {
+                // un lieu fermé par l'histoire : on le voit, avec la raison, mais on ne peut pas y aller
+                Label closed = UiKit.label(skin, route.place.name + " - fermé");
+                closed.setColor(Color.GRAY);
+                side.add(closed).pad(5).padBottom(0).row();
+                Label reason = UiKit.message(skin, route.lockedReason);
+                reason.setWrap(true);
+                reason.setAlignment(com.badlogic.gdx.utils.Align.center);
+                side.add(reason).width(330f).padBottom(5).row();
+                continue;
             }
             if (arrival < 6 || arrival >= 20) {
                 text += " (arrivée de nuit)";
@@ -104,7 +116,8 @@ public class WorldMapScreen implements Screen {
                 }
             })).pad(5).row();
         }
-        side.add(UiKit.button(skin, WorldData.isZone(world.place(here)) ? "Retour à la zone" : "Retour à la ville", new Runnable() {
+        String back = session.isInOpenWorld() ? "Retour sur le chemin" : WorldData.isZone(world.place(here)) ? "Retour à la zone" : "Retour à la ville";
+        side.add(UiKit.button(skin, back, new Runnable() {
             @Override
             public void run() {
                 backToTown();
@@ -124,12 +137,19 @@ public class WorldMapScreen implements Screen {
     }
 
     private void backToTown() {
+        GameSession session = game.getSession();
+        if (session.isInOpenWorld()) {
+            // le monde ouvert : on reprend là où l'on s'était arrêté
+            game.setScreen(new OpenWorldScreen(game, difficulty,
+                    new com.badlogic.gdx.math.Vector3(session.getWorldX(), 2f, session.getWorldZ())));
+            return;
+        }
         game.setScreen(game.screenAt(player.getTownId(), difficulty));
     }
 
     private void travel(String placeId) {
         GameSession session = game.getSession();
-        if (World.shouldAmbush(session, placeId, new java.util.Random())) {
+        if (World.shouldAmbush(session, placeId, com.lucas.guild.game.GameRandom.create())) {
             String warning = World.startAmbushedTravel(session, placeId);
             if (warning != null) {
                 session.getClock().postMessage(warning);
@@ -161,8 +181,16 @@ public class WorldMapScreen implements Screen {
     }
 
     private float[] project(WorldData.PlaceData p) {
+        return project(p.x, p.z);
+    }
+
+    /** Un point de la carte (en km) sur l'écran. */
+    private float[] project(float px, float pz) {
         float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE, minZ = Float.MAX_VALUE, maxZ = -Float.MAX_VALUE;
         for (WorldData.PlaceData q : world.places) {
+            if (q.hidden) {
+                continue;
+            }
             minX = Math.min(minX, q.x);
             maxX = Math.max(maxX, q.x);
             minZ = Math.min(minZ, q.z);
@@ -171,8 +199,8 @@ public class WorldMapScreen implements Screen {
         float span = Math.max(Math.max(maxX - minX, maxZ - minZ), 1f);
         float scale = (MAP_SIZE - 120f) / span;
         // le nord (z négatif) est en haut de la carte
-        float x = MAP_X + 60f + (p.x - minX) * scale;
-        float y = MAP_Y + MAP_SIZE - 60f - (p.z - minZ) * scale;
+        float x = MAP_X + 60f + (px - minX) * scale;
+        float y = MAP_Y + MAP_SIZE - 60f - (pz - minZ) * scale;
         return new float[] {x, y};
     }
 
@@ -199,6 +227,9 @@ public class WorldMapScreen implements Screen {
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (WorldData.PlaceData p : world.places) {
+            if (p.hidden) {
+                continue;   // un étage de donjon : pas sur la carte
+            }
             float[] xy = project(p);
             boolean zone = WorldData.isZone(p);
             shapes.setColor(p.id.equals(here) ? Color.YELLOW
@@ -210,15 +241,43 @@ public class WorldMapScreen implements Screen {
                 shapes.circle(xy[0], xy[1], p.id.equals(here) ? 11f : 8f);
             }
         }
+        GameSession session = game.getSession();
+        if (session.isInOpenWorld()) {
+            // monde ouvert : le joueur, là où il est vraiment
+            float[] km = com.lucas.guild.game.WorldLayout.standard().toMap(session.getWorldX(), session.getWorldZ());
+            float[] xy = project(km[0], km[1]);
+            shapes.setColor(Color.BLACK);
+            shapes.circle(xy[0], xy[1], 7f);
+            shapes.setColor(Color.RED);
+            shapes.circle(xy[0], xy[1], 5f);
+        }
         shapes.end();
 
         batch.begin();
         for (WorldData.PlaceData p : world.places) {
+            if (p.hidden) {
+                continue;
+            }
             float[] xy = project(p);
             boolean known = player.getVisitedPlaces().contains(p.id) || isNeighborOfHere(p.id);
-            font.draw(batch, known ? p.name : "???", xy[0] - 30f, xy[1] - 16f);
+            // un lieu collé à une ville (sa mine, son arène) : son nom s'écrit au-dessus, pour ne pas recouvrir celui de la ville
+            float labelY = isNextToATown(p) ? xy[1] + 26f : xy[1] - 16f;
+            font.draw(batch, known ? p.name : "???", xy[0] - 30f, labelY);
         }
         batch.end();
+    }
+
+    /** Une zone à moins de 4 km d'une ville : sur la carte, les deux points se touchent presque. */
+    private boolean isNextToATown(WorldData.PlaceData place) {
+        if (!WorldData.isZone(place)) {
+            return false;
+        }
+        for (WorldData.PlaceData other : world.places) {
+            if (!WorldData.isZone(other) && world.distanceKm(place.id, other.id) < 4.0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isNeighborOfHere(String id) {

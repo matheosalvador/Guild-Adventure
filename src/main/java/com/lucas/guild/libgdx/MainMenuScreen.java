@@ -5,7 +5,6 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
@@ -15,7 +14,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.SaveManager;
 
 public class MainMenuScreen implements Screen {
@@ -57,7 +55,7 @@ public class MainMenuScreen implements Screen {
         stage.addActor(mainTable);
 
         TextButton startButton = new TextButton("Start", skin);
-        TextButton settingsButton = new TextButton("Settings", skin);
+        TextButton settingsButton = new TextButton("Options", skin);
         TextButton creditsButton = new TextButton("Credits", skin);
         TextButton exitButton = new TextButton("Exit", skin);
 
@@ -180,13 +178,25 @@ public class MainMenuScreen implements Screen {
             }
         });
         
-        // Boutons non implémentés et a faire plus tard les tables
+        // Options : réglages enregistrés dans settings.json
+        final Table optionsTable = new Table();
+        optionsTable.setFillParent(true);
+        optionsTable.setVisible(false);
+        stage.addActor(optionsTable);
+        final OptionsPanel options = new OptionsPanel(optionsTable, skin, () -> {
+            optionsTable.setVisible(false);
+            mainTable.setVisible(true);
+        });
         settingsButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                Gdx.app.log("MENU", "Settings cliqué (non implémenté)");
+                options.rebuild();
+                mainTable.setVisible(false);
+                optionsTable.setVisible(true);
             }
         });
+
+        // Bouton pas encore fait
         creditsButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {

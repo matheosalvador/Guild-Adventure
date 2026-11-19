@@ -34,6 +34,10 @@ class ShopPanel {
         table.clear();
 
         table.add(UiKit.label(skin, shop.getTitle())).colspan(5).pad(10).row();
+        String market = shop.eventLine(player);
+        if (market != null) {
+            table.add(UiKit.message(skin, "Événement : " + market)).colspan(5).padBottom(5).row();
+        }
         table.add(UiKit.label(skin, "Or : " + player.getGold() + " Po    " + UiKit.loadLine(player))).colspan(5).padBottom(10).row();
 
         Table list = new Table(skin);

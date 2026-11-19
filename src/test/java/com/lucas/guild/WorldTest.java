@@ -34,7 +34,8 @@ class WorldTest {
     void worldData() {
         WorldData world = GameContent.world();
         assertEquals("aethelgard", world.startPlace);
-        assertEquals(5, world.places.size(), "3 villes et 2 zones sauvages");
+        assertEquals(11, world.places.size(), "3 villes, 2 zones sauvages, et les lieux de l'histoire (mine, fosse, chateau)");
+        assertEquals(3, world.places.stream().filter(p -> p.hidden).count(), "3 etages caches : on n'y arrive que par une porte");
         assertEquals(List.of("portbrume", "hautevigne", "foret_loups", "ruines_gobelines"), world.neighbors("aethelgard").stream().map(p -> p.id).collect(Collectors.toList()));
         assertTrue(world.neighbors("portbrume").stream().anyMatch(p -> p.id.equals("aethelgard")), "les routes vont dans les deux sens");
         assertEquals(Math.hypot(30, 14), world.distanceKm("aethelgard", "portbrume"), 1e-6);
@@ -67,7 +68,7 @@ class WorldTest {
         assertEquals(395, end - start);
         assertEquals("portbrume", p.getTownId());
         assertEquals(List.of("aethelgard", "portbrume"), p.getVisitedPlaces());
-        assertEquals(List.of("aethelgard", "hautevigne", "ruines_gobelines"), names(World.routesFrom(p)));
+        assertEquals(List.of("aethelgard", "hautevigne", "ruines_gobelines", "fosse_debardeurs"), names(World.routesFrom(p)));
     }
 
     @Test

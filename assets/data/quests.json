@@ -6,7 +6,6 @@
     "type": "COMBAT",
     "target": "Rat Géant",
     "goldReward": 20,
-    "experienceReward": 5,
     "proofItem": "Queue de rat"
   },
   {
@@ -16,18 +15,153 @@
     "type": "DELIVERY",
     "target": "Forgeron",
     "goldReward": 10,
-    "experienceReward": 2,
     "giveItem": "Lettre à livrer",
     "proofItem": "Lettre signée"
   },
   {
     "title": "Chasse aux gobelins",
-    "description": "Un groupe de gobelins attaque les voyageurs.",
+    "description": "Un groupe de gobelins attaque les voyageurs. Rapportez l'insigne d'un gobelin des ruines, à l'est d'Aethelgard.",
     "rank": 1,
     "type": "COMBAT",
-    "target": "Chef Gobelin",
+    "target": "Gobelin",
     "goldReward": 100,
-    "experienceReward": 15,
-    "proofItem": "Oreille de gobelin"
+    "proofItem": "Insigne de gobelin"
+  },
+  {
+    "title": "Colis pour Port-Brume",
+    "description": "Un marchand d'Aethelgard attend une réponse du Comptoir du Port. Portez-lui ce colis : 33 km de route.",
+    "rank": 0,
+    "type": "DELIVERY",
+    "town": "aethelgard",
+    "target": "Comptoir du Port",
+    "goldReward": 45,
+    "giveItem": "Colis scellé",
+    "payOnDelivery": true
+  },
+  {
+    "title": "Pli pour Hautevigne",
+    "description": "L'aubergiste du Filon d'Argent attend des nouvelles de la ville. Portez-lui ce pli : 28 km de route.",
+    "rank": 0,
+    "type": "DELIVERY",
+    "town": "aethelgard",
+    "target": "Le Filon d'Argent",
+    "goldReward": 40,
+    "giveItem": "Pli d'Aethelgard",
+    "payOnDelivery": true
+  },
+  {
+    "title": "Trophées de gobelins",
+    "description": "Les marins paient pour des oreilles de gobelin : la preuve que les ruines se vident. Rapportez-en quatre.",
+    "rank": 0,
+    "type": "COLLECT",
+    "town": "portbrume",
+    "target": "Gobelin",
+    "goldReward": 70,
+    "collectItem": "goblin_ear",
+    "collectCount": 4
+  },
+  {
+    "title": "Pli pour Aethelgard",
+    "description": "Le port a une lettre pour l'aubergiste de La Pinte qui Chante. 33 km de route, payés à la remise.",
+    "rank": 0,
+    "type": "DELIVERY",
+    "town": "portbrume",
+    "target": "La Pinte qui Chante",
+    "goldReward": 60,
+    "giveItem": "Pli du port",
+    "payOnDelivery": true
+  },
+  {
+    "title": "Peaux pour le tanneur",
+    "description": "Le tanneur de Hautevigne manque de peaux. Rapportez-lui trois peaux de loup de la forêt voisine.",
+    "rank": 0,
+    "type": "COLLECT",
+    "town": "hautevigne",
+    "target": "Loup",
+    "goldReward": 60,
+    "collectItem": "wolf_pelt",
+    "collectCount": 3
+  },
+  {
+    "title": "Sacoche pour La Voile Rouge",
+    "description": "Un mineur envoie une sacoche à l'aubergiste de Port-Brume. 52 km de route : la plus longue livraison du pays.",
+    "rank": 0,
+    "type": "DELIVERY",
+    "town": "hautevigne",
+    "target": "La Voile Rouge",
+    "goldReward": 95,
+    "giveItem": "Sacoche de mineur",
+    "payOnDelivery": true
+  },
+  {
+    "title": "Ailes pour l'apothicaire",
+    "description": "L'apothicaire de Hautevigne broie des ailes de chauve-souris dans ses onguents. La mine en est pleine. Rapportez-en cinq.",
+    "rank": 2,
+    "type": "COLLECT",
+    "town": "hautevigne",
+    "collectItem": "bat_wing",
+    "collectCount": 5,
+    "goldReward": 120
+  },
+  {
+    "title": "Les os gravés",
+    "description": "Les mineurs d'autrefois portent des marques que personne ne sait lire. Le contremaître veut en voir quatre.",
+    "rank": 2,
+    "type": "COLLECT",
+    "town": "hautevigne",
+    "collectItem": "carved_bone",
+    "collectCount": 4,
+    "goldReward": 150
+  },
+  {
+    "title": "Lames pour le port",
+    "description": "Le forgeron du port refond tout ce qui coupe. Rapportez trois lames rouillées prises aux gobelins.",
+    "rank": 2,
+    "type": "COLLECT",
+    "town": "portbrume",
+    "collectItem": "rusty_blade",
+    "collectCount": 3,
+    "goldReward": 130
+  },
+  {
+    "title": "Crocs pour les amulettes",
+    "description": "Les marins ne prennent plus la mer sans un croc de loup au cou. Il en faut six.",
+    "rank": 3,
+    "type": "COLLECT",
+    "town": "portbrume",
+    "collectItem": "wolf_fang",
+    "collectCount": 6,
+    "goldReward": 210
+  },
+  {
+    "title": "Pli pour la Guilde",
+    "description": "Le contremaître écrit à Aethelgard ce qu'il n'ose pas dire tout haut. Remettez son pli à La Pinte qui Chante : 28 km de route.",
+    "rank": 3,
+    "type": "DELIVERY",
+    "town": "hautevigne",
+    "target": "La Pinte qui Chante",
+    "goldReward": 230,
+    "giveItem": "Pli du contremaître",
+    "payOnDelivery": true
+  },
+  {
+    "title": "Breloques volées",
+    "description": "Les gobelins dépouillent les voyageurs depuis un an. La Guilde rachète ce qu'on leur reprend : trois breloques.",
+    "rank": 3,
+    "type": "COLLECT",
+    "town": "aethelgard",
+    "collectItem": "goblin_trinket",
+    "collectCount": 3,
+    "goldReward": 240
+  },
+  {
+    "title": "Vider la mine",
+    "description": "Tant que les mineurs d'autrefois marchent, personne ne redescendra. Rapportez huit os gravés.",
+    "rank": 4,
+    "type": "COLLECT",
+    "town": "hautevigne",
+    "collectItem": "carved_bone",
+    "collectCount": 8,
+    "goldReward": 400
   }
 ]

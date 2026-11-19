@@ -10,13 +10,9 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -25,9 +21,10 @@ import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.RenderableProvider;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.collision.btBoxShape;
@@ -48,27 +45,35 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.lucas.guild.game.GameSession;
-import com.lucas.guild.game.GroundItems;
-import com.lucas.guild.model.Arme;
-import com.lucas.guild.model.Armure;
-import com.lucas.guild.model.Butin;
-import com.lucas.guild.model.DayNightCycle;
-import com.lucas.guild.model.Item;
-import com.lucas.guild.model.ObjetDeQuete;
-import com.lucas.guild.model.Sac;
-import com.lucas.guild.game.SaveManager;
+import com.lucas.guild.data.GameContent;
+import com.lucas.guild.data.LoreData;
+import com.lucas.guild.data.StoryData;
+import com.lucas.guild.data.TownData;
 import com.lucas.guild.game.DeathPenalty;
 import com.lucas.guild.game.DebugMode;
+import com.lucas.guild.game.GameSession;
+import com.lucas.guild.game.GroundItems;
+import com.lucas.guild.game.Monster;
+import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.game.Shop;
+import com.lucas.guild.game.Story;
+import com.lucas.guild.game.WorldEvents;
+import com.lucas.guild.model.ActiveEvent;
 import com.lucas.guild.model.Adventurer;
+import com.lucas.guild.model.DayNightCycle;
 import com.lucas.guild.model.GameClock;
+import com.lucas.guild.model.Inventaire;
+import com.lucas.guild.model.Item;
 
 /**
- * Base commune de tous les écrans « monde 3D » (ville et intérieurs de bâtiments).
+ * Base commune de tous les écrans « monde 3D » (ville, zones sauvages et intérieurs de bâtiments).
  *
- * Elle regroupe ce qui était dupliqué dans chaque écran : caméra, éclairage, physique Bullet,
- * HUD, menu pause, inventaire, dialogues, boucle de rendu et libération des ressources.
+ * Elle tient la boucle de jeu : caméra, physique Bullet, construction du décor, HUD, touches, et l'ouverture
+ * des menus (un seul à la fois). Le reste est confié à des collaborateurs : {@link WorldPanels} (les menus),
+ * {@link NpcGroup} (les PNJ), {@link GroundItemViews} (les objets au sol), {@link SkyAndShadows} (ciel et ombres
+ * en plein air), {@link WaterWaves} (l'eau), {@link Toasts} (les messages), {@link Readable} (les textes à lire)
+ * et {@link CombatScene} (les monstres).
+ *
  * Un écran concret ne définit plus que ce qui lui est propre :
  * <ul>
  *   <li>{@link #buildWorld()} : le décor 3D ;</li>
@@ -89,56 +94,64 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     // 3D
     protected PerspectiveCamera camera;
-    protected ModelBatch modelBatch;
-    protected Environment environment;
-    /** Lumière ambiante et lumière directionnelle (soleil) : modifiables à chaque image par {@link #updateEnvironment()}. */
-    protected ColorAttribute ambientLight;
-    protected DirectionalLight sunLight;
+    private ModelBatch modelBatch;
+    private Environment environment;
+    /** Lumière ambiante et lumière directionnelle (soleil) : modifiées à chaque image par {@link #applyDayNight}. */
+    private ColorAttribute ambientLight;
+    private DirectionalLight sunLight;
+    /** La brume (couleur du ciel), si l'écran en a une ; et l'éclairage du ciel, qui n'en a pas. */
+    private ColorAttribute fog;
+    private Environment skyEnvironment;
     protected PlayerController playerController;
+    /** Le corps du joueur, visible à la 3e personne (touche V). */
+    private CharacterModel playerModel;
+    private final Vector3 feet = new Vector3();
 
     // Physique
-    protected btDefaultCollisionConfiguration collisionConfig;
-    protected btCollisionDispatcher dispatcher;
-    protected btDbvtBroadphase broadphase;
-    protected btSequentialImpulseConstraintSolver solver;
-    protected btDiscreteDynamicsWorld dynamicsWorld;
+    private btDiscreteDynamicsWorld dynamicsWorld;
+    /**
+     * Les corps solides du décor. Il faut les libérer nous-mêmes en quittant l'écran : LibGDX garde chaque corps
+     * Bullet dans une table globale jusqu'à son {@code dispose()}, sinon ils s'accumulent à chaque changement d'écran.
+     */
+    private final Array<btRigidBody> bodies = new Array<>();
 
     protected final Array<Disposable> disposables = new Array<>();
     protected final Array<ModelInstance> instances = new Array<>();
-    private final Map<String, Model> boxModels = new HashMap<>();
-    private final Map<GroundItems.Drop, ModelInstance> groundViews = new HashMap<>();
+    private final Map<String, Model> shapeModels = new HashMap<>();
+
+    // Collaborateurs
+    /** Ciel et ombres : seulement en plein air ({@link #hasSky()}), null dans les intérieurs. */
+    private SkyAndShadows outdoors;
+    private NpcGroup npcs;
+    private GroundItemViews groundItems;
+    /** L'histoire dans cet écran : objets à ramasser, déclencheurs, avancement. */
+    private StoryScene storyScene;
+    private WorldPanels panels;
+    private final WaterWaves water = new WaterWaves();
+    private final Toasts toasts = new Toasts();
+    /** Les monstres de l'écran (aucun dans la plupart des lieux). */
+    protected CombatScene combat;
 
     // HUD
-    protected SpriteBatch spriteBatch;
-    protected BitmapFont font;
-    protected final GlyphLayout layout = new GlyphLayout();
+    private SpriteBatch spriteBatch;
+    private BitmapFont font;
+    private final GlyphLayout layout = new GlyphLayout();
     private final StringBuilder hudText = new StringBuilder();
 
-    // Message d'événement affiché quelques secondes (saison, anniversaire, réveil...)
-    private static final float TOAST_SECONDS = 5f;
-    private static final float TOAST_MIN_SECONDS = 2f; // durée minimale quand un autre message attend
-    private String toast;
-    private float toastTimer;
-
-    // Interface (menus)
+    // Interface (menus) : un seul ouvert à la fois
     protected Stage stage;
     protected Skin skin;
     protected Table dialogTable;
-    protected Table inventoryTable;
-    private InventoryPanel inventoryPanel;
-    protected Table skillsTable;
-    private SkillsPanel skillsPanel;
-    protected Table pauseTable;
     protected boolean inDialog = false;
     protected boolean isInventoryOpen = false;
     protected boolean isSkillsOpen = false;
-    /** Les monstres de l'écran (aucun dans la plupart des lieux). */
-    protected CombatScene combat;
-    protected Table debugTable;
-    private DebugPanel debugPanel;
+    protected boolean isJournalOpen = false;
     protected boolean isDebugOpen = false;
+    protected boolean isPaused = false;
 
     private boolean deathPending = false;
+    /** Une fin de l'histoire vient d'être atteinte : l'écran de fin s'ouvre à la fin de l'image. */
+    private boolean endingPending = false;
     /** Le lieu affiché sur le HUD (le nom de la ville ou de la zone). */
     protected String townName = "";
 
@@ -146,7 +159,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     private float lastX;
     private float lastZ;
     private boolean hasLastPosition = false;
-    protected boolean isPaused = false;
+
+    private final java.util.Random eventRandom = com.lucas.guild.game.GameRandom.create();
 
     protected BaseWorldScreen(MainGame game, String difficulty) {
         this.game = game;
@@ -175,8 +189,22 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     // ================================================================== à surcharger si besoin
 
-    /** Contenu d'un dialogue. {@code dialogTable} est déjà vidée. */
+    /**
+     * Contenu d'un dialogue. {@code dialogTable} est déjà vidée. Les écrans qui le redéfinissent
+     * peuvent appeler {@code super.buildDialog(dialogType)} pour garder la lecture des textes.
+     */
     protected void buildDialog(String dialogType) {
+        LoreData.TextData text = Readable.textOfDialog(dialogType);
+        if (text != null) {
+            dialogTable.add(UiKit.label(skin, text.title)).pad(10).row();
+            addWrappedText(text.text);
+            addLeaveButton();
+        }
+    }
+
+    /** Cet écran est-il en plein air (ciel visible, ombres du soleil) ? */
+    protected boolean hasSky() {
+        return false;
     }
 
     /** Intensité de la lumière ambiante. */
@@ -187,6 +215,16 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     /** Distance max (en mètres) à laquelle on peut viser / utiliser quelque chose. */
     protected float getInteractionRange() {
         return 5f;
+    }
+
+    /**
+     * Un personnage qui se déplace (sans corps solide, comme les habitants de la ville) visé par le rayon
+     * {@code eye + t * direction}, plus près que {@code maxDistance}.
+     *
+     * @return ce qu'on obtient en le visant (passé à {@link #getInteractionPrompt} et {@link #onInteract}), ou null
+     */
+    protected Object aimedWalker(Vector3 eye, Vector3 direction, float maxDistance) {
+        return null;
     }
 
     /** Un menu supplémentaire est-il ouvert ? (ex. tableau des quêtes) Il bloque le jeu comme la pause. */
@@ -217,6 +255,57 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected void setupExtraUI() {
     }
 
+    /** Appelé à chaque image après la mise à jour du jeu, même quand un menu est ouvert (animations du décor). */
+    protected void afterUpdate(float delta) {
+    }
+
+    /** Distance de vue en m. Avec la brume ({@link #hasFog()}), ce qui est plus loin disparaît dans la couleur du ciel. */
+    protected float getViewDistance() {
+        return 300f;
+    }
+
+    /** La brume : le lointain se fond dans le ciel (le monde ouvert y cache les carreaux qui apparaissent). */
+    protected boolean hasFog() {
+        return false;
+    }
+
+    /** Ce qu'il faut dessiner en plus des {@link #instances} (des carreaux fusionnés du monde ouvert), ombres comprises. */
+    protected Array<RenderableProvider> extraRenderables() {
+        return NO_EXTRA;
+    }
+
+    private static final Array<RenderableProvider> NO_EXTRA = new Array<>();
+
+    /** Un monstre vient d'être tué (après l'histoire). */
+    protected void onMonsterKilled(Monster monster) {
+    }
+
+    /** Cet écran est-il le monde ouvert ? (prototype) */
+    protected boolean isOpenWorld() {
+        return false;
+    }
+
+    /** Cet écran garde-t-il le mode du monde ouvert tel qu'il est ? (les intérieurs : on y entre et on en sort) */
+    protected boolean keepsWorldMode() {
+        return false;
+    }
+
+    /** Ce lieu prévient-il du marché en cours quand on y arrive ? (la ville, pas les intérieurs) */
+    protected boolean announcesEvents() {
+        return false;
+    }
+
+    /** Identifie ce lieu pour les objets posés au sol : les objets jetés ici sont retrouvés ici. */
+    protected String sceneKey() {
+        return getClass().getSimpleName() + "@" + player.getTownId();
+    }
+
+    /** Le joueur est tombé à 0 PV : il se réveille à l'auberge, plus pauvre (voir {@link DeathPenalty}). */
+    protected void onPlayerDeath() {
+        // On ne change pas d'écran en plein milieu d'une image : celui-ci serait libéré avant la fin du dessin
+        deathPending = true;
+    }
+
     // ================================================================== cycle de vie
 
     @Override
@@ -228,7 +317,10 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         GameSession session = game.getSession();
         player = session.getPlayer();
         gameClock = session.getClock();
-        townName = com.lucas.guild.data.GameContent.world().place(player.getTownId()).name;   // lu une fois : le HUD le redessine à chaque image
+        townName = GameContent.world().place(player.getTownId()).name;   // lu une fois : le HUD le redessine à chaque image
+        if (!keepsWorldMode()) {
+            session.setInOpenWorld(isOpenWorld());   // la ville ou une zone classique : on quitte le monde ouvert
+        }
 
         setup3DEnvironment();
         setupPhysics();
@@ -238,12 +330,55 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         combat = new CombatScene(instances);
         combat.setDropSink(this::dropOnGround);
         disposables.add(combat);
+        npcs = new NpcGroup(instances);
+        disposables.add(npcs);
+        groundItems = new GroundItemViews(session.getGround(), sceneKey(), instances, this::addVisualBox);
+        storyScene = new StoryScene(session, sceneKey(), instances, this::addVisualBox);
+        combat.setListener(new CombatScene.Listener() {
+            @Override
+            public void killed(Monster monster) {
+                String message = storyScene.story().onKill(monster.data);
+                if (message != null) {
+                    gameClock.postMessage(message);
+                }
+                onMonsterKilled(monster);
+            }
+
+            @Override
+            public void yielded(Monster monster) {
+                storyScene.story().onYield(monster.data);
+                if (monster.data.yieldMessage != null) {
+                    gameClock.postMessage(monster.data.yieldMessage);
+                }
+            }
+
+            @Override
+            public void message(String text) {
+                gameClock.postMessage(text);
+            }
+
+            @Override
+            public boolean holds(java.util.List<String> conditions) {
+                return storyScene.story().holds(conditions);
+            }
+        });
+        // les avantages de l'histoire propres à ce lieu (les sceaux, au château) ; aucun ailleurs
+        int[] boons = storyScene.story().boonsIn(player.getTownId());
+        player.setStoryBoons(boons[0], boons[1]);
         buildWorld();
-        for (GroundItems.Drop drop : game.getSession().getGround().in(sceneKey())) {
-            addGroundView(drop);
+        groundItems.showExisting();
+        storyScene.showPickups();
+        WorldEvents.update(player, gameClock.getCurrentDay(), eventRandom);
+        if (announcesEvents()) {
+            String market = WorldEvents.describeAt(player, player.getTownId());
+            if (market != null) {
+                gameClock.postMessage(market);
+            }
         }
 
         playerController = new PlayerController(camera, dynamicsWorld, player, getSpawnPoint());
+        playerModel = new CharacterModel(instances, GameContent.models(), "human");
+        disposables.add(playerModel);
     }
 
     private void setup3DEnvironment() {
@@ -251,7 +386,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         camera.position.set(0f, 5f, 10f);
         camera.lookAt(0, 0, 0);
         camera.near = 0.1f;
-        camera.far = 300f;
+        camera.far = getViewDistance();
         camera.update();
 
         modelBatch = new ModelBatch();
@@ -261,8 +396,25 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         environment = new Environment();
         ambientLight = new ColorAttribute(ColorAttribute.AmbientLight, ambient, ambient, ambient, 1f);
         environment.set(ambientLight);
-        sunLight = new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f);
+        if (hasSky()) {
+            // en plein air : le soleil porte des ombres, et il y a un ciel
+            outdoors = new SkyAndShadows();
+            disposables.add(outdoors);
+            sunLight = outdoors.sun();
+        } else {
+            sunLight = new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f);
+        }
         environment.add(sunLight);
+        if (hasFog()) {
+            // le ciel garde un éclairage sans brume : sinon le soleil et les étoiles, loin, disparaîtraient
+            skyEnvironment = new Environment();
+            skyEnvironment.set(ambientLight);
+            skyEnvironment.add(sunLight);
+            fog = new ColorAttribute(ColorAttribute.Fog, 0.5f, 0.8f, 1f, 1f);
+            environment.set(fog);
+        } else {
+            skyEnvironment = environment;
+        }
 
         spriteBatch = new SpriteBatch();
         font = new BitmapFont();
@@ -270,10 +422,10 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     }
 
     private void setupPhysics() {
-        collisionConfig = new btDefaultCollisionConfiguration();
-        dispatcher = new btCollisionDispatcher(collisionConfig);
-        broadphase = new btDbvtBroadphase();
-        solver = new btSequentialImpulseConstraintSolver();
+        btDefaultCollisionConfiguration collisionConfig = new btDefaultCollisionConfiguration();
+        btCollisionDispatcher dispatcher = new btCollisionDispatcher(collisionConfig);
+        btDbvtBroadphase broadphase = new btDbvtBroadphase();
+        btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
         dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
         dynamicsWorld.setGravity(new Vector3(0, -10f, 0));
         disposables.addAll(dynamicsWorld, solver, broadphase, dispatcher, collisionConfig);
@@ -290,68 +442,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         skin.add("default", textButtonStyle);
         skin.add("default", new Label.LabelStyle(font, Color.WHITE));
 
-        dialogTable = new Table(skin);
-        dialogTable.setFillParent(true);
-        dialogTable.setVisible(false);
-        stage.addActor(dialogTable);
-
-        inventoryTable = new Table(skin);
-        inventoryTable.setFillParent(true);
-        inventoryTable.setVisible(false);
-        stage.addActor(inventoryTable);
-        inventoryPanel = new InventoryPanel(inventoryTable, skin, player);
-        inventoryPanel.setDropHandler(this::dropInFront);
-
-        skillsTable = new Table(skin);
-        skillsTable.setFillParent(true);
-        skillsTable.setVisible(false);
-        stage.addActor(skillsTable);
-
-        // Fond sombre translucide derrière les panneaux : le texte blanc reste lisible sur le ciel clair
-        Pixmap shade = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        shade.setColor(0f, 0f, 0f, 0.7f);
-        shade.fill();
-        Texture shadeTexture = new Texture(shade);
-        shade.dispose();
-        disposables.add(shadeTexture);
-        Drawable panelBackground = new TextureRegionDrawable(new TextureRegion(shadeTexture));
-        dialogTable.setBackground(panelBackground);
-        inventoryTable.setBackground(panelBackground);
-        skillsTable.setBackground(panelBackground);
-        skillsPanel = new SkillsPanel(skillsTable, skin, player, gameClock);
-
-        debugTable = new Table(skin);
-        debugTable.setFillParent(true);
-        debugTable.setVisible(false);
-        stage.addActor(debugTable);
-        debugTable.setBackground(panelBackground);
-        debugPanel = new DebugPanel(debugTable, skin, game, this, game.getSession(), difficulty);
-
-        // Menu pause
-        pauseTable = new Table(skin);
-        pauseTable.setFillParent(true);
-        pauseTable.setVisible(false);
-        stage.addActor(pauseTable);
-
-        TextButton continueButton = new TextButton("Continuer", skin);
-        TextButton menuButton = new TextButton("Retour au Menu", skin);
-
-        pauseTable.add(continueButton).pad(10).row();
-        pauseTable.add(menuButton).pad(10).row();
-
-        continueButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                togglePause();
-            }
-        });
-
-        menuButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new MainMenuScreen(game));
-            }
-        });
+        panels = new WorldPanels(stage, skin, game, this, difficulty, this::dropInFront, this::togglePause);
+        disposables.add(panels);
+        dialogTable = panels.dialog;
 
         setupExtraUI();
     }
@@ -378,36 +471,82 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
      */
     protected ModelInstance addBox(float w, float h, float d, Color color, float x, float y, float z, Object userData) {
         ModelInstance instance = addVisualBox(w, h, d, color, x, y, z);
+        addInvisibleBody(w, h, d, x, y, z, userData);
+        return instance;
+    }
 
+    /** Un volume solide qu'on ne voit pas (le corps d'un PNJ dessiné par un modèle) : on le heurte et on peut le viser. */
+    protected void addInvisibleBody(float w, float h, float d, float x, float y, float z, Object userData) {
         btBoxShape shape = new btBoxShape(new Vector3(w / 2f, h / 2f, d / 2f));
         disposables.add(shape);
         btRigidBody.btRigidBodyConstructionInfo info = new btRigidBody.btRigidBodyConstructionInfo(0, null, shape, Vector3.Zero);
         disposables.add(info);
         btRigidBody body = new btRigidBody(info);
-        body.setWorldTransform(instance.transform);
+        body.setWorldTransform(new Matrix4().setTranslation(x, y, z));
         body.userData = userData;
         dynamicsWorld.addRigidBody(body);
+        bodies.add(body);
+    }
 
-        return instance;
+    /**
+     * Pose un PNJ debout sur le sol en (x, z), de face (il regarde vers -Z, comme le joueur qui arrive par la
+     * porte). {@code userData} est ce qu'on obtient en le visant.
+     *
+     * @param modelId son modèle dans models.json (« innkeeper »...)
+     */
+    protected void addNpc(String modelId, float x, float z, Object userData) {
+        addInvisibleBody(0.9f, 2f, 0.9f, x, 1.5f, z, userData);
+        npcs.add(modelId, x, z);
     }
 
     /** Une boîte seulement visible : le joueur la traverse (rues, eau, marquages au sol). */
     protected ModelInstance addVisualBox(float w, float h, float d, Color color, float x, float y, float z) {
-        ModelInstance instance = new ModelInstance(boxModel(w, h, d, color));
+        return addVisualShape("box", w, h, d, color, x, y, z, null);
+    }
+
+    /** Une forme seulement visible (voir {@link Shapes}), éventuellement tournée (degrés autour de x, y, z). */
+    protected ModelInstance addVisualShape(String shape, float w, float h, float d, Color color, float x, float y, float z, float[] rot) {
+        ModelInstance instance = new ModelInstance(shapeModel(shape, w, h, d, color));
         instance.transform.setTranslation(x, y, z);
+        if (rot != null) {
+            instance.transform.rotate(Vector3.Y, rot[1]).rotate(Vector3.X, rot[0]).rotate(Vector3.Z, rot[2]);
+        }
         instances.add(instance);
         return instance;
     }
 
-    /** Modèle partagé par toutes les boîtes de même taille et couleur. */
-    private Model boxModel(float w, float h, float d, Color color) {
-        String key = w + "x" + h + "x" + d + "/" + color.toIntBits();
-        Model model = boxModels.get(key);
+    /**
+     * Une partie de décor d'un fichier de ville ou de zone : une boîte solide, ou une forme visuelle (toit, couronne
+     * d'arbre, eau...). {@code (ox, oz)} est le centre du bâtiment pour ses détails.
+     */
+    protected void addDecorPart(TownData.PartData part, float ox, float oz, Color color, Object userData) {
+        float x = ox + part.x;
+        float z = oz + part.z;
+        float centerY = 0.5f + part.y + part.h / 2f;   // le sol est une boîte d'1 m dont le dessus est à 0,5
+        boolean plainBox = "box".equals(part.shape) && part.rot == null;
+        if (part.decal || !plainBox) {
+            ModelInstance instance = addVisualShape(part.shape, part.w, part.h, part.d, color, x, centerY, z, part.rot);
+            if ("water".equals(part.anim)) {
+                water.add(instance, centerY, color);
+            }
+        } else {
+            addBox(part.w, part.h, part.d, color, x, centerY, z, userData);
+        }
+    }
+
+    /** Le monde physique de l'écran (le monde ouvert y ajoute et retire ses corps lui-même). */
+    protected btDiscreteDynamicsWorld physics() {
+        return dynamicsWorld;
+    }
+
+    /** Modèle partagé par toutes les formes de même type, taille et couleur (libéré avec l'écran). */
+    protected Model shapeModel(String shape, float w, float h, float d, Color color) {
+        String key = shape + "/" + w + "x" + h + "x" + d + "/" + color.toIntBits();
+        Model model = shapeModels.get(key);
         if (model == null) {
-            Material material = new Material(ColorAttribute.createDiffuse(color));
-            model = new ModelBuilder().createBox(w, h, d, material, Usage.Position | Usage.Normal);
+            model = Shapes.create(shape, w, h, d, new Material(ColorAttribute.createDiffuse(color)));
             disposables.add(model);
-            boxModels.put(key, model);
+            shapeModels.put(key, model);
         }
         return model;
     }
@@ -417,14 +556,27 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     @Override
     public void render(float delta) {
         update(delta);
+        npcs.update(delta, playerPosition());
+        water.update(delta);
+        afterUpdate(delta);
         updateEnvironment();
 
         Color bg = getBackgroundColor();
         Gdx.gl.glClearColor(bg.r, bg.g, bg.b, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
+        Array<RenderableProvider> extra = extraRenderables();
+        if (outdoors != null) {
+            outdoors.renderShadows(environment, instances, extra, playerPosition(), camera.direction, delta);
+        }
         modelBatch.begin(camera);
         modelBatch.render(instances, environment);
+        for (RenderableProvider provider : extra) {
+            modelBatch.render(provider, environment);
+        }
+        if (outdoors != null) {
+            outdoors.renderSky(modelBatch, skyEnvironment);
+        }
         modelBatch.end();
 
         spriteBatch.begin();
@@ -438,14 +590,22 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
         if (deathPending) {
             deathPending = false;
+            endingPending = false;
             gameClock.postMessage(DeathPenalty.apply(game.getSession()));
             game.setScreen(new InnScreen(game, difficulty));
+        } else if (endingPending) {
+            endingPending = false;
+            game.setScreen(new EndingScreen(game, difficulty));
         }
     }
 
     /** Vrai quand un menu (pause, inventaire, dialogue, menu supplémentaire) bloque le jeu. */
     protected boolean isOverlayOpen() {
-        return inDialog || isInventoryOpen || isSkillsOpen || isDebugOpen || isPaused || isExtraOverlayOpen();
+        return inDialog || isInventoryOpen || isSkillsOpen || isJournalOpen || isDebugOpen || isPaused || isExtraOverlayOpen();
+    }
+
+    protected Vector3 playerPosition() {
+        return playerController.getPlayerBody().getCenterOfMassPosition();
     }
 
     private void update(float delta) {
@@ -453,70 +613,51 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             playerController.update();
             dynamicsWorld.stepSimulation(delta, 5, 1 / 60f);
             playerController.updateCamera();
+            updatePlayerModel(delta);
             gameClock.update(delta);
+            advanceWorldEvents();
             trainWalking();
-            Vector3 position = playerController.getPlayerBody().getCenterOfMassPosition();
-            if (combat.update(delta, player, position)) {
+            if (combat.update(delta, player, playerPosition())) {
                 onPlayerDeath();
             }
+            advanceStory();
         }
     }
 
-    // ================================================================== objets au sol
-
-    /** Identifie ce lieu pour les objets posés au sol : les objets jetés ici sont retrouvés ici. */
-    protected String sceneKey() {
-        return getClass().getSimpleName() + "@" + player.getTownId();
-    }
-
-    private static Color colorOfItem(Item item) {
-        if (item instanceof ObjetDeQuete) return Color.GOLD;
-        if (item instanceof Butin) return Color.TAN;
-        if (item instanceof Arme) return Color.LIGHT_GRAY;
-        if (item instanceof Armure || item instanceof Sac) return Color.BROWN;
-        if (item.estUtilisableHorsCombat()) return Color.SCARLET;
-        return Color.ORANGE;
-    }
-
-    private void addGroundView(GroundItems.Drop drop) {
-        groundViews.put(drop, addVisualBox(0.5f, 0.3f, 0.5f, colorOfItem(drop.item), drop.x, 0.65f, drop.z));
-    }
-
-    /** Pose un objet au sol (butin d'un monstre, objet jeté, trop-plein d'un coffre). */
-    protected void dropOnGround(Item item, float x, float z) {
-        addGroundView(game.getSession().getGround().drop(sceneKey(), item, x, z));
-    }
-
-    /** Le joueur jette {@code item} : il tombe devant lui, et on peut le ramasser. */
-    private void dropInFront(Item item) {
-        Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
-        Vector3 d = new Vector3(camera.direction.x, 0, camera.direction.z);
-        if (d.isZero()) {
-            d.set(0, 0, -1);
+    /** L'histoire avance (déclencheurs, chapitres) ; un texte d'histoire en attente s'ouvre, un épilogue a son écran. */
+    private void advanceStory() {
+        Vector3 p = playerPosition();
+        storyScene.update(p.x, p.z);
+        if (deathPending) {
+            return;
         }
-        d.nor().scl(1.5f);
-        dropOnGround(item, p.x + d.x, p.z + d.z);
+        if (StoryScene.textsEnabled && storyScene.hasSceneText()) {
+            toggleDialog(SCENE_TEXT_DIALOG);
+            return;
+        }
+        Story.Text text = storyScene.story().nextText();
+        if (text == null || (!StoryScene.textsEnabled && !text.ending)) {
+            return;
+        }
+        if (text.ending) {
+            endingPending = true;   // jamais de changement d'écran au milieu d'une image
+        } else {
+            toggleDialog(STORY_TEXT_DIALOG);
+        }
     }
 
-    private GroundItems.Drop nearestGroundItem() {
-        Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
-        return game.getSession().getGround().nearest(sceneKey(), p.x, p.z);
-    }
-
-    /** Ramasse l'objet au sol le plus proche (E). @return false s'il n'y en a aucun à portée. */
-    private boolean pickUpNearest() {
-        GroundItems.Drop drop = nearestGroundItem();
-        if (drop == null) {
-            return false;
-        }
-        if (!player.addItem(drop.item)) {
-            gameClock.postMessage("Trop lourd pour ramasser : " + drop.item.getName() + ".");
-            return true;
-        }
-        game.getSession().getGround().remove(sceneKey(), drop);
-        instances.removeValue(groundViews.remove(drop), true);
-        gameClock.postMessage("Vous ramassez : " + drop.item.getName() + ".");
-        return true;
+    /** Habille le corps du joueur de son équipement, le place et l'anime. */
+    private void updatePlayerModel(float delta) {
+        Inventaire inventory = player.getInventaire();
+        playerModel.setLook(
+                inventory.getArmor() != null ? inventory.getArmor().getId() : null,
+                inventory.getWeapon() != null ? inventory.getWeapon().getId() : null,
+                inventory.getBag() != null ? inventory.getBag().getId() : null);
+        // contre un mur, la caméra se colle au joueur : on cache alors son corps (comme à la 1re personne)
+        playerModel.setVisible(ViewSettings.thirdPerson && playerController.getAimBonus() > 0.9f);
+        feet.set(playerPosition()).sub(0, 1.0f, 0);
+        playerModel.update(delta, playerController.getHorizontalSpeed(), feet, playerController.getYaw());
+        combat.setRangeBonus(playerController.getAimBonus());
     }
 
     /** Applique le ciel, le soleil (puis la lune) et la lumière ambiante de l'heure et de la saison : à appeler dans {@link #updateEnvironment()}. */
@@ -524,37 +665,32 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         DayNightCycle.Light light = DayNightCycle.compute(
                 gameClock.getTimeOfDay(), gameClock.getSunrise(), gameClock.getSunset(), getAmbientLight());
         sky.set(light.sky[0], light.sky[1], light.sky[2], 1f);
+        if (fog != null) {
+            fog.color.set(sky);
+        }
         ambientLight.color.set(light.ambient[0], light.ambient[1], light.ambient[2], 1f);
         sunLight.color.set(light.lightColor[0], light.lightColor[1], light.lightColor[2], 1f);
         sunLight.direction.set(light.lightDirection[0], light.lightDirection[1], light.lightDirection[2]).nor();
-    }
-
-    /** Debug : fait apparaître un monstre à 6 m devant le joueur. */
-    String debugSpawn(String monsterId) {
-        Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
-        Vector3 d = new Vector3(camera.direction.x, 0, camera.direction.z);
-        if (d.isZero()) {
-            d.set(0, 0, -1);
+        if (outdoors != null) {
+            outdoors.updateSky(camera.position, light.daylight, light.lightDirection);
         }
-        d.nor().scl(6f);
-        com.lucas.guild.game.Monster m = combat.spawn(monsterId, p.x + d.x, p.z + d.z);
-        return m.getName() + " apparaît.";
     }
 
-    /** Debug : retire tous les monstres. */
-    String debugKillAll() {
-        return combat.clearAll() + " monstre(s) retiré(s).";
-    }
-
-    /** Le joueur est tombé à 0 PV : il se réveille à l'auberge, plus pauvre (voir {@link DeathPenalty}). */
-    protected void onPlayerDeath() {
-        // On ne change pas d'écran en plein milieu d'une image : celui-ci serait libéré avant la fin du dessin
-        deathPending = true;
+    /** Les événements du monde avancent avec les jours ; on prévient quand l'un d'eux démarre dans la ville où l'on se trouve. */
+    private void advanceWorldEvents() {
+        if (gameClock.getCurrentDay() == player.getEventsDay()) {
+            return;
+        }
+        for (ActiveEvent event : WorldEvents.update(player, gameClock.getCurrentDay(), eventRandom)) {
+            if (announcesEvents() && event.placeId.equals(player.getTownId())) {
+                gameClock.postMessage(WorldEvents.describe(event));
+            }
+        }
     }
 
     /** La marche entraîne l'Endurance, et le Portage quand on porte au moins la moitié de sa charge maximale. */
     private void trainWalking() {
-        Vector3 position = playerController.getPlayerBody().getCenterOfMassPosition();
+        Vector3 position = playerPosition();
         float x = position.x;
         float z = position.z;
         if (hasLastPosition) {
@@ -574,6 +710,60 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         hasLastPosition = true;
     }
 
+    // ================================================================== objets au sol
+
+    /** Pose un objet au sol (butin d'un monstre, objet jeté, trop-plein d'un coffre). */
+    protected void dropOnGround(Item item, float x, float z) {
+        groundItems.drop(item, x, z);
+    }
+
+    /** Un point à {@code distance} mètres devant le joueur, au sol. */
+    private Vector3 inFront(float distance) {
+        Vector3 d = new Vector3(camera.direction.x, 0, camera.direction.z);
+        if (d.isZero()) {
+            d.set(0, 0, -1);
+        }
+        return d.nor().scl(distance).add(playerPosition());
+    }
+
+    /** Le joueur jette {@code item} : il tombe devant lui, et on peut le ramasser. */
+    private void dropInFront(Item item) {
+        Vector3 spot = inFront(1.5f);
+        dropOnGround(item, spot.x, spot.z);
+    }
+
+    private GroundItems.Drop nearestGroundItem() {
+        Vector3 p = playerPosition();
+        return groundItems.nearest(p.x, p.z);
+    }
+
+    /** Ramasse l'objet au sol le plus proche (E). @return false s'il n'y en a aucun à portée. */
+    private boolean pickUpNearest() {
+        Vector3 p = playerPosition();
+        String message = groundItems.pickUpNearest(player, p.x, p.z);
+        if (message == null) {
+            return false;
+        }
+        gameClock.postMessage(message);
+        return true;
+    }
+
+    // ================================================================== debug
+
+    /** Debug : fait apparaître un monstre à 6 m devant le joueur. */
+    String debugSpawn(String monsterId) {
+        Vector3 spot = inFront(6f);
+        Monster m = combat.spawn(monsterId, spot.x, spot.z);
+        return m.getName() + " apparaît.";
+    }
+
+    /** Debug : retire tous les monstres. */
+    String debugKillAll() {
+        return combat.clearAll() + " monstre(s) retiré(s).";
+    }
+
+    // ================================================================== HUD
+
     private void drawHud(float delta) {
         if (isOverlayOpen()) {
             return;
@@ -587,26 +777,38 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         hudText.append("FPS: ").append(Gdx.graphics.getFramesPerSecond()).append("\n");
         hudText.append("Player: ").append(player.getName())
                 .append(" (").append(player.getAge(gameClock.getCurrentDay())).append(" ans)\n");
-        hudText.append("HP: ").append(player.getHealth()).append(" / ").append(player.getMaxHealth()).append("\n");
         hudText.append(gameClock.getDate()).append(" - ").append(gameClock.formatTime())
                 .append(" - ").append(townName).append("\n");
         if (DebugMode.isEnabled()) {
-            com.badlogic.gdx.math.Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
+            Vector3 p = playerPosition();
             hudText.append(String.format("[DEBUG] x %.1f  y %.1f  z %.1f  jour %d  temps x%.0f  vitesse x%.0f  (F10)\n",
                     p.x, p.y, p.z, gameClock.getCurrentDay(), gameClock.getTimeScale(), DebugMode.getSpeedMultiplier()));
         }
         hudText.append("Or : ").append(player.getGold()).append(" Po - ").append(UiKit.loadLine(player));
         font.draw(spriteBatch, hudText, 10, h - 10);
 
-        font.draw(spriteBatch, "I : inventaire   K : personnage   Q : potion   Échap : pause", 10, 24);
+        font.draw(spriteBatch, "I : inventaire   K : personnage   J : journal   Q : potion   V : vue   Échap : pause", 10, 24);
+        lifeBarClock += delta;
+        drawLifeBar();
 
         combat.drawHud(spriteBatch, font, w, h, camera.position, camera.direction);
-        drawToast(delta, w, h);
+        toasts.draw(delta, gameClock, spriteBatch, font, w, h);
 
         String text = null;
-        btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
-        if (objectInView != null) {
-            text = getInteractionPrompt(objectInView.userData);
+        Object aimed = aimedUserData();
+        if (aimed instanceof Readable) {
+            text = ((Readable) aimed).prompt();
+        } else if (aimed instanceof StoryPoint) {
+            text = ((StoryPoint) aimed).prompt();
+        } else if (aimed != null) {
+            text = getInteractionPrompt(aimed);
+        }
+        if (text == null) {
+            Vector3 p = playerPosition();
+            StoryData.PickupData pickup = storyScene.nearestPickup(p.x, p.z);
+            if (pickup != null) {
+                text = "Ramasser : " + pickup.name + " (E)";
+            }
         }
         if (text == null) {
             GroundItems.Drop drop = nearestGroundItem();
@@ -620,39 +822,58 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         }
     }
 
-    /** Affiche le prochain message d'événement en haut de l'écran pendant quelques secondes. */
-    private void drawToast(float delta, float w, float h) {
-        if (toast != null) {
-            toastTimer -= delta;
-            // Si d'autres messages attendent, on ne garde pas celui-ci les 5 s complètes : un refus
-            // ("Pas assez d'or") doit apparaître vite, pas après le message précédent.
-            boolean shownLongEnough = toastTimer <= TOAST_SECONDS - TOAST_MIN_SECONDS;
-            if (toastTimer <= 0f || (shownLongEnough && gameClock.hasPendingMessage())) {
-                toast = null;
-            }
+    /** Portée pour parler à un habitant qui passe (depuis le joueur ; la caméra à la 3e personne s'y ajoute). */
+    private static final float WALKER_TALK_RANGE = 4f;
+
+    /** Ce que vise le joueur : un habitant qui passe s'il est devant le décor visé, sinon ce décor (ou null). */
+    private Object aimedUserData() {
+        btCollisionObject body = playerController.getBodyInView(getInteractionRange());
+        float bodyDistance = playerController.getLastViewDistance();
+        Object walker = aimedWalker(camera.position, camera.direction,
+                Math.min(bodyDistance, WALKER_TALK_RANGE + playerController.getAimBonus()));
+        if (walker != null) {
+            return walker;
         }
-        if (toast == null) {
-            toast = gameClock.pollMessage(); // un message arrivé est affiché tout de suite
-            toastTimer = TOAST_SECONDS;
-        }
-        if (toast != null) {
-            layout.setText(font, toast);
-            font.draw(spriteBatch, layout, w / 2f - layout.width / 2f, h - 20);
-        }
+        return body != null ? body.userData : null;
     }
 
-    private void drawInventory() {
-        inventoryPanel.rebuild(null);
+    // ------------------------------------------------------------------ barre de vie
+
+    private static final float LIFE_BAR_WIDTH = 220f;
+    private static final float LIFE_BAR_HEIGHT = 16f;
+    private Texture pixel;
+
+    /** La barre de vie du joueur, en bas à gauche au-dessus de l'aide des touches : rouge, plus vive quand la vie est basse. */
+    private void drawLifeBar() {
+        if (pixel == null) {
+            Pixmap white = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+            white.setColor(Color.WHITE);
+            white.fill();
+            pixel = new Texture(white);
+            white.dispose();
+            disposables.add(pixel);
+        }
+        float x = 10f;
+        float y = 36f;
+        float share = Math.max(0f, Math.min(1f, player.getHealth() / (float) Math.max(1, player.getMaxHealth())));
+        spriteBatch.setColor(0f, 0f, 0f, 0.6f);
+        spriteBatch.draw(pixel, x - 2, y - 2, LIFE_BAR_WIDTH + 4, LIFE_BAR_HEIGHT + 4);
+        spriteBatch.setColor(0.25f, 0.05f, 0.05f, 0.9f);
+        spriteBatch.draw(pixel, x, y, LIFE_BAR_WIDTH, LIFE_BAR_HEIGHT);
+        if (share <= 0.25f) {
+            // vie basse : la barre clignote doucement
+            float pulse = 0.75f + 0.25f * (float) Math.sin(lifeBarClock * 8f);
+            spriteBatch.setColor(1f, 0.25f * pulse, 0.15f * pulse, 1f);
+        } else {
+            spriteBatch.setColor(0.8f, 0.12f, 0.1f, 1f);
+        }
+        spriteBatch.draw(pixel, x, y, LIFE_BAR_WIDTH * share, LIFE_BAR_HEIGHT);
+        spriteBatch.setColor(Color.WHITE);
+        layout.setText(font, "PV " + player.getHealth() + " / " + player.getMaxHealth());
+        font.draw(spriteBatch, layout, x + (LIFE_BAR_WIDTH - layout.width) / 2f, y + LIFE_BAR_HEIGHT - 2f);
     }
 
-    /**
-     * Ouvre la boutique {@code shopId} (shops.json) dans la fenêtre de dialogue en cours.
-     *
-     * @param onBack appelé par « Retour » : en général, réafficher le dialogue du PNJ
-     */
-    protected void showShop(String shopId, Runnable onBack) {
-        new ShopPanel(dialogTable, skin, player, new Shop(shopId), onBack).rebuild(null);
-    }
+    private float lifeBarClock;
 
     // ================================================================== entrées clavier / souris
 
@@ -665,6 +886,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         if (keycode == Input.Keys.ESCAPE) {
             if (isDebugOpen) {
                 toggleDebug();
+            } else if (isJournalOpen) {
+                toggleJournal();
             } else if (isSkillsOpen) {
                 toggleSkills();
             } else if (isInventoryOpen) {
@@ -682,15 +905,22 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             }
             return true;
         }
+        // Journal, inventaire et personnage ne s'ouvrent que depuis le jeu, jamais par-dessus un autre menu :
+        // en se refermant, ils recaptureraient la souris alors que le menu du dessous attend encore un clic.
+        if (keycode == Input.Keys.J) {
+            if (isJournalOpen || !isOverlayOpen()) {
+                toggleJournal();
+            }
+            return true;
+        }
         if (keycode == Input.Keys.I) {
-            if (!isSkillsOpen) {
+            if (isInventoryOpen || !isOverlayOpen()) {
                 toggleInventory();
             }
             return true;
         }
         if (keycode == Input.Keys.K) {
-            // le panneau du personnage ne s'ouvre que depuis le jeu (pas par-dessus un autre menu)
-            if (isSkillsOpen || !(inDialog || isInventoryOpen || isPaused || isExtraOverlayOpen())) {
+            if (isSkillsOpen || !isOverlayOpen()) {
                 toggleSkills();
             }
             return true;
@@ -709,9 +939,28 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             return true;
         }
 
+        if (keycode == Input.Keys.V) {
+            ViewSettings.thirdPerson = !ViewSettings.thirdPerson;
+            return true;
+        }
+
         if (keycode == Input.Keys.E) {
-            btCollisionObject objectInView = playerController.getBodyInView(getInteractionRange());
-            if (objectInView != null && onInteract(objectInView.userData)) {
+            Object aimed = aimedUserData();
+            if (aimed instanceof Readable) {
+                read((Readable) aimed);
+                return true;
+            }
+            if (aimed instanceof StoryPoint) {
+                toggleDialog(STORY_POINT_DIALOG + ((StoryPoint) aimed).id);
+                return true;
+            }
+            if (aimed != null && onInteract(aimed)) {
+                return true;
+            }
+            Vector3 p = playerPosition();
+            String picked = storyScene.pickUpNearest(p.x, p.z);
+            if (picked != null) {
+                gameClock.postMessage(picked);
                 return true;
             }
             if (pickUpNearest()) {
@@ -731,7 +980,11 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
         if (button == Input.Buttons.LEFT && !isOverlayOpen()) {
             // clic gauche : un coup (sans effet s'il n'y a pas de monstre à portée)
+            boolean swing = combat.ready();
             String loot = combat.attack(player, camera.position, camera.direction);
+            if (swing) {
+                playerModel.startAttack();
+            }
             if (loot != null) {
                 gameClock.postMessage(loot);
             }
@@ -744,47 +997,194 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     protected void togglePause() {
         isPaused = !isPaused;
-        pauseTable.setVisible(isPaused);
-        Gdx.input.setCursorCatched(!isPaused);
+        panels.show(panels.pause, isPaused);
     }
 
     protected void toggleInventory() {
         isInventoryOpen = !isInventoryOpen;
-        inventoryTable.setVisible(isInventoryOpen);
-        Gdx.input.setCursorCatched(!isInventoryOpen);
+        panels.show(panels.inventory, isInventoryOpen);
         if (isInventoryOpen) {
-            drawInventory();
+            panels.refreshInventory();
         }
     }
 
     protected void toggleDebug() {
         isDebugOpen = !isDebugOpen;
-        debugTable.setVisible(isDebugOpen);
-        Gdx.input.setCursorCatched(!isDebugOpen);
+        panels.show(panels.debug, isDebugOpen);
         if (isDebugOpen) {
-            debugPanel.rebuild(null);
+            panels.refreshDebug();
+        }
+    }
+
+    protected void toggleJournal() {
+        isJournalOpen = !isJournalOpen;
+        panels.show(panels.journal, isJournalOpen);
+        if (isJournalOpen) {
+            panels.refreshJournal();
         }
     }
 
     protected void toggleSkills() {
         isSkillsOpen = !isSkillsOpen;
-        skillsTable.setVisible(isSkillsOpen);
-        Gdx.input.setCursorCatched(!isSkillsOpen);
+        panels.show(panels.skills, isSkillsOpen);
         if (isSkillsOpen) {
-            skillsPanel.rebuild();
+            panels.refreshSkills();
         }
     }
 
     /** Ouvre le dialogue {@code dialogType}, ou ferme le dialogue en cours. */
     protected void toggleDialog(String dialogType) {
         inDialog = !inDialog;
-        dialogTable.setVisible(inDialog);
-        Gdx.input.setCursorCatched(!inDialog);
+        panels.show(dialogTable, inDialog);
 
         dialogTable.clear();
-        if (inDialog) {
+        if (inDialog && !buildStoryDialog(dialogType)) {
             buildDialog(dialogType);
         }
+    }
+
+    // ================================================================== dialogues d'histoire
+
+    private static final String STORY_TEXT_DIALOG = "StoryText";
+    private static final String SCENE_TEXT_DIALOG = "SceneText";
+    private static final String STORY_POINT_DIALOG = "StoryPoint:";
+
+    /** Les dialogues que tous les écrans partagent : un texte d'histoire, un point d'histoire du décor. @return false si ce n'en est pas un */
+    private boolean buildStoryDialog(String dialogType) {
+        if (SCENE_TEXT_DIALOG.equals(dialogType)) {
+            StoryData.TriggerData scene = storyScene.pollSceneText();
+            if (scene != null) {
+                if (scene.title != null) {
+                    Label title = UiKit.label(skin, scene.title);
+                    title.setColor(Color.GOLD);
+                    dialogTable.add(title).pad(10).row();
+                }
+                addWrappedText(scene.text);
+            }
+            addDialogButton("Continuer", () -> toggleDialog(null));
+            return true;
+        }
+        if (STORY_TEXT_DIALOG.equals(dialogType)) {
+            final Story.Text text = storyScene.story().nextText();
+            if (text == null) {
+                addLeaveButton();
+                return true;
+            }
+            Label title = UiKit.label(skin, text.title);
+            title.setColor(Color.GOLD);
+            dialogTable.add(title).pad(10).row();
+            addWrappedText(text.body);
+            storyScene.story().markShown(text);   // montré : il ne reviendra pas, même si on ferme avec Échap
+            addDialogButton("Continuer", () -> toggleDialog(null));
+            return true;
+        }
+        if (dialogType != null && dialogType.startsWith(STORY_POINT_DIALOG)) {
+            final String point = dialogType.substring(STORY_POINT_DIALOG.length());
+            java.util.List<StoryData.DialogData> dialogs = storyScene.story().dialogsAt(point);
+            Runnable close = () -> toggleDialog(null);
+            if (dialogs.size() == 1) {
+                openStoryDialog(dialogs.get(0), close);
+                return true;
+            }
+            String name = Story.pointName(point);
+            dialogTable.add(UiKit.label(skin, name != null ? name : point)).pad(10).row();
+            if (dialogs.isEmpty()) {
+                addWrappedText("Rien à faire ici pour l'instant.");
+            }
+            for (final StoryData.DialogData dialog : dialogs) {
+                addDialogButton(dialog.label, () -> openStoryDialog(dialog, close));
+            }
+            addLeaveButton();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Ajoute au dialogue d'un PNJ les boutons des dialogues d'histoire qu'il propose en ce moment.
+     *
+     * @param npc    son rôle dans story.json (« guildmaster », « innkeeper », « blacksmith », « shopkeeper »)
+     * @param onBack ce que fait « Continuer » à la fin : en général, réafficher le dialogue du PNJ
+     */
+    protected void addStoryDialogs(String npc, final Runnable onBack) {
+        for (final StoryData.DialogData dialog : storyScene.story().dialogsAt(npc + "@" + player.getTownId())) {
+            TextButton button = addDialogButton(dialog.label, () -> openStoryDialog(dialog, onBack));
+            button.getLabel().setColor(Color.GOLD);
+        }
+    }
+
+    /** Affiche un dialogue d'histoire dans la fenêtre de dialogue : son texte, puis ses choix s'il en a. */
+    private void openStoryDialog(final StoryData.DialogData dialog, final Runnable onBack) {
+        final Story story = storyScene.story();
+        dialogTable.clear();
+        java.util.List<StoryData.OptionData> options = story.optionsOf(dialog);
+        if (dialog.options.isEmpty()) {
+            String refusal = story.apply(dialog);
+            if (refusal != null) {
+                dialogTable.add(UiKit.message(skin, refusal)).pad(10).row();
+            } else {
+                addWrappedText(dialog.text);
+            }
+            addDialogButton("Continuer", onBack);
+            return;
+        }
+        addWrappedText(dialog.text);
+        for (final StoryData.OptionData option : options) {
+            addDialogButton(option.label, () -> {
+                String refusal = story.choose(option);
+                final Runnable then = option.next != null && refusal == null
+                        ? () -> openStoryDialog(GameContent.story().dialog(option.next), onBack)
+                        : onBack;
+                if (refusal == null && option.text == null) {
+                    then.run();
+                    return;
+                }
+                dialogTable.clear();
+                if (refusal != null) {
+                    dialogTable.add(UiKit.message(skin, refusal)).pad(10).row();
+                } else {
+                    addWrappedText(option.text);
+                }
+                addDialogButton("Continuer", then);
+            });
+        }
+        addDialogButton("Plus tard", onBack);
+    }
+
+    /** Ce qu'on obtient en visant une partie de décor d'action « read » (un texte) ou « story » (un point d'histoire), sinon null. */
+    protected Object decorUserData(TownData.PartData part) {
+        if ("read".equals(part.action)) {
+            return new Readable(part.text);
+        }
+        if ("story".equals(part.action)) {
+            return new StoryPoint(part.text);
+        }
+        return null;
+    }
+
+    /** L'histoire du personnage, pour les écrans qui en dépendent (portes fermées, épreuves...). */
+    protected Story story() {
+        return storyScene.story();
+    }
+
+    /** Ouvre la lecture d'un texte du décor ; la première lecture l'ajoute au journal. */
+    private void read(Readable sign) {
+        LoreData.TextData text = sign.text();
+        if (text == null) {
+            return;
+        }
+        if (sign.learn(player)) {
+            gameClock.postMessage("Ajouté au journal : " + text.title + ".");
+        }
+        toggleDialog(sign.dialogType());
+    }
+
+    /** Ajoute un paragraphe qui revient à la ligne dans le dialogue en cours. */
+    protected void addWrappedText(String text) {
+        Label label = UiKit.label(skin, text);
+        label.setWrap(true);
+        float width = Math.max(300f, Math.min(640f, Gdx.graphics.getWidth() - 100f));
+        dialogTable.add(label).width(width).pad(10).row();
     }
 
     /** Ajoute un bouton au dialogue en cours. */
@@ -808,6 +1208,15 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
                 toggleDialog(null);
             }
         });
+    }
+
+    /**
+     * Ouvre la boutique {@code shopId} (shops.json) dans la fenêtre de dialogue en cours.
+     *
+     * @param onBack appelé par « Retour » : en général, réafficher le dialogue du PNJ
+     */
+    protected void showShop(String shopId, Runnable onBack) {
+        new ShopPanel(dialogTable, skin, player, new Shop(shopId), onBack).rebuild(null);
     }
 
     // ================================================================== fin de vie
@@ -837,13 +1246,20 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     @Override
     public void dispose() {
         playerController.dispose();
+        // les corps du décor d'abord, tant que le monde physique existe encore
+        for (btRigidBody body : bodies) {
+            dynamicsWorld.removeRigidBody(body);
+            body.dispose();
+        }
+        bodies.clear();
         for (Disposable disposable : disposables) {
             disposable.dispose();
         }
         disposables.clear();
         instances.clear();
-        boxModels.clear();
-        groundViews.clear();
+        shapeModels.clear();
+        groundItems.clear();
+        storyScene.clear();
         skin.dispose();
     }
 }

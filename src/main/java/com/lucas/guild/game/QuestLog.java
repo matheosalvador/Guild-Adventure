@@ -58,7 +58,20 @@ public class QuestLog {
 
     /** Le joueur porte-t-il la preuve de cette quête ? */
     public boolean hasProof(Quest quest) {
+        if (quest.getType() == QuestType.COLLECT) {
+            return countCollected(quest) >= quest.getCollectCount();
+        }
         return findQuestItem(quest.getProofItem()) != null;
+    }
+
+    private int countCollected(Quest quest) {
+        int n = 0;
+        for (Item item : player.getInventoryItems()) {
+            if (quest.getCollectItem().equals(item.getId())) {
+                n++;
+            }
+        }
+        return n;
     }
 
     /**
@@ -70,15 +83,37 @@ public class QuestLog {
         if (status(quest) != Status.ACTIVE) {
             return status(quest) == Status.DONE ? "Vous avez déjà rendu cette quête." : "Vous n'avez pas accepté cette quête.";
         }
-        Item proof = findQuestItem(quest.getProofItem());
-        if (proof == null) {
-            return "Il vous manque la preuve : " + quest.getProofItem() + ".";
+        if (quest.getType() == QuestType.COLLECT) {
+            if (!hasProof(quest)) {
+                return "Il vous manque des objets : " + quest.getObjectiveText() + " (vous en avez " + countCollected(quest) + ").";
+            }
+            int toTake = quest.getCollectCount();
+            for (Item item : new java.util.ArrayList<>(player.getInventoryItems())) {
+                if (toTake > 0 && quest.getCollectItem().equals(item.getId())) {
+                    player.removeItem(item);
+                    toTake--;
+                }
+            }
+        } else {
+            Item proof = findQuestItem(quest.getProofItem());
+            if (proof == null) {
+                return "Il vous manque la preuve : " + quest.getProofItem() + ".";
+            }
+            player.removeItem(proof);
         }
-        player.removeItem(proof);
+        finish(quest);
+        return null;
+    }
+
+    /**
+     * La quete est terminee : or verse, quete rangee. Le rang monte si le personnage remplit les conditions du rang
+     * suivant (story.json : un nombre de quetes et une etape de l'histoire).
+     */
+    private void finish(Quest quest) {
         player.getActiveQuests().remove(quest.getTitle());
         player.getDoneQuests().add(quest.getTitle());
         player.addGold(quest.getGoldReward());
-        return null;
+        new Story(player, null).refreshRank();
     }
 
     // ------------------------------------------------------------------ livraisons
@@ -99,9 +134,14 @@ public class QuestLog {
             return "Vous n'avez rien à me remettre.";
         }
         Item parcel = findQuestItem(quest.getGiveItem());
-        player.removeItem(parcel);
-        player.addItem(new ObjetDeQuete(quest.getProofItem()));
-        return quest.getGiveItem() + " remise. Rapportez « " + quest.getProofItem() + " » à la guilde.";
+        if (quest.isPayOnDelivery()) {
+            player.removeItem(parcel);
+            finish(quest);
+            return quest.getGiveItem() + " remis : +" + quest.getGoldReward() + " Po !";
+        }
+        // la preuve prend la place du colis, même si le personnage est en surcharge : sinon elle serait perdue
+        player.getInventaire().remplacerItem(parcel, new ObjetDeQuete(quest.getProofItem()));
+        return quest.getGiveItem() + " remise. Rapportez à la guilde : " + quest.getProofItem() + ".";
     }
 
     private Quest pendingDelivery(String recipient, java.util.List<Quest> allQuests) {

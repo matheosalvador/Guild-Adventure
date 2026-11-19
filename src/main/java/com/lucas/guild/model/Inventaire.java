@@ -167,6 +167,21 @@ public class Inventaire {
         items.remove(item);
     }
 
+    /**
+     * Échange un objet transporté contre un autre, à la même place (une lettre contre son reçu). L'échange se fait
+     * même en surcharge : on ne refuse pas de rendre ce qu'on vient de prendre.
+     *
+     * @return false (et rien ne change) si {@code old} n'est pas dans l'inventaire
+     */
+    public boolean remplacerItem(Item old, Item replacement) {
+        int index = items.indexOf(old);
+        if (index < 0) {
+            return false;
+        }
+        items.set(index, replacement);
+        return true;
+    }
+
     /** Les objets transportés (hors équipement porté). Liste en lecture seule. */
     public List<Item> getItems() {
         return Collections.unmodifiableList(items);

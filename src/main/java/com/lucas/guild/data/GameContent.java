@@ -53,6 +53,10 @@ public final class GameContent {
     static void overrideDataDirForTests(Path dir) {
         overrideDir = dir;
         TEXT_CACHE.clear();
+        storyCache = null;
+        npcsCache = null;
+        openWorldCache = null;
+        PARSED.clear();
     }
 
     // ------------------------------------------------------------------ contenu
@@ -73,11 +77,45 @@ public final class GameContent {
             if (q.getGoldReward() < 0) {
                 throw new IllegalStateException("quests.json : la quete \"" + q.getTitle() + "\" : \"goldReward\" doit etre >= 0");
             }
-            if (q.getProofItem() == null || q.getProofItem().isEmpty()) {
-                throw new IllegalStateException("quests.json : la quete \"" + q.getTitle() + "\" : \"proofItem\" manquant");
+            String where = "quests.json : la quete \"" + q.getTitle() + "\"";
+            boolean collect = q.getType() == com.lucas.guild.model.QuestType.COLLECT;
+            if (!collect && !q.isPayOnDelivery() && (q.getProofItem() == null || q.getProofItem().isEmpty())) {
+                throw new IllegalStateException(where + " : \"proofItem\" manquant");
+            }
+            if (collect) {
+                if (q.getCollectItem() == null || newItem(q.getCollectItem()) == null) {
+                    throw new IllegalStateException(where + " : \"collectItem\" doit etre un objet de items.json (" + q.getCollectItem() + ")");
+                }
+                if (q.getCollectCount() < 1) throw new IllegalStateException(where + " : \"collectCount\" doit etre >= 1");
+            }
+            if (q.isPayOnDelivery() && (q.getType() != com.lucas.guild.model.QuestType.DELIVERY || q.getGiveItem() == null || q.getGiveItem().isEmpty())) {
+                throw new IllegalStateException(where + " : \"payOnDelivery\" demande une quete DELIVERY avec un \"giveItem\"");
+            }
+            WorldData.PlaceData board = world().place(q.getTown());
+            if (board == null || board.zoneFile != null) {
+                throw new IllegalStateException(where + " : \"town\" doit etre une ville de world.json (" + q.getTown() + ")");
+            }
+            if (q.getType() == com.lucas.guild.model.QuestType.DELIVERY && !deliveryRecipients().contains(q.getTarget())) {
+                throw new IllegalStateException(where + " : destinataire inconnu \"" + q.getTarget() + "\" (attendu : " + deliveryRecipients() + ")");
             }
         }
         return quests;
+    }
+
+    /** Ceux a qui on peut remettre une livraison : le forgeron, et les auberges et boutiques des villes (par leur nom). */
+    public static List<String> deliveryRecipients() {
+        List<String> names = new ArrayList<>();
+        names.add("Forgeron");
+        for (WorldData.PlaceData place : world().places) {
+            if (place.zoneFile == null) {
+                for (TownData.BuildingData b : town(place.id).buildings) {
+                    if ("inn".equals(b.interior) || "store".equals(b.interior)) {
+                        names.add(b.name);
+                    }
+                }
+            }
+        }
+        return names;
     }
 
     /** Toutes les compétences du jeu, dans l'ordre du fichier (nouvelles instances à chaque appel). */
@@ -117,7 +155,19 @@ public final class GameContent {
     }
 
     /** Tous les types de monstres (identifiant -> données), nouvelles instances à chaque appel. */
+    @SuppressWarnings("unchecked")
     public static Map<String, MonsterData> monsters() {
+        // gardé : chaque monstre qui apparaît le demande (sinon tout le fichier, et items.json, sont relus à chaque fois)
+        Map<String, MonsterData> cached = (Map<String, MonsterData>) PARSED.get("monsters.json");
+        if (cached != null) {
+            return cached;
+        }
+        Map<String, MonsterData> all = java.util.Collections.unmodifiableMap(parseMonsters());
+        PARSED.put("monsters.json", all);
+        return all;
+    }
+
+    private static Map<String, MonsterData> parseMonsters() {
         Map<String, MonsterData> all = read("monsters.json", new TypeToken<Map<String, MonsterData>>() { }.getType());
         for (Map.Entry<String, MonsterData> e : all.entrySet()) {
             MonsterData m = e.getValue();
@@ -134,6 +184,33 @@ public final class GameContent {
             if (m.goldMin < 0 || m.goldMax < m.goldMin) throw new IllegalStateException(where + " : \"goldMin\" >= 0 et \"goldMax\" >= \"goldMin\" attendus");
             if (m.color == null) throw new IllegalStateException(where + " : \"color\" manquant");
             if (m.w <= 0 || m.h <= 0 || m.d <= 0) throw new IllegalStateException(where + " : \"w\", \"h\" et \"d\" doivent etre > 0");
+            if (m.model != null && !models().models.containsKey(m.model)) {
+                throw new IllegalStateException(where + " : \"model\" inconnu \"" + m.model + "\" (voir models.json)");
+            }
+            if (m.flyHeight < 0) throw new IllegalStateException(where + " : \"flyHeight\" doit etre >= 0");
+            if (m.yieldPercent < 0 || m.yieldPercent > 90) throw new IllegalStateException(where + " : \"yieldPercent\" doit etre entre 0 et 90");
+            if (m.yieldPercent > 0 && (m.yieldFlag == null || m.yieldFlag.isEmpty())) {
+                throw new IllegalStateException(where + " : \"yieldPercent\" demande un \"yieldFlag\" (le drapeau pose quand il se rend)");
+            }
+            if (m.phases == null) m.phases = new ArrayList<>();
+            int previousBelow = 100;
+            for (int i = 0; i < m.phases.size(); i++) {
+                MonsterData.Phase phase = m.phases.get(i);
+                String at = where + " : phase n°" + (i + 1);
+                if (phase == null) throw new IllegalStateException(at + " : vide");
+                if (phase.below < 1 || phase.below >= previousBelow) {
+                    throw new IllegalStateException(at + " : \"below\" doit etre entre 1 et 99 et decroitre d'une phase a la suivante");
+                }
+                previousBelow = phase.below;
+                if (phase.damage < 0 || phase.speed < 0 || phase.attackCooldown < 0) throw new IllegalStateException(at + " : \"damage\", \"speed\" et \"attackCooldown\" doivent etre >= 0");
+                if ((phase.healEvery > 0) != (phase.healAmount > 0)) throw new IllegalStateException(at + " : \"healEvery\" et \"healAmount\" vont ensemble");
+                if (phase.healRequires == null) phase.healRequires = new ArrayList<>();
+                StoryData.validateConditions(phase.healRequires, at + " : \"healRequires\"");
+                if (phase.summon != null && !all.containsKey(phase.summon)) {
+                    throw new IllegalStateException(at + " : renfort inconnu \"" + phase.summon + "\" (voir monsters.json)");
+                }
+                if (phase.summon != null && (phase.summonCount < 1 || phase.summonCount > 6)) throw new IllegalStateException(at + " : \"summonCount\" doit etre entre 1 et 6");
+            }
             if (m.drops == null) m.drops = new ArrayList<>();
             for (MonsterData.Drop drop : m.drops) {
                 if (drop == null || drop.item == null || newItem(drop.item) == null) {
@@ -368,9 +445,26 @@ public final class GameContent {
         return place != null && place.zoneFile != null ? zone(placeId).arrival : town(placeId).arrival;
     }
 
+    /**
+     * Les fichiers déjà lus et vérifiés (villes, zones, modèles) : un écran qui s'ouvre, un monstre qui apparaît, un
+     * carreau du monde ouvert ne relisent plus le JSON. Les objets sont partagés : ne pas les modifier.
+     */
+    private static final Map<String, Object> PARSED = new java.util.concurrent.ConcurrentHashMap<>();
+
     private static ZoneData zoneFile(String file) {
+        ZoneData cached = (ZoneData) PARSED.get(file);
+        if (cached != null) {
+            return cached;
+        }
+        ZoneData zone = parseZone(file);
+        PARSED.put(file, zone);
+        return zone;
+    }
+
+    private static ZoneData parseZone(String file) {
         ZoneData zone = read(file, ZoneData.class);
         zone.validate(file);
+        checkReadable(file, zone.decor);
         for (ZoneData.SpawnData m : zone.monsters) {
             if (m == null || m.id == null || monsters().get(m.id) == null) {
                 throw new IllegalStateException(file + " : monstre inconnu \"" + (m != null ? m.id : null) + "\" (voir monsters.json)");
@@ -379,6 +473,21 @@ public final class GameContent {
         for (ZoneData.ChestData c : zone.chests) {
             for (String id : c.items) {
                 if (newItem(id) == null) throw new IllegalStateException(file + " : coffre : objet inconnu \"" + id + "\" (voir items.json)");
+            }
+        }
+        for (ZoneData.DoorData d : zone.doors) {
+            WorldData.PlaceData target = world().place(d.to);
+            if (target == null || target.zoneFile == null) {
+                throw new IllegalStateException(file + " : porte \"" + d.label + "\" : \"to\" doit etre une zone de world.json (" + d.to + ")");
+            }
+        }
+        if (zone.arena != null) {
+            for (List<ZoneData.SpawnData> wave : zone.arena.waves) {
+                for (ZoneData.SpawnData m : wave) {
+                    if (m == null || m.id == null || monsters().get(m.id) == null) {
+                        throw new IllegalStateException(file + " : \"arena\" : monstre inconnu \"" + (m != null ? m.id : null) + "\" (voir monsters.json)");
+                    }
+                }
             }
         }
         return zone;
@@ -391,8 +500,30 @@ public final class GameContent {
     }
 
     private static TownData townFile(String file) {
+        TownData cached = (TownData) PARSED.get(file);
+        if (cached != null) {
+            return cached;
+        }
+        TownData town = parseTown(file);
+        PARSED.put(file, town);
+        return town;
+    }
+
+    private static TownData parseTown(String file) {
         TownData town = read(file, TownData.class);
         town.validate(file);
+        checkReadable(file, town.decor);
+        for (TownData.VillagerData v : town.villagers) {
+            if (!models().models.containsKey(v.model)) {
+                throw new IllegalStateException(file + " : habitant : modele inconnu \"" + v.model + "\" (voir models.json)");
+            }
+            if (v.talk != null && !villagerTalkIds().contains(v.talk)) {
+                throw new IllegalStateException(file + " : habitant : \"talk\" inconnu \"" + v.talk + "\" (voir \"villagers\" dans npcs.json)");
+            }
+        }
+        for (TownData.BuildingData b : town.buildings) {
+            checkReadable(file, b.parts);
+        }
         for (TownData.BuildingData b : town.buildings) {
             if (b.shop != null) {
                 try {
@@ -410,6 +541,296 @@ public final class GameContent {
         WorldData world = read("world.json", WorldData.class);
         world.validate("world.json");
         return world;
+    }
+
+    /** Les rumeurs et les textes à lire (lore.json). */
+    public static LoreData lore() {
+        LoreData lore = read("lore.json", LoreData.class);
+        lore.validate("lore.json");
+        WorldData world = world();
+        for (LoreData.RumorData r : lore.rumors) {
+            if (r.town != null && (world.place(r.town) == null || world.place(r.town).zoneFile != null)) {
+                throw new IllegalStateException("lore.json : rumeur \"" + r.id + "\" : \"town\" doit etre une ville de world.json (" + r.town + ")");
+            }
+        }
+        return lore;
+    }
+
+    /** Les modèles 3D des personnages et de leur équipement (models.json). */
+    public static ModelsData models() {
+        ModelsData cached = (ModelsData) PARSED.get("models.json");
+        if (cached != null) {
+            return cached;
+        }
+        ModelsData data = parseModels();
+        PARSED.put("models.json", data);
+        return data;
+    }
+
+    private static ModelsData parseModels() {
+        ModelsData data = read("models.json", ModelsData.class);
+        data.validate("models.json");
+        for (String id : data.gear.keySet()) {
+            // un equipement est celui d'un objet de items.json, ou un accessoire propre aux modeles (identifiant « prop_... »)
+            if (!id.startsWith("prop_") && newItem(id) == null) {
+                throw new IllegalStateException("models.json : equipement \"" + id + "\" : objet inconnu (voir items.json ; un accessoire de modele s'appelle prop_...)");
+            }
+        }
+        for (String id : data.armorColors.keySet()) {
+            if (newItem(id) == null) {
+                throw new IllegalStateException("models.json : armorColors \"" + id + "\" : objet inconnu (voir items.json)");
+            }
+        }
+        return data;
+    }
+
+    /** Les événements du monde (events.json). */
+    public static EventsData events() {
+        EventsData data = read("events.json", EventsData.class);
+        data.validate("events.json");
+        WorldData world = world();
+        for (EventsData.EventData e : data.events) {
+            String where = "events.json : evenement \"" + e.id + "\"";
+            if (e.items != null) {
+                for (String id : e.items) {
+                    if (newItem(id) == null) throw new IllegalStateException(where + " : objet inconnu \"" + id + "\" (voir items.json)");
+                }
+            }
+            if (e.towns != null) {
+                for (String id : e.towns) {
+                    if (world.place(id) == null || world.place(id).zoneFile != null) {
+                        throw new IllegalStateException(where + " : \"towns\" doit contenir des villes de world.json (" + id + ")");
+                    }
+                }
+            }
+        }
+        return data;
+    }
+
+    /** Les PNJ auprès de qui un dialogue d'histoire peut se tenir (« guildmaster@aethelgard »). */
+    public static final List<String> STORY_NPCS = java.util.Arrays.asList("guildmaster", "innkeeper", "blacksmith", "shopkeeper");
+
+    private static volatile StoryData storyCache;
+
+    /**
+     * L'histoire (story.json). Contrairement aux autres contenus, l'objet lu est gardé et partagé (l'histoire est
+     * consultée à chaque image) : ne pas le modifier.
+     */
+    public static StoryData story() {
+        StoryData cached = storyCache;
+        if (cached != null) {
+            return cached;
+        }
+        StoryData story = read("story.json", StoryData.class);
+        story.validate("story.json");
+        WorldData world = world();
+        for (StoryData.RankData r : story.ranks) {
+            checkConditions(r.requires, "story.json : rang " + r.label);
+        }
+        for (StoryData.ChapterData c : story.chapters) {
+            String where = "story.json : chapitre \"" + c.id + "\"";
+            checkConditions(c.requires, where);
+            for (StoryData.ObjectiveData o : c.objectives) {
+                checkConditions(o.done, where + " : objectif \"" + o.text + "\"");
+            }
+        }
+        for (StoryData.DialogData d : story.dialogs) {
+            String where = "story.json : dialogue \"" + d.id + "\"";
+            checkStoryPoint(d.at, story, world, where);
+            checkConditions(d.requires, where);
+            checkItems(d.gives, where + " : \"gives\"");
+            checkItems(d.takes, where + " : \"takes\"");
+            for (StoryData.OptionData o : d.options) {
+                checkConditions(o.requires, where + " : option \"" + o.label + "\"");
+                checkItems(o.gives, where + " : option \"" + o.label + "\" : \"gives\"");
+                checkItems(o.takes, where + " : option \"" + o.label + "\" : \"takes\"");
+            }
+        }
+        for (StoryData.PickupData p : story.pickups) {
+            checkConditions(p.requires, "story.json : objet a ramasser \"" + p.name + "\"");
+        }
+        for (StoryData.TriggerData t : story.triggers) {
+            checkConditions(t.requires, "story.json : declencheur \"" + t.id + "\"");
+        }
+        for (StoryData.RuleData r : story.rules) {
+            checkConditions(r.requires, "story.json : regle");
+        }
+        for (StoryData.EndingData e : story.endings) {
+            checkConditions(e.requires, "story.json : fin \"" + e.id + "\"");
+        }
+        for (StoryData.BoonData b : story.boons) {
+            checkConditions(b.requires, "story.json : avantage");
+            for (String place : b.places) {
+                if (world.place(place) == null) throw new IllegalStateException("story.json : avantage : lieu inconnu \"" + place + "\" (voir world.json)");
+            }
+        }
+        for (StoryData.EffectData e : story.effects) {
+            checkConditions(e.requires, "story.json : effet");
+            for (String shopId : e.priceFactor.keySet()) {
+                try {
+                    shop(shopId);
+                } catch (IllegalStateException ex) {
+                    throw new IllegalStateException("story.json : effet : " + ex.getMessage(), ex);
+                }
+            }
+        }
+        storyCache = story;
+        return story;
+    }
+
+    private static volatile OpenWorldData openWorldCache;
+
+    /**
+     * Le prototype du monde ouvert (openworld.json). L'objet lu est gardé et partagé (le monde le consulte à chaque
+     * carreau) : ne pas le modifier.
+     */
+    public static OpenWorldData openWorld() {
+        OpenWorldData cached = openWorldCache;
+        if (cached != null) {
+            return cached;
+        }
+        OpenWorldData data = read("openworld.json", OpenWorldData.class);
+        data.validate("openworld.json", world());
+        openWorldCache = data;
+        return data;
+    }
+
+    private static volatile NpcsData npcsCache;
+
+    /**
+     * Ce que disent les PNJ des bâtiments et les habitants (npcs.json). L'objet lu est gardé et partagé (les villes le
+     * consultent à chaque chargement) : ne pas le modifier.
+     */
+    public static NpcsData npcs() {
+        NpcsData cached = npcsCache;
+        if (cached != null) {
+            return cached;
+        }
+        String file = "npcs.json";
+        NpcsData data = read(file, NpcsData.class);
+        data.validate(file, STORY_NPCS);
+        WorldData world = world();
+        for (NpcsData.NpcData n : data.npcs) {
+            for (NpcsData.OptionData o : n.options) {
+                String where = file + " : PNJ \"" + n.id + "\" : choix \"" + o.label + "\"";
+                checkConditions(o.requires, where);
+                if (o.shop != null) {
+                    try {
+                        shop(o.shop);
+                    } catch (IllegalStateException ex) {
+                        throw new IllegalStateException(where + " : " + ex.getMessage(), ex);
+                    }
+                }
+            }
+        }
+        for (NpcsData.VillagerTalkData v : data.villagers) {
+            for (NpcsData.LineData line : v.lines) {
+                String where = file + " : habitant \"" + v.id + "\"";
+                checkConditions(line.requires, where);
+                if (line.town != null && (world.place(line.town) == null || world.place(line.town).townFile == null)) {
+                    throw new IllegalStateException(where + " : \"town\" doit etre une ville de world.json (" + line.town + ")");
+                }
+            }
+        }
+        npcsCache = data;
+        return data;
+    }
+
+    /**
+     * Les identifiants des habitants de npcs.json, lus sans vérifier le reste : npcs.json vérifie des conditions qui
+     * renvoient aux quêtes, et les quêtes relisent les villes (sinon, une boucle sans fin).
+     */
+    private static Set<String> villagerTalkIds() {
+        NpcsData data = read("npcs.json", NpcsData.class);
+        Set<String> ids = new HashSet<>();
+        if (data.villagers != null) {
+            for (NpcsData.VillagerTalkData v : data.villagers) {
+                if (v != null && v.id != null) {
+                    ids.add(v.id);
+                }
+            }
+        }
+        return ids;
+    }
+
+    /**
+     * Les noms des points d'histoire, lus sans vérifier le reste de story.json : les fichiers de lieux en ont besoin
+     * pour leur propre vérification, et story.json vérifie à son tour des choses qui dépendent des lieux.
+     */
+    private static Set<String> storyPoints() {
+        StoryData story = read("story.json", StoryData.class);
+        return story.points != null ? story.points.keySet() : new HashSet<String>();
+    }
+
+    /** Un dialogue se tient auprès d'un PNJ d'une ville (« innkeeper@portbrume ») ou à un point nommé de l'histoire. */
+    private static void checkStoryPoint(String at, StoryData story, WorldData world, String where) {
+        if (story.points.containsKey(at)) {
+            return;
+        }
+        int arobase = at.indexOf('@');
+        String npc = arobase > 0 ? at.substring(0, arobase) : "";
+        WorldData.PlaceData town = arobase > 0 ? world.place(at.substring(arobase + 1)) : null;
+        if (!STORY_NPCS.contains(npc) || town == null || town.zoneFile != null) {
+            throw new IllegalStateException(where + " : \"at\" inconnu \"" + at + "\" (attendu : un point de \"points\", ou "
+                    + STORY_NPCS + "@une ville de world.json)");
+        }
+    }
+
+    private static void checkItems(List<String> ids, String where) {
+        for (String id : ids) {
+            if (newItem(id) == null) throw new IllegalStateException(where + " : objet inconnu \"" + id + "\" (voir items.json)");
+        }
+    }
+
+    /** Vérifie que les conditions d'histoire renvoient à des quêtes, des savoirs et des objets qui existent. */
+    static void checkConditions(List<String> conditions, String where) {
+        if (conditions == null) {
+            return;
+        }
+        StoryData.validateConditions(conditions, where);
+        for (String c : conditions) {
+            String body = c.startsWith("!") ? c.substring(1) : c;
+            String type = body.substring(0, body.indexOf(':'));
+            String arg = body.substring(body.indexOf(':') + 1);
+            if ("quest".equals(type)) {
+                boolean found = false;
+                for (Quest q : quests()) {
+                    found |= q.getTitle().equals(arg);
+                }
+                if (!found) throw new IllegalStateException(where + " : quete inconnue \"" + arg + "\" (voir quests.json)");
+            } else if ("lore".equals(type)) {
+                LoreData lore = lore();
+                boolean found = false;
+                if (arg.startsWith("text:")) {
+                    found = lore.texts.containsKey(arg.substring(5));
+                } else if (arg.startsWith("rumor:")) {
+                    for (LoreData.RumorData r : lore.rumors) {
+                        found |= r.id.equals(arg.substring(6));
+                    }
+                }
+                if (!found) throw new IllegalStateException(where + " : savoir inconnu \"" + arg + "\" (attendu : text:... ou rumor:... de lore.json)");
+            } else if ("item".equals(type)) {
+                if (newItem(arg) == null) throw new IllegalStateException(where + " : objet inconnu \"" + arg + "\" (voir items.json)");
+            }
+        }
+    }
+
+    /** Vérifie que chaque panneau à lire (action « read ») d'un fichier de lieu renvoie à un texte de lore.json. */
+    private static void checkReadable(String file, List<TownData.PartData> parts) {
+        if (parts == null) {
+            return;
+        }
+        for (TownData.PartData p : parts) {
+            if ("read".equals(p.action) && !lore().texts.containsKey(p.text)) {
+                throw new IllegalStateException(file + " : texte a lire inconnu \"" + p.text + "\" (voir lore.json)");
+            }
+            if ("story".equals(p.action) && !storyPoints().contains(p.text)) {
+                throw new IllegalStateException(file + " : point d'histoire inconnu \"" + p.text + "\" (voir \"points\" dans story.json)");
+            }
+            if ("walk".equals(p.action) && openWorld().place(p.text) == null) {
+                throw new IllegalStateException(file + " : depart a pied vers un lieu absent du monde ouvert \"" + p.text + "\" (voir openworld.json)");
+            }
+        }
     }
 
     /** Le calendrier (saisons, lever/coucher du soleil, début de partie...). */
@@ -476,6 +897,12 @@ public final class GameContent {
         }
         calendar();
         agingStages();
+        lore();
+        events();
+        models();
+        story();
+        npcs();
+        openWorld();
     }
 
     // ------------------------------------------------------------------ lecture

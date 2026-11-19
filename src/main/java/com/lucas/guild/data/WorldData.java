@@ -41,6 +41,12 @@ public class WorldData {
         /** Position sur la carte du monde, en km. */
         public float x;
         public float z;
+        /** Conditions d'histoire (voir StoryData) pour pouvoir s'y rendre ; absent = toujours ouvert. */
+        public List<String> requires = new ArrayList<>();
+        /** La raison affichée sur la carte tant que le lieu est fermé. */
+        public String lockedText;
+        /** Un lieu qui n'apparaît pas sur la carte : on n'y arrive que par une porte d'une autre zone (un étage de donjon). */
+        public boolean hidden;
     }
 
     public static boolean isZone(PlaceData place) {
@@ -95,6 +101,12 @@ public class WorldData {
             boolean hasZone = p.zoneFile != null && !p.zoneFile.isEmpty();
             if (!hasTown && !hasZone) throw new IllegalStateException(where + " : \"townFile\" (ville) ou \"zoneFile\" (zone sauvage) manquant");
             if (hasTown && hasZone) throw new IllegalStateException(where + " : un lieu ne peut pas avoir a la fois \"townFile\" et \"zoneFile\"");
+            if (p.requires == null) p.requires = new ArrayList<>();
+            StoryData.validateConditions(p.requires, where + " : \"requires\"");
+            if (p.hidden && hasTown) throw new IllegalStateException(where + " : une ville ne peut pas etre \"hidden\"");
+        }
+        if (place(startPlace) != null && (place(startPlace).hidden || !place(startPlace).requires.isEmpty())) {
+            throw new IllegalStateException(file + " : \"startPlace\" ne peut etre ni cache ni verrouille (" + startPlace + ")");
         }
         if (startPlace == null || !seen.contains(startPlace)) {
             throw new IllegalStateException(file + " : \"startPlace\" doit etre l'identifiant d'un lieu (" + startPlace + ")");
@@ -113,6 +125,7 @@ public class WorldData {
             }
             for (String end : link) {
                 if (!seen.contains(end)) throw new IllegalStateException(file + " : route vers un lieu inconnu \"" + end + "\"");
+                if (place(end).hidden) throw new IllegalStateException(file + " : aucune route ne mene a un lieu cache (" + end + ")");
             }
             if (link.get(0).equals(link.get(1))) {
                 throw new IllegalStateException(file + " : une route ne peut pas relier un lieu a lui-meme (" + link.get(0) + ")");

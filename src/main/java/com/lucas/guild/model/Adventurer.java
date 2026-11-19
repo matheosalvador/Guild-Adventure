@@ -30,6 +30,11 @@ public class Adventurer extends Entite {
     private List<String> visitedPlaces = new ArrayList<>();
     /** La dernière ville où le personnage a mis les pieds : c'est là qu'il se réveille s'il tombe en route. */
     private String homeTownId;
+    /** Rumeurs entendues et textes lus (voir game/Lore). */
+    private List<String> knownLore = new ArrayList<>();
+    /** Événements du monde en cours (fête, pénurie...) et dernier jour pour lequel on en a tiré (voir game/WorldEvents). */
+    private List<ActiveEvent> activeEvents = new ArrayList<>();
+    private int eventsDay;
     /** Coffres ouverts : identifiant du coffre -> jour de l'ouverture (ils se remplissent de nouveau plus tard). */
     private java.util.Map<String, Integer> openedChests = new java.util.HashMap<>();
 
@@ -37,8 +42,19 @@ public class Adventurer extends Entite {
     private List<String> activeQuests = new ArrayList<>();
     private List<String> doneQuests = new ArrayList<>();
 
+    /** L'histoire : chaque drapeau posé, avec la minute de jeu où il l'a été (voir game/Story). Absent des anciennes sauvegardes. */
+    private Map<String, Integer> storyFlags = new HashMap<>();
+    /** Monde ouvert : les monstres tués (lieu#rang -> jour de leur mort), voir game/Respawns. Absent des anciennes sauvegardes. */
+    private Map<String, Integer> monsterKills = new HashMap<>();
+    /** Le jour où le personnage a cessé de vieillir (une fin de l'histoire), ou null s'il vieillit normalement. */
+    private Integer ageFrozenDay;
+
     /** Compétences, gagnées par la pratique. */
     private Skills skills = new Skills();
+
+    // Avantages de l'histoire valables dans le lieu courant (les sceaux, au château) : reposés à chaque changement de lieu
+    private transient int storyDamagePercent;
+    private transient int storyHealthBonus;
 
     // Effets de l'âge : recalculés à chaque chargement (refreshAging), donc pas sauvegardés
     private transient double healthFactor = 1.0;
@@ -82,6 +98,10 @@ public class Adventurer extends Entite {
         return rank;
     }
 
+    public void setRank(int rank) {
+        this.rank = rank;
+    }
+
     public Inventaire getInventaire() {
         return inventory;
     }
@@ -100,15 +120,6 @@ public class Adventurer extends Entite {
 
     public void removeItem(Item item) {
         inventory.retirerItem(item);
-    }
-
-    public Item findItem(Item itemToFind) {
-        for (Item item : inventory.getItems()) {
-            if (item.equals(itemToFind)) {
-                return item;
-            }
-        }
-        return null;
     }
 
     /** Équipe un objet de l'inventaire (arme, armure, sac). @return null si c'est fait, sinon la raison du refus. */
@@ -159,9 +170,53 @@ public class Adventurer extends Entite {
         return true;
     }
 
-    /** Dégâts d'un coup : 10 de base plus l'arme, augmentés par la compétence Mêlée. */
+    /** Dégâts d'un coup : 10 de base plus l'arme, augmentés par la compétence Mêlée (et un avantage de l'histoire s'il y en a un ici). */
     public int getAttackDamage() {
-        return (int) Math.round((10 + getBonusDegats()) * (1 + getSkillBonus("meleePercent") / 100.0));
+        return (int) Math.round((10 + getBonusDegats()) * (1 + (getSkillBonus("meleePercent") + storyDamagePercent) / 100.0));
+    }
+
+    // ------------------------------------------------------------------ histoire
+
+    /** Les drapeaux de l'histoire (nom -> minute de jeu où il a été posé). Jamais null, même pour une ancienne sauvegarde. */
+    public Map<String, Integer> getStoryFlags() {
+        if (storyFlags == null) {
+            storyFlags = new HashMap<>();
+        }
+        return storyFlags;
+    }
+
+    /** Monde ouvert : les monstres tués et le jour de leur mort. Jamais null, même pour une ancienne sauvegarde. */
+    public Map<String, Integer> getMonsterKills() {
+        if (monsterKills == null) {
+            monsterKills = new HashMap<>();
+        }
+        return monsterKills;
+    }
+
+    /**
+     * Pose les avantages de combat de l'histoire valables dans le lieu courant (0 = aucun). Une vie max plus haute
+     * est soignée d'autant ; plus basse, la vie est ramenée sous le nouveau plafond.
+     */
+    public void setStoryBoons(int damagePercent, int healthBonus) {
+        int before = getMaxHealth();
+        this.storyDamagePercent = damagePercent;
+        this.storyHealthBonus = healthBonus;
+        int gain = getMaxHealth() - before;
+        if (gain > 0) {
+            health += gain;
+        }
+        health = Math.min(health, getMaxHealth());
+    }
+
+    /** Le personnage cesse de vieillir à partir de ce jour (son âge et ses malus restent ceux de ce jour-là). */
+    public void freezeAge(int day) {
+        if (ageFrozenDay == null) {
+            ageFrozenDay = day;
+        }
+    }
+
+    public boolean isAgeFrozen() {
+        return ageFrozenDay != null;
     }
 
     public List<Attaque> getAttaques() {
@@ -199,6 +254,30 @@ public class Adventurer extends Entite {
             }
         }
         return home.id;
+    }
+
+    /** Les événements en cours. Jamais null, même pour une ancienne sauvegarde. */
+    public List<ActiveEvent> getActiveEvents() {
+        if (activeEvents == null) {
+            activeEvents = new ArrayList<>();
+        }
+        return activeEvents;
+    }
+
+    public int getEventsDay() {
+        return eventsDay;
+    }
+
+    public void setEventsDay(int eventsDay) {
+        this.eventsDay = eventsDay;
+    }
+
+    /** Ce que le personnage sait du monde (rumeurs entendues, textes lus), au format « rumor:id » / « text:id ». Jamais null. */
+    public List<String> getKnownLore() {
+        if (knownLore == null) {
+            knownLore = new ArrayList<>();
+        }
+        return knownLore;
     }
 
     /** Les coffres ouverts. Jamais null, même pour une ancienne sauvegarde. */
@@ -404,11 +483,15 @@ public class Adventurer extends Entite {
 
     /** Âge en années entières au jour {@code currentDay}. */
     public int getAge(int currentDay) {
-        return Math.max(0, Math.floorDiv(currentDay - birthDay, GameCalendar.standard().daysPerYear()));
+        int day = ageFrozenDay != null ? Math.min(currentDay, ageFrozenDay) : currentDay;
+        return Math.max(0, Math.floorDiv(day - birthDay, GameCalendar.standard().daysPerYear()));
     }
 
-    /** Vrai si le personnage fête un anniversaire ce jour-là. */
+    /** Vrai si le personnage fête un anniversaire ce jour-là (plus jamais une fois qu'il ne vieillit plus). */
     public boolean isBirthday(int currentDay) {
+        if (ageFrozenDay != null && currentDay > ageFrozenDay) {
+            return false;
+        }
         int sinceBirth = currentDay - birthDay;
         return sinceBirth > 0 && Math.floorMod(sinceBirth, GameCalendar.standard().daysPerYear()) == 0;
     }
@@ -453,7 +536,7 @@ public class Adventurer extends Entite {
     /** Vie max réelle : la vie de base et les bonus de compétence, réduits par l'âge. */
     @Override
     public int getMaxHealth() {
-        return Math.max(1, (int) Math.round((maxHealth + getSkillBonus("healthBonus")) * healthFactor));
+        return Math.max(1, (int) Math.round((maxHealth + getSkillBonus("healthBonus") + storyHealthBonus) * healthFactor));
     }
 
     public void updateVitalSigns() {

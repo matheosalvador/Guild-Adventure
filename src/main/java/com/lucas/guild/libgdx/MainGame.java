@@ -15,6 +15,9 @@ public class MainGame extends Game {
     @Override
     public void create() {
         GameContent.validateAll(); // échoue tout de suite, avec le nom du fichier, si un JSON est cassé
+        if (com.lucas.guild.game.Settings.current().fullscreen) {
+            ViewSettings.applyFullscreen(true);   // le plein écran choisi dans les Options (settings.json)
+        }
         this.setScreen(new MainMenuScreen(this));
     }
 
@@ -26,6 +29,7 @@ public class MainGame extends Game {
     @Override
     public void dispose() {
         super.dispose();
+        CharacterModel.disposeShared();
     }
 
     /** Démarre une partie neuve (n'écrit ni ne lit aucune sauvegarde). */
@@ -63,6 +67,9 @@ public class MainGame extends Game {
         com.badlogic.gdx.math.Vector3 pos = s.hasSavedPosition()
                 ? new com.badlogic.gdx.math.Vector3(s.getSavedX(), s.getSavedY(), s.getSavedZ())
                 : null;
+        if (pos != null && OpenWorldScreen.SAVE_SCREEN.equals(s.getSavedScreen())) {
+            return new OpenWorldScreen(this, s.getDifficulty(), pos);   // le monde ouvert : la position est celle du monde
+        }
         if (place != null && place.zoneFile != null) {
             return new ZoneScreen(this, s.getDifficulty(), pos);
         }

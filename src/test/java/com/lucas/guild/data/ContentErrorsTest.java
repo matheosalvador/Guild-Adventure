@@ -1,7 +1,5 @@
 package com.lucas.guild.data;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -48,7 +46,7 @@ class ContentErrorsTest {
         } else if ("<ALL>".equals(from)) {
             Files.write(target, to.getBytes(StandardCharsets.UTF_8));
         } else if (!from.isEmpty()) {
-            String text = new String(Files.readAllBytes(target), StandardCharsets.UTF_8);
+            String text = new String(Files.readAllBytes(target), StandardCharsets.UTF_8).replace("\r\n", "\n");
             assertTrue(text.contains(from), "scenario mal ecrit : '" + from + "' introuvable dans " + file);
             Files.write(target, text.replace(from, to).getBytes(StandardCharsets.UTF_8));
         }

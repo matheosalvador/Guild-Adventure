@@ -17,6 +17,22 @@ public class TownData {
     public Point3 arrival;
     /** Décor de la ville (rues, maisons, arbres, murs...), en coordonnées absolues. */
     public List<PartData> decor = new ArrayList<>();
+    /** Les habitants qui se promènent dans les rues ; on leur parle s'ils ont des répliques ({@code talk}). */
+    public List<VillagerData> villagers = new ArrayList<>();
+
+    /** Un habitant : un modèle (models.json) qui suit un parcours en boucle à la vitesse donnée (m/s). */
+    public static class VillagerData {
+        public String model;
+        /** Ses répliques : un habitant de npcs.json. Absent, il ne fait que passer. */
+        public String talk;
+        public float speed = 1.2f;
+        public List<RoutePoint> route = new ArrayList<>();
+    }
+
+    public static class RoutePoint {
+        public float x;
+        public float z;
+    }
 
     /**
      * Une boîte du décor. {@code x} et {@code z} sont le centre (relatif au bâtiment pour les
@@ -35,6 +51,18 @@ public class TownData {
         public boolean decal;
         /** Action quand on vise cette partie (E) : « gate » = la porte de la ville, qui mène à la carte du monde. */
         public String action;
+        /** Forme : box (par defaut), cylinder, sphere, cone ou gable (toit a deux pentes, crete le long de X). Sauf box, visuel seulement. */
+        public String shape = "box";
+        /** Rotation en degres autour de x, y, z (facultatif ; visuel seulement). */
+        public float[] rot;
+        /** « water » : la surface ondule doucement. */
+        public String anim;
+        /**
+         * Pour l'action « read » : l'identifiant du texte à lire dans lore.json (panneau, stèle, livre...).
+         * Pour l'action « story » : le point d'histoire de story.json (« cairn »...) dont les dialogues se tiennent ici.
+         * Pour l'action « walk » (monde ouvert, prototype) : le lieu où l'on part à pied (un lieu de openworld.json).
+         */
+        public String text;
     }
 
     /** Un bâtiment de la ville. */
@@ -82,8 +110,18 @@ public class TownData {
             String at = where + " n°" + (i + 1);
             if (p == null) throw new IllegalStateException(at + " : vide");
             if (p.color == null) throw new IllegalStateException(at + " : \"color\" manquant");
-            if (p.action != null && !"gate".equals(p.action)) throw new IllegalStateException(at + " : \"action\" inconnue \"" + p.action + "\" (attendu : gate)");
+            if (p.action != null && !java.util.Arrays.asList("gate", "read", "board", "story", "walk").contains(p.action)) {
+                throw new IllegalStateException(at + " : \"action\" inconnue \"" + p.action + "\" (attendu : gate, read, board, story ou walk)");
+            }
+            if ("walk".equals(p.action) && (p.text == null || p.text.isEmpty())) throw new IllegalStateException(at + " : l'action \"walk\" demande un \"text\" (le lieu ou l'on part a pied, voir openworld.json)");
+            if ("read".equals(p.action) && (p.text == null || p.text.isEmpty())) throw new IllegalStateException(at + " : l'action \"read\" demande un \"text\" (un identifiant de lore.json)");
+            if ("story".equals(p.action) && (p.text == null || p.text.isEmpty())) throw new IllegalStateException(at + " : l'action \"story\" demande un \"text\" (un point de story.json)");
             if (p.w <= 0 || p.h <= 0 || p.d <= 0) throw new IllegalStateException(at + " : \"w\", \"h\" et \"d\" doivent etre > 0");
+            if (p.shape == null || !java.util.Arrays.asList("box", "cylinder", "sphere", "cone", "gable").contains(p.shape)) {
+                throw new IllegalStateException(at + " : \"shape\" inconnue \"" + p.shape + "\" (attendu : box, cylinder, sphere, cone ou gable)");
+            }
+            if (p.rot != null && p.rot.length != 3) throw new IllegalStateException(at + " : \"rot\" doit avoir 3 nombres [x, y, z]");
+            if (p.anim != null && !"water".equals(p.anim)) throw new IllegalStateException(at + " : \"anim\" inconnue \"" + p.anim + "\" (attendu : water)");
         }
     }
 
@@ -109,5 +147,13 @@ public class TownData {
             validateParts(b.parts, where + " : \"parts\"");
         }
         validateParts(decor, file + " : \"decor\"");
+        if (villagers == null) villagers = new ArrayList<>();
+        for (int i = 0; i < villagers.size(); i++) {
+            VillagerData v = villagers.get(i);
+            String where = file + " : habitant n°" + (i + 1);
+            if (v == null || v.model == null || v.model.isEmpty()) throw new IllegalStateException(where + " : \"model\" manquant");
+            if (v.speed <= 0) throw new IllegalStateException(where + " : \"speed\" doit etre > 0");
+            if (v.route == null || v.route.size() < 2) throw new IllegalStateException(where + " : \"route\" doit avoir au moins 2 points");
+        }
     }
 }

@@ -1,0 +1,58 @@
+{
+  "dailyChance": 15,
+  "events": [
+    {
+      "id": "fete_marche",
+      "name": "Fête du marché",
+      "description": "Les étals sont en fête : les marchands bradent.",
+      "days": 3,
+      "buyChangePercent": -15
+    },
+    {
+      "id": "penurie_potions",
+      "name": "Pénurie de potions",
+      "description": "Plus une potion en réserve : les prix s'envolent.",
+      "days": 4,
+      "buyChangePercent": 40,
+      "items": ["healing_potion", "greater_healing_potion", "damage_potion", "mixed_potion"]
+    },
+    {
+      "id": "arrivage_armes",
+      "name": "Arrivage d'armes",
+      "description": "Un convoi vient de livrer des armes et des armures : elles se vendent à prix cassé.",
+      "days": 3,
+      "buyChangePercent": -20,
+      "items": ["dagger", "short_sword", "battle_axe", "long_sword", "leather_armor", "chain_mail", "plate_armor"]
+    },
+    {
+      "id": "mauvaise_recolte",
+      "name": "Mauvaise récolte",
+      "description": "La récolte est mauvaise : tout devient plus cher.",
+      "days": 5,
+      "buyChangePercent": 12
+    },
+    {
+      "id": "caravane",
+      "name": "Caravane de passage",
+      "description": "Une caravane rachète tout à bon prix.",
+      "days": 2,
+      "sellChangePercent": 20
+    },
+    {
+      "id": "demande_peaux",
+      "name": "Demande de peaux",
+      "description": "Les tanneurs cherchent des peaux et des trophées : ils paient bien.",
+      "days": 5,
+      "sellChangePercent": 40,
+      "items": ["wolf_pelt", "wolf_fang", "rusty_blade", "goblin_ear", "goblin_trinket"]
+    },
+    {
+      "id": "filon_retrouve",
+      "name": "Filon retrouvé",
+      "description": "Les mineurs ont retrouvé un filon : ils dépensent sans compter.",
+      "days": 4,
+      "sellChangePercent": 25,
+      "towns": ["hautevigne"]
+    }
+  ]
+}
