@@ -56,6 +56,7 @@ public final class GameContent {
         storyCache = null;
         npcsCache = null;
         openWorldCache = null;
+        PARSED.clear();
     }
 
     // ------------------------------------------------------------------ contenu
@@ -154,7 +155,19 @@ public final class GameContent {
     }
 
     /** Tous les types de monstres (identifiant -> données), nouvelles instances à chaque appel. */
+    @SuppressWarnings("unchecked")
     public static Map<String, MonsterData> monsters() {
+        // gardé : chaque monstre qui apparaît le demande (sinon tout le fichier, et items.json, sont relus à chaque fois)
+        Map<String, MonsterData> cached = (Map<String, MonsterData>) PARSED.get("monsters.json");
+        if (cached != null) {
+            return cached;
+        }
+        Map<String, MonsterData> all = java.util.Collections.unmodifiableMap(parseMonsters());
+        PARSED.put("monsters.json", all);
+        return all;
+    }
+
+    private static Map<String, MonsterData> parseMonsters() {
         Map<String, MonsterData> all = read("monsters.json", new TypeToken<Map<String, MonsterData>>() { }.getType());
         for (Map.Entry<String, MonsterData> e : all.entrySet()) {
             MonsterData m = e.getValue();
@@ -432,7 +445,23 @@ public final class GameContent {
         return place != null && place.zoneFile != null ? zone(placeId).arrival : town(placeId).arrival;
     }
 
+    /**
+     * Les fichiers déjà lus et vérifiés (villes, zones, modèles) : un écran qui s'ouvre, un monstre qui apparaît, un
+     * carreau du monde ouvert ne relisent plus le JSON. Les objets sont partagés : ne pas les modifier.
+     */
+    private static final Map<String, Object> PARSED = new java.util.concurrent.ConcurrentHashMap<>();
+
     private static ZoneData zoneFile(String file) {
+        ZoneData cached = (ZoneData) PARSED.get(file);
+        if (cached != null) {
+            return cached;
+        }
+        ZoneData zone = parseZone(file);
+        PARSED.put(file, zone);
+        return zone;
+    }
+
+    private static ZoneData parseZone(String file) {
         ZoneData zone = read(file, ZoneData.class);
         zone.validate(file);
         checkReadable(file, zone.decor);
@@ -471,6 +500,16 @@ public final class GameContent {
     }
 
     private static TownData townFile(String file) {
+        TownData cached = (TownData) PARSED.get(file);
+        if (cached != null) {
+            return cached;
+        }
+        TownData town = parseTown(file);
+        PARSED.put(file, town);
+        return town;
+    }
+
+    private static TownData parseTown(String file) {
         TownData town = read(file, TownData.class);
         town.validate(file);
         checkReadable(file, town.decor);
@@ -519,6 +558,16 @@ public final class GameContent {
 
     /** Les modèles 3D des personnages et de leur équipement (models.json). */
     public static ModelsData models() {
+        ModelsData cached = (ModelsData) PARSED.get("models.json");
+        if (cached != null) {
+            return cached;
+        }
+        ModelsData data = parseModels();
+        PARSED.put("models.json", data);
+        return data;
+    }
+
+    private static ModelsData parseModels() {
         ModelsData data = read("models.json", ModelsData.class);
         data.validate("models.json");
         for (String id : data.gear.keySet()) {

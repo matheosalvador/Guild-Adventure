@@ -64,7 +64,6 @@ class CharacterModel implements Disposable {
     private final Map<String, Joint> joints = new HashMap<>();
     private final List<Joint> jointOrder = new ArrayList<>();
     private final List<Piece> pieces = new ArrayList<>();
-    private final List<Model> models = new ArrayList<>();
     private final Matrix4 root = new Matrix4();
     private final Matrix4 tmp = new Matrix4();
 
@@ -150,9 +149,7 @@ class CharacterModel implements Disposable {
             hex = def.roles.get(part.role);
         }
         Color color = ColorNames.parse(hex, file, "une forme (" + part.shape + ")");
-        Material material = new Material(ColorAttribute.createDiffuse(color));
-        Model model = Shapes.create(part.shape, part.w, part.h, part.d, material);
-        models.add(model);
+        Model model = sharedModel(part, color);
         pieces.add(new Piece(new ModelInstance(model), part.joint != null ? joints.get(part.joint) : null, part, color));
         flashing = false;
     }
@@ -162,10 +159,31 @@ class CharacterModel implements Disposable {
             sink.removeValue(piece.instance, true);
         }
         pieces.clear();
-        for (Model model : models) {
+    }
+
+    /**
+     * Les formes sont partagées par tous les personnages (même forme, taille et couleur : même modèle) : un loup de
+     * plus ne construit plus rien. Chaque instance a sa propre copie du matériau, donc le clignotement d'un monstre
+     * touché ne touche que lui. Libérées à la fermeture du jeu ({@link #disposeShared()}).
+     */
+    private static final Map<String, Model> SHARED = new java.util.HashMap<>();
+
+    private static Model sharedModel(ModelsData.PartData part, Color color) {
+        String key = part.shape + "/" + part.w + "x" + part.h + "x" + part.d + "/" + color.toIntBits();
+        Model model = SHARED.get(key);
+        if (model == null) {
+            model = Shapes.create(part.shape, part.w, part.h, part.d, new Material(ColorAttribute.createDiffuse(color)));
+            SHARED.put(key, model);
+        }
+        return model;
+    }
+
+    /** Libère les formes partagées (à la fermeture du jeu). */
+    static void disposeShared() {
+        for (Model model : SHARED.values()) {
             model.dispose();
         }
-        models.clear();
+        SHARED.clear();
     }
 
     void setVisible(boolean visible) {

@@ -122,6 +122,7 @@ town.json, town_portbrume.json, town_hautevigne.json (un fichier par ville)
     hauteur, profondeur (en metres) ; color = nom LibGDX (DARK_GRAY, BROWN, TAN...) ou "#RRGGBB" ;
     decal = true pour du visuel seulement (rues, eau) : on marche dessus au lieu de la heurter ;
     action = "gate" pour la porte de la ville (E ouvre la carte du monde) ;
+    action = "walk" + text = un lieu de openworld.json : E part a pied dans le monde ouvert (prototype) ;
     shape = box (par defaut), cylinder, sphere, cone ou gable (toit a deux pentes : w = longueur de la crete,
     d = largeur, h = hauteur ; la crete court le long de X) ; une forme autre que box est VISUELLE seulement
     (on ne la heurte pas), comme "rot" [x, y, z] (rotation en degres) ; anim = "water" : la surface ondule.
@@ -226,6 +227,21 @@ npcs.json
       (affiche au-dessus du dialogue) et lines. Chaque ligne : text, town (seulement dans cette ville) et
       requires (seulement a ce moment de l'histoire). L'habitant dit d'abord la DERNIERE ligne qui vaut (ecrire
       les lignes d'histoire a la fin), puis fait le tour des autres ("Autre chose ?").
+
+openworld.json (prototype du monde ouvert, voir docs/CADRAGE-MONDE-OUVERT.md)
+    Un seul terrain ou l'on marche d'Aethelgard a la Foret des Loups (panneau "Partir a pied" pres de la porte
+    d'Aethelgard : action "walk" + text = le lieu, dans town.json). Le reste du jeu passe toujours par la carte.
+    scale = metres de terrain par km de carte (100 : les durees de trajet de la carte restent vraies a pied) ;
+    chaque lieu de "places" est pose a sa position de world.json multipliee par scale. tileSize = cote d'un
+    carreau de campagne (m) ; loadRadius = carreaux dessines autour du joueur ; solidRadius = carreaux dont les
+    arbres sont solides ; viewDistance = distance de vue (la brume cache le reste) ; placeLoadDistance = un lieu
+    est construit a moins de cette distance de son bord. ground / road = couleurs du sol et de la route,
+    roadWidth = largeur de la route, treesPerTile = arbres semes par carreau (jamais sur une route ni dans un
+    lieu ; un carreau est toujours le meme), monsterRespawnDays = jours avant qu'un monstre tue revienne.
+    "places" : id (world.json), half = demi-cote du carre du lieu (rien n'y est seme), entrance = pour une zone,
+    l'ouverture de la haie ou passe la route (x, z sur la haie, width). "roads" : from, to et points (x, z en m
+    dans le monde, au moins 2). En jeu : M ouvre la carte (le joueur y est un point rouge), F5 sauvegarde la
+    position dans le monde, les maisons ramenent dans le monde ouvert quand on en sort.
 
 settings.json (pas dans ce dossier : a cote de save.json, cree par le jeu)
     Les reglages du menu Options (menu principal, ou pause > Options), communs a toutes les parties :

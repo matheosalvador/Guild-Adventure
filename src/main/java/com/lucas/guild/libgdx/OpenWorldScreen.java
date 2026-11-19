@@ -52,6 +52,8 @@ public class OpenWorldScreen extends BaseWorldScreen {
     /** Marge avant de défaire un lieu ou un carreau qu'on vient de quitter (évite de le refaire en faisant demi-tour). */
     private static final float PLACE_UNLOAD_MARGIN = 60f;
     private static final float[] TREE_SCALE = {0.8f, 1f, 1.25f};
+    /** Plus grande longueur d'un morceau de sol ou de route (la brume se calcule aux coins des formes). */
+    private static final float PIECE = 32f;
     private static final Color TRUNK = Color.valueOf("5A3A1E");
     private static final Color[] CROWN = {Color.valueOf("2F6B2A"), Color.valueOf("24502A")};
 
@@ -230,8 +232,22 @@ public class OpenWorldScreen extends BaseWorldScreen {
         physics().addRigidBody(groundBody);
 
         buildRoads();
+        GameContent.models();
+        GameContent.monsters();
         for (OpenWorldData.PlaceData p : data.places) {
             places.add(new Place(p.id));
+            // les fichiers des lieux sont lus maintenant (une fois pour toute la partie), pas en marchant
+            if (GameContent.world().place(p.id).townFile != null) {
+                GameContent.town(p.id);
+            } else {
+                // les formes des monstres aussi : le premier loup qui apparaît en marchant ne construit plus rien
+                for (ZoneData.SpawnData m : GameContent.zone(p.id).monsters) {
+                    String model = GameContent.monster(m.id).model;
+                    if (model != null) {
+                        new CharacterModel(new Array<ModelInstance>(), GameContent.models(), model).dispose();
+                    }
+                }
+            }
         }
         // au départ, tout ce qui est autour du joueur est construit d'un coup (l'écran n'est pas encore affiché)
         updateStreaming(spawn.x, spawn.z);
@@ -249,9 +265,17 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 OpenWorldData.PointData b = road.points.get(i + 1);
                 float dx = b.x - a.x;
                 float dz = b.z - a.z;
-                float length = (float) Math.hypot(dx, dz) + data.roadWidth;   // déborde un peu : les tronçons se rejoignent
+                float length = (float) Math.hypot(dx, dz);
                 float yaw = (float) Math.toDegrees(Math.atan2(dx, dz));
-                visual(roads, "box", data.roadWidth, 0.1f, length, color, (a.x + b.x) / 2f, 0.53f, (a.z + b.z) / 2f, new float[] {0, yaw, 0});
+                // en morceaux courts : la brume se calcule aux coins des formes, une route d'un seul tenant s'y noierait
+                int pieces = Math.max(1, (int) Math.ceil(length / PIECE));
+                float step = length / pieces;
+                for (int k = 0; k < pieces; k++) {
+                    float t = (k + 0.5f) / pieces;
+                    // chaque morceau déborde un peu : pas de jour entre deux morceaux ni aux coudes
+                    visual(roads, "box", data.roadWidth, 0.1f, step + (k == pieces - 1 ? data.roadWidth : 0.2f), color,
+                            a.x + dx * t, 0.53f, a.z + dz * t, new float[] {0, yaw, 0});
+                }
             }
         }
     }
@@ -268,6 +292,17 @@ public class OpenWorldScreen extends BaseWorldScreen {
             instances.add(instance);
         }
         return instance;
+    }
+
+    /** Un sol carré de {@code size} m centré en (cx, cz), en dalles d'au plus {@link #PIECE} m. */
+    private void groundPatch(Group g, float size, Color color, float cx, float cz, float y) {
+        int n = Math.max(1, (int) Math.ceil(size / PIECE));
+        float s = size / n;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                visual(g, "box", s, 1f, s, color, cx - size / 2f + (i + 0.5f) * s, y, cz - size / 2f + (j + 0.5f) * s, null);
+            }
+        }
     }
 
     /** Un corps solide immobile ; {@code shape} est libéré avec le groupe si {@code owned}. */
@@ -360,7 +395,7 @@ public class OpenWorldScreen extends BaseWorldScreen {
         float cx = (tile.tx + 0.5f) * size;
         float cz = (tile.tz + 0.5f) * size;
         // le sol dessiné est un peu plus bas que le sol solide (0,5) : sous une ville ou une forêt, le leur le recouvre
-        visual(g, "box", size, 1f, size, ColorNames.parse(data.ground, "openworld.json", "le sol"), cx, -0.05f, cz, null);
+        groundPatch(g, size, ColorNames.parse(data.ground, "openworld.json", "le sol"), cx, cz, -0.05f);
         for (Terrain.Tree tree : tile.trees) {
             float s = TREE_SCALE[tree.size];
             float trunkH = (tree.kind == 0 ? 5.8f : 3.5f) * s;
@@ -424,7 +459,7 @@ public class OpenWorldScreen extends BaseWorldScreen {
             work.add(() -> {
                 if (place.group == g) {
                     Color ground = town.ground != null ? ColorNames.parse(town.ground, file, "le sol") : Color.GRAY;
-                    visual(g, "box", 200f, 1f, 200f, ground, o[0], 0f, o[1], null);
+                    groundPatch(g, 200f, ground, o[0], o[1], 0f);
                 }
             });
             for (final TownData.BuildingData b : town.buildings) {
@@ -464,7 +499,7 @@ public class OpenWorldScreen extends BaseWorldScreen {
             if (place.group != g) {
                 return;
             }
-            visual(g, "box", zone.size, 1f, zone.size, ColorNames.parse(zone.ground, file, "le sol"), o[0], 0f, o[1], null);
+            groundPatch(g, zone.size, ColorNames.parse(zone.ground, file, "le sol"), o[0], o[1], 0f);
             Color border = zone.wall != null ? ColorNames.parse(zone.wall, file, "les murs") : new Color(0.12f, 0.24f, 0.1f, 1f);
             hedge(g, border, o, half, true, half + 1f, where.entrance);
             hedge(g, border, o, half, true, -half - 1f, where.entrance);
@@ -494,14 +529,19 @@ public class OpenWorldScreen extends BaseWorldScreen {
             }
             // les monstres de la forêt y restent ; un monstre tué ne revient qu'après quelques jours
             combat.setBounds(o[0] - half + 1.5f, o[0] + half - 1.5f, o[1] - half + 1.5f, o[1] + half - 1.5f);
-            for (int i = 0; i < zone.monsters.size(); i++) {
-                ZoneData.SpawnData m = zone.monsters.get(i);
-                String key = Respawns.key(place.id, i);
-                if (story().holds(m.requires) && Respawns.isAlive(player, key, today, data.monsterRespawnDays)) {
+        });
+        for (int i = 0; i < zone.monsters.size(); i++) {
+            final int index = i;
+            // un monstre par image : chacun construit son modèle
+            work.add(() -> {
+                ZoneData.SpawnData m = zone.monsters.get(index);
+                String key = Respawns.key(place.id, index);
+                if (place.group == g && story().holds(m.requires)
+                        && Respawns.isAlive(player, key, gameClock.getCurrentDay(), data.monsterRespawnDays)) {
                     place.monsters.put(combat.spawn(m.id, o[0] + m.x, o[1] + m.z), key);
                 }
-            }
-        });
+            });
+        }
     }
 
     /**
@@ -564,13 +604,13 @@ public class OpenWorldScreen extends BaseWorldScreen {
         Vector3 p = playerPosition();
         game.getSession().setWorldPosition(p.x, p.z);
         updateCurrentPlace(p.x, p.z);
-        updateStreaming(p.x, p.z);
         long start = System.nanoTime();
+        updateStreaming(p.x, p.z);
         long end = start + WORK_BUDGET;
         while (!work.isEmpty() && System.nanoTime() < end) {
             work.poll().run();
         }
-        slowestWorkNanos = Math.max(slowestWorkNanos, System.nanoTime() - start);
+        slowestWorkNanos = System.nanoTime() - start;   // le temps de cette image (lu par le banc de test)
     }
 
     /** Le lieu où l'on est : le HUD l'affiche, et les règles du jeu (boutiques, auberge, carte) en dépendent. */

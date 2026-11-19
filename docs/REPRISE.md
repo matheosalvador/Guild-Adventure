@@ -1,6 +1,6 @@
 # Reprise du travail
 
-Tenu à jour à chaque fin d'étape (voir `docs/PLAN-FABLE.md`, §9). Dernière mise à jour : 2026-11-16.
+Tenu à jour à chaque fin d'étape (voir `docs/PLAN-FABLE.md`, §9). Dernière mise à jour : 2026-11-19.
 
 ## Les branches
 
@@ -10,6 +10,7 @@ Lucas du 2026-11-16). Rien n'est poussé : `origin/general_develop` est resté �
 ```text
 general_develop (54446f9)   A + D + B + C
  └─ feature/java21               chantier E : rapport docs/COMPATIBILITE-JAVA.md, section perf du banc
+     └─ feature/monde-ouvert     prototype du monde ouvert (Aethelgard -> Forêt des Loups à pied)
 ```
 
 ## Où on en est
@@ -56,6 +57,33 @@ inchangé). Avec Java 21 : 293 tests verts, parcours complet sans erreur, 257 ca
 Java 23, même vitesse (ombres : environ -45 % d'images par seconde). Aucune correction nécessaire. Détail et mesures :
 `docs/COMPATIBILITE-JAVA.md` ; mesure : `run-smoke.ps1 -Label perf -Only perf`.
 
+**Prototype du monde ouvert** : fait sur `feature/monde-ouvert` (suite du cadrage `CADRAGE-MONDE-OUVERT.md`) :
+
+- `assets/data/openworld.json` + `data/OpenWorldData` + `game/WorldLayout` (positions de `world.json` × 100 : les
+  durées de trajet de la carte restent vraies à pied) + `game/Terrain` (arbres semés par carreau, toujours les
+  mêmes) ; `libgdx/OpenWorldScreen` : un seul sol solide, carreaux de 128 m faits et défaits autour du joueur,
+  troncs solides seulement tout près, Aethelgard et la Forêt des Loups posées à leur place et construites par petits
+  travaux (budget de 4 ms par image), route et sol en morceaux de 32 m (sinon la brume les noie) ;
+- on y entre par le panneau « Partir à pied » près de la porte d'Aethelgard (action `walk` de `town.json`) ; le
+  reste du jeu passe toujours par la carte. M ouvre la carte (le joueur y est un point rouge), F5/F9 gardent la
+  position (`currentScreen` = `World`), les maisons ramènent dans le monde ouvert ;
+- `game/Respawns` : un monstre tué revient après `monsterRespawnDays` (3) jours, noté dans la sauvegarde ;
+- performance : `GameContent` garde les villes, zones, modèles et monstres déjà lus et vérifiés (avant, chaque
+  monstre qui apparaissait relisait `monsters.json` et `items.json`) ; les formes des personnages sont partagées
+  (`CharacterModel.disposeShared()` à la fermeture) et celles des monstres du monde ouvert préparées au chargement ;
+- tests : `OpenWorldTest`, `OpenWorldContentErrorsTest` ; section `mondeSection` du banc (25 vérifications,
+  7 captures : aller et retour à pied, 3 h de jeu, plus de 60 images/s ombres allumées, aucune image de construction
+  au-dessus de 50 ms, loups qui reviennent après 3 jours, F5/F9, auberge, aucune fuite Bullet ni de mémoire).
+
+État vérifié (2026-11-19) : **315 tests JUnit verts** ; parcours complet `FIN: AUCUNE ERREUR`, **264 captures** ;
+comparées à `target\smoke\java23` : identiques au pixel sauf 3 vues de la ville où l'on voit le nouveau panneau
+« Partir à pied ». Mesures d'une marche : environ 125 à 135 images/s, pire image de construction 29 ms à l'aller
+(premier loup compris), 23 ms au retour. Restent quelques images lentes (40 à 55 ms) **sans aucune construction**,
+qui changent d'un parcours à l'autre (machine ou pilote ?) : à surveiller.
+
+Défauts vus sur les captures, pas corrigés : petits points sombres sur l'herbe (ombres) ; une marche visible là où
+la route du monde rejoint le chemin de la forêt.
+
 ## En attente de Lucas
 
 1. Ses tests à la main du chantier A (l'escalier de l'auberge), de l'histoire et du chantier C (parler aux
@@ -67,7 +95,9 @@ Java 23, même vitesse (ombres : environ -45 % d'images par seconde). Aucune cor
 
 ## Ensuite (ne pas commencer sans l'accord de Lucas)
 
-Le prototype du monde ouvert (cadrage validé, « après l'histoire »). Tous les chantiers du plan (A à E) sont faits.
+Tous les chantiers du plan (A à E) et le prototype du monde ouvert sont faits. Selon l'avis de Lucas après l'avoir
+essayé (`.\run.bat`, Nouvelle partie, panneau « Partir à pied » près de la porte) : étendre le monde ouvert aux
+autres villes et zones, ou le laisser en l'état.
 
 ## Vérifier l'état
 

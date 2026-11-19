@@ -29,6 +29,7 @@ public class MainGame extends Game {
     @Override
     public void dispose() {
         super.dispose();
+        CharacterModel.disposeShared();
     }
 
     /** Démarre une partie neuve (n'écrit ni ne lit aucune sauvegarde). */

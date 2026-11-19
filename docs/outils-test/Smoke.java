@@ -203,6 +203,265 @@ public class Smoke extends ApplicationAdapter {
 
         // =================================================== CONFORT (chantier C)
         confortSection();
+
+        // =================================================== MONDE OUVERT (prototype)
+        mondeSection();
+    }
+
+    // ------------------------------------------------------------------ monde ouvert (prototype)
+
+    /** Une marche scriptee : le joueur se tourne vers le point suivant et avance (W tenue), image apres image. */
+    float[][] route;
+    int waypoint;
+    boolean walking;
+    long walkStartNanos;
+    long worstBuildFrameNanos;
+    int buildFrames;
+    long walkWallNanos;
+    int walkFrames;
+    long worstFrameNanos;
+    int walkStartMinute;
+    int walkMinutes;
+    double walkFps;
+
+    long lastGc;
+
+    /** Temps total passe par le ramasse-miettes depuis le lancement, en ms. */
+    static long gcMillis() {
+        long total = 0;
+        for (java.lang.management.GarbageCollectorMXBean b : java.lang.management.ManagementFactory.getGarbageCollectorMXBeans()) {
+            total += Math.max(0, b.getCollectionTime());
+        }
+        return total;
+    }
+
+    int gameMinute() {
+        com.lucas.guild.model.GameClock c = game.getSession().getClock();
+        return c.getCurrentDay() * 1440 + c.getCurrentHour() * 60 + c.getCurrentMinute();
+    }
+
+    /** Part a pied le long de {@code points} (x, z) ; la marche se poursuit dans les etapes ajoutees par {@link #walkFrames}. */
+    void startWalk(float[][] points) {
+        step(() -> {
+            route = points;
+            waypoint = 0;
+            walking = true;
+            walkFrames = 0;
+            worstFrameNanos = 0;
+            worstBuildFrameNanos = 0;
+            buildFrames = 0;
+            walkStartMinute = gameMinute();
+            walkStartNanos = System.nanoTime();
+            ((InputProcessor) cur()).keyDown(Input.Keys.W);
+        });
+    }
+
+    void walkFrames(int n) {
+        for (int i = 0; i < n; i++) {
+            steps.add(() -> {
+                if (walking) {
+                    Vector3 p = pc().getPlayerBody().getCenterOfMassPosition();
+                    float[] t = route[waypoint];
+                    if (Math.hypot(t[0] - p.x, t[1] - p.z) < 1.2f) {
+                        waypoint++;
+                        if (waypoint >= route.length) {
+                            walking = false;
+                            ((InputProcessor) cur()).keyUp(Input.Keys.W);
+                            walkWallNanos = System.nanoTime() - walkStartNanos;
+                            walkMinutes = gameMinute() - walkStartMinute;
+                            walkFps = walkFrames / (walkWallNanos / 1e9);
+                            log(String.format(java.util.Locale.ROOT, "MARCHE : %d images, %.0f images/s en moyenne, pire image %.1f ms, "
+                                    + "%d images avec construction (pire %.1f ms), %d minutes de jeu",
+                                    walkFrames, walkFps, worstFrameNanos / 1e6, buildFrames, worstBuildFrameNanos / 1e6, walkMinutes));
+                        }
+                    }
+                    if (walking) {
+                        face(route[waypoint][0], p.y, route[waypoint][1]);
+                    }
+                }
+                long t0 = System.nanoTime();
+                render1();
+                if (walking) {
+                    walkFrames++;
+                    long dt = System.nanoTime() - t0;
+                    worstFrameNanos = Math.max(worstFrameNanos, dt);
+                    if (cur() instanceof OpenWorldScreen && (Long) fieldOf(cur(), "slowestWorkNanos") > 300_000L) {
+                        worstBuildFrameNanos = Math.max(worstBuildFrameNanos, dt);   // une image ou le monde a construit
+                        buildFrames++;
+                    }
+                    long gc = gcMillis();
+                    if (dt > 40_000_000L) {
+                        Vector3 p = pc().getPlayerBody().getCenterOfMassPosition();
+                        log(String.format(java.util.Locale.ROOT, "IMAGE LENTE %.1f ms a l'image %d en (%.0f, %.0f), travaux en attente %d, travail de l'image %.1f ms, ramasse-miettes %d ms",
+                                dt / 1e6, walkFrames, p.x, p.z, worldPending(), (Long) fieldOf(cur(), "slowestWorkNanos") / 1e6, gc - lastGc));
+                    }
+                    lastGc = gc;
+                }
+            });
+        }
+    }
+
+    long usedMemory() {
+        Runtime rt = Runtime.getRuntime();
+        for (int i = 0; i < 3; i++) System.gc();
+        return rt.totalMemory() - rt.freeMemory();
+    }
+
+    int worldPending() {
+        try {
+            java.lang.reflect.Method m = OpenWorldScreen.class.getDeclaredMethod("pendingWork");
+            m.setAccessible(true);
+            return (Integer) m.invoke(cur());
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    /** Laisse le monde finir ses constructions en attente. */
+    void settleWorld() {
+        frames(2);   // une image d'abord : c'est elle qui voit ce qu'il faut construire
+        for (int i = 0; i < 300; i++) {
+            steps.add(() -> { if (cur() instanceof OpenWorldScreen && worldPending() > 0) render1(); });
+        }
+        frames(2);
+    }
+
+    int bulletTown, bulletWorld, wolvesBefore;
+    long memoryWorld;
+    int killsBefore;
+    String savedJson;
+
+    /** L'aller-retour a pied Aethelgard -> Foret des Loups, avec les seuils du cadrage (docs/CADRAGE-MONDE-OUVERT.md). */
+    void mondeSection() {
+        step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); resetSettings(); setStoryTexts(false); });
+        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(-7, 2, 46))));
+        frames(5);
+        step(() -> bulletTown = bulletObjects());
+        step(() -> faceAt(-7f, 1.8f, 50f));
+        frames(2);
+        shot("w00_panneau_a_pied");
+        key(Input.Keys.E);
+        frames(3);
+        check("le panneau ouvre le monde ouvert", () -> cur() instanceof OpenWorldScreen);
+        settleWorld();
+        step(() -> { bulletWorld = bulletObjects(); memoryWorld = usedMemory(); });
+        step(() -> { teleport(0f, 2f, 54f); face(0f, 2f, 70f); });
+        frames(5);
+        shot("w01_porte_ouverte");
+        check("on est a Aethelgard", () -> "aethelgard".equals(player().getTownId()) && "Aethelgard".equals(fieldOf(cur(), "townName")));
+
+        // ---------- l'aller, a pied, ombres allumees, invincible (les loups attaquent a l'arrivee)
+        step(() -> com.lucas.guild.game.DebugMode.setInvincible(true));
+        startWalk(new float[][] {{0f, 62f}, {-68f, 70f}, {-900f, -1105f}, {-900f, -1130f}});
+        walkFrames(5000);
+        shot("w02_en_chemin");
+        check("en chemin, hors de tout lieu", () -> "En chemin".equals(fieldOf(cur(), "townName")));
+        walkFrames(8000);
+        check("arrive dans la foret a pied", () -> !walking && "foret_loups".equals(player().getTownId()));
+        check("aller : 3 h de jeu a 15 minutes pres", () -> walkMinutes >= 165 && walkMinutes <= 195);
+        check("aller : 60 images/s en moyenne, ombres allumees", () -> walkFps >= 60);
+        check("aller : aucune image de plus de 50 ms quand un carreau ou un lieu se construit",
+                () -> buildFrames > 20 && worstBuildFrameNanos <= 50_000_000L);
+        check("des carreaux ont ete faits et defaits en route", () -> (Integer) fieldOf(cur(), "tilesBuilt") > 40);
+        shot("w03_arrivee_foret");
+
+        // ---------- un loup tue reste mort trois jours
+        step(() -> { wolvesBefore = monsterCount(); killsBefore = player().getMonsterKills().size(); });
+        step(() -> {
+            // les loups sont plus loin dans la foret : on va au plus proche
+            com.lucas.guild.game.Monster m = monsterNear(-900f, -1130f);
+            teleport(m.x + 2.5f, 2f, m.z);
+        });
+        frames(3);
+        for (int i = 0; i < 40; i++) {
+            step(this::faceNearestMonster);
+            frames(2);
+            click1();
+            frames(12);
+        }
+        check("un loup tue est note avec son jour", () -> player().getMonsterKills().size() > killsBefore);
+        step(() -> { teleport(-480f, 2f, -540f); });
+        frames(5);
+        step(() -> { teleport(-900f, 2f, -1130f); });
+        settleWorld();
+        check("revenu le jour meme : les loups tues ne sont pas revenus",
+                () -> monsterCount() == wolvesBefore - player().getMonsterKills().size());
+        step(() -> { teleport(-480f, 2f, -540f); game.getSession().getClock().setCurrentDay(game.getSession().getClock().getCurrentDay() + 3); });
+        frames(5);
+        step(() -> { teleport(-900f, 2f, -1130f); });
+        settleWorld();
+        check("trois jours plus tard, ils sont revenus", () -> monsterCount() == wolvesBefore);
+
+        // ---------- sauvegarder au milieu de la route, recharger
+        step(() -> { teleport(-480f, 2f, -540f); face(-900f, 2f, -1105f); });
+        settleWorld();
+        key(Input.Keys.M);
+        frames(2);
+        check("M ouvre la carte", () -> cur() instanceof WorldMapScreen);
+        shot("w04_carte_avec_le_joueur");
+        click("Retour sur le chemin");
+        frames(3);
+        check("retour sur le chemin, au meme endroit", () -> cur() instanceof OpenWorldScreen
+                && Math.abs(pc().getPlayerBody().getCenterOfMassPosition().x + 480f) < 1f);
+        settleWorld();
+        step(() -> { hourBefore = game.getSession().getClock().getCurrentHour() * 60 + game.getSession().getClock().getCurrentMinute(); });
+        key(Input.Keys.F5);
+        check("F5 note le monde ouvert dans save.json", () -> {
+            savedJson = new String(Files.readAllBytes(Paths.get("save.json")), "UTF-8");
+            return savedJson.contains("\"currentScreen\": \"World\"");
+        });
+        step(() -> teleport(-200f, 2f, -100f));
+        frames(30);
+        key(Input.Keys.F9);
+        frames(3);
+        check("F9 : meme position", () -> cur() instanceof OpenWorldScreen
+                && Math.abs(pc().getPlayerBody().getCenterOfMassPosition().x + 480f) < 0.5f
+                && Math.abs(pc().getPlayerBody().getCenterOfMassPosition().z + 540f) < 0.5f);
+        check("F9 : meme heure", () -> game.getSession().getClock().getCurrentHour() * 60 + game.getSession().getClock().getCurrentMinute() == hourBefore);
+        settleWorld();
+        shot("w05_campagne_apres_f9");
+
+        // ---------- le retour, a pied
+        step(() -> { teleport(-900f, 2f, -1128f); face(-900f, 2f, -1100f); });
+        settleWorld();
+        startWalk(new float[][] {{-900f, -1105f}, {-68f, 70f}, {0f, 64f}, {0f, 54f}});
+        walkFrames(13000);
+        check("retour a Aethelgard a pied", () -> !walking && "aethelgard".equals(player().getTownId()));
+        check("retour : 60 images/s en moyenne", () -> walkFps >= 60);
+        check("retour : aucune image de plus de 50 ms quand un carreau ou un lieu se construit",
+                () -> buildFrames > 20 && worstBuildFrameNanos <= 50_000_000L);
+        step(() -> com.lucas.guild.game.DebugMode.setInvincible(false));
+        shot("w06_retour_porte");
+
+        // ---------- une maison du monde ouvert : on en sort dans le monde ouvert
+        step(() -> { teleport(20f, 2f, 9f); faceAt(20f, 3f, 0f); });
+        frames(3);
+        key(Input.Keys.E);
+        frames(3);
+        check("on entre dans l'auberge depuis le monde ouvert", () -> cur() instanceof InnScreen);
+        step(() -> {
+            try {
+                java.lang.reflect.Method m = InteriorScreen.class.getDeclaredMethod("leave");
+                m.setAccessible(true);
+                m.invoke(cur());
+            } catch (Exception e) { throw new RuntimeException(e); }
+        });
+        frames(3);
+        check("en sortant, on est de nouveau dans le monde ouvert", () -> cur() instanceof OpenWorldScreen);
+
+        // ---------- aucune fuite : corps Bullet et memoire
+        step(() -> game.setScreen(new OpenWorldScreen(game, "facile", new Vector3(-7f, 2f, 46f))));
+        settleWorld();
+        check("monde rouvert au depart : autant de corps Bullet qu'au debut", () -> {
+            log("corps Bullet : " + bulletWorld + " au debut, " + bulletObjects() + " au retour");
+            return bulletObjects() == bulletWorld;
+        });
+        check("memoire revenue a 10 % pres", () -> {
+            long now = usedMemory();
+            log(String.format(java.util.Locale.ROOT, "memoire : %.1f Mo au debut, %.1f Mo au retour", memoryWorld / 1e6, now / 1e6));
+            return now <= memoryWorld * 1.10;
+        });
+        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(-7, 2, 46))));
+        frames(5);
+        check("de retour en ville : autant de corps Bullet qu'avant le monde ouvert", () -> bulletObjects() == bulletTown);
     }
 
     // ------------------------------------------------------------------ mesure des images par seconde (chantier E)
