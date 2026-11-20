@@ -433,12 +433,6 @@ public final class GameContent {
         return zoneFile(place.zoneFile);
     }
 
-    /** Le décor des embuscades sur la route (world.json, « ambush »), ou {@code null} s'il n'y en a pas. */
-    public static ZoneData ambushZone() {
-        WorldData.AmbushData ambush = world().ambush;
-        return ambush != null ? zoneFile(ambush.zoneFile) : null;
-    }
-
     /** Où on arrive dans le lieu {@code placeId}, ville ou zone : devant la porte ou au bord de la route. */
     public static TownData.Point3 arrival(String placeId) {
         WorldData.PlaceData place = world().place(placeId);
@@ -885,7 +879,6 @@ public final class GameContent {
             }
         }
         if (world.ambush != null) {
-            ambushZone();
             for (String id : world.ambush.monsters) {
                 if (monsters().get(id) == null) {
                     throw new IllegalStateException("world.json : \"ambush\" : monstre inconnu \"" + id + "\" (voir monsters.json)");

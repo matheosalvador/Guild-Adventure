@@ -106,9 +106,9 @@ public class Smoke extends ApplicationAdapter {
         check("apres 'Normale' on arrive sur la creation du personnage", () -> cur() instanceof CharacterCreationScreen);
         shot("03_creation_screen");
         // la suite du parcours attend un personnage sans classe (60 Po, 1 potion) : on demarre la partie directement
-        step(() -> { game.startNewGame("normale"); game.setScreen(new TownScreen(game, "normale")); });
+        step(() -> { game.startNewGame("normale"); game.setScreen(town("normale", 0, 2, 0)); });
         frames(40);
-        check("on est dans la ville", () -> cur() instanceof TownScreen);
+        check("on est dans la ville", () -> cur() instanceof OpenWorldScreen);
         step(() -> game.getSession().getPlayer().addItem(new PotionSoin()));
         shot("10_town_spawn");
 
@@ -136,7 +136,7 @@ public class Smoke extends ApplicationAdapter {
                 () -> new InnScreen(game, "normale"), 20f, 5f, "40");
 
         // ---- F9 : rechargement depuis le disque
-        step(() -> game.setScreen(new TownScreen(game, "normale", new Vector3(0, 2, 0))));
+        step(() -> game.setScreen(town("normale", 0, 2, 0)));
         frames(5);
         key(Input.Keys.F9);
         frames(30);
@@ -216,6 +216,7 @@ public class Smoke extends ApplicationAdapter {
     boolean walking;
     long walkStartNanos;
     long worstBuildFrameNanos;
+    long worstWorkNanos;
     int buildFrames;
     long walkWallNanos;
     int walkFrames;
@@ -249,6 +250,7 @@ public class Smoke extends ApplicationAdapter {
             walkFrames = 0;
             worstFrameNanos = 0;
             worstBuildFrameNanos = 0;
+            worstWorkNanos = 0;
             buildFrames = 0;
             walkStartMinute = gameMinute();
             walkStartNanos = System.nanoTime();
@@ -271,8 +273,8 @@ public class Smoke extends ApplicationAdapter {
                             walkMinutes = gameMinute() - walkStartMinute;
                             walkFps = walkFrames / (walkWallNanos / 1e9);
                             log(String.format(java.util.Locale.ROOT, "MARCHE : %d images, %.0f images/s en moyenne, pire image %.1f ms, "
-                                    + "%d images avec construction (pire %.1f ms), %d minutes de jeu",
-                                    walkFrames, walkFps, worstFrameNanos / 1e6, buildFrames, worstBuildFrameNanos / 1e6, walkMinutes));
+                                    + "%d images avec construction (pire image %.1f ms, pire construction %.1f ms), %d minutes de jeu",
+                                    walkFrames, walkFps, worstFrameNanos / 1e6, buildFrames, worstBuildFrameNanos / 1e6, worstWorkNanos / 1e6, walkMinutes));
                         }
                     }
                     if (walking) {
@@ -285,7 +287,9 @@ public class Smoke extends ApplicationAdapter {
                     walkFrames++;
                     long dt = System.nanoTime() - t0;
                     worstFrameNanos = Math.max(worstFrameNanos, dt);
-                    if (cur() instanceof OpenWorldScreen && (Long) fieldOf(cur(), "slowestWorkNanos") > 300_000L) {
+                    long work = cur() instanceof OpenWorldScreen ? (Long) fieldOf(cur(), "slowestWorkNanos") : 0L;
+                    worstWorkNanos = Math.max(worstWorkNanos, work);
+                    if (work > 300_000L) {
                         worstBuildFrameNanos = Math.max(worstBuildFrameNanos, dt);   // une image ou le monde a construit
                         buildFrames++;
                     }
@@ -426,7 +430,7 @@ public class Smoke extends ApplicationAdapter {
     /** Le monde ouvert : une partie neuve y commence ; aller-retour a pied vers la foret, villes, entrees, carte, embuscade. */
     void mondeSection() {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); resetSettings(); setStoryTexts(false); });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(-7, 2, 46))));
+        step(() -> game.setScreen(town("facile", -7, 2, 46)));
         frames(5);
         step(() -> bulletTown = bulletObjects());
         step(() -> game.setScreen(game.resumeScreen()));   // une partie neuve, sans sauvegarde : comme apres la creation du personnage
@@ -454,8 +458,8 @@ public class Smoke extends ApplicationAdapter {
             return Math.abs(walkMinutes - roadMinutes) <= 10;
         });
         check("aller : 60 images/s en moyenne, ombres allumees", () -> walkFps >= 60);
-        check("aller : aucune image de plus de 50 ms quand un carreau ou un lieu se construit",
-                () -> buildFrames > 20 && worstBuildFrameNanos <= 50_000_000L);
+        check("aller : construire un carreau ou un lieu ne prend jamais plus de 25 ms d'une image",
+                () -> buildFrames > 20 && worstWorkNanos <= 25_000_000L);
         check("des carreaux ont ete faits et defaits en route", () -> (Integer) fieldOf(cur(), "tilesBuilt") > 40);
         shot("w03_arrivee_foret");
 
@@ -527,8 +531,8 @@ public class Smoke extends ApplicationAdapter {
         walkFrames(14000);
         check("retour a Aethelgard a pied", () -> !walking && "aethelgard".equals(player().getTownId()));
         check("retour : 60 images/s en moyenne", () -> walkFps >= 60);
-        check("retour : aucune image de plus de 50 ms quand un carreau ou un lieu se construit",
-                () -> buildFrames > 20 && worstBuildFrameNanos <= 50_000_000L);
+        check("retour : construire un carreau ou un lieu ne prend jamais plus de 25 ms d'une image",
+                () -> buildFrames > 20 && worstWorkNanos <= 25_000_000L);
         step(() -> com.lucas.guild.game.DebugMode.setInvincible(false));
         shot("w06_retour_porte");
 
@@ -567,7 +571,6 @@ public class Smoke extends ApplicationAdapter {
         key(Input.Keys.E);
         frames(5);
         check("la porte de la fosse y mene", () -> cur() instanceof ZoneScreen && "fosse_debardeurs".equals(player().getTownId()));
-        check("dans la fosse, on reste dans le monde ouvert", () -> game.getSession().isInOpenWorld());
         step(() -> callOnScreen("takeTheRoad"));
         frames(5);
         check("en sortant de la fosse : devant sa porte, dans le monde ouvert", () -> {
@@ -640,7 +643,7 @@ public class Smoke extends ApplicationAdapter {
             log(String.format(java.util.Locale.ROOT, "memoire : %.1f Mo au debut, %.1f Mo au retour", memoryWorld / 1e6, now / 1e6));
             return now <= memoryWorld * 1.10;
         });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(-7, 2, 46))));
+        step(() -> game.setScreen(town("facile", -7, 2, 46)));
         frames(5);
         check("de retour en ville : autant de corps Bullet qu'avant le monde ouvert", () -> bulletObjects() == bulletTown);
     }
@@ -665,7 +668,7 @@ public class Smoke extends ApplicationAdapter {
     /** Images par seconde en ville et en foret, avec et sans ombres, en regardant la scene la plus chargee. */
     void perfSection() {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); resetSettings(); });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        step(() -> game.setScreen(town("facile", 0, 2, 40)));
         frames(30);
         step(() -> faceAt(0, 2f, -40));
         for (int round = 0; round < 2; round++) {
@@ -712,9 +715,9 @@ public class Smoke extends ApplicationAdapter {
 
     int[] lifePixel;
 
-    /** L'habitant n°index de la ville affichee (objet prive de TownScreen). */
+    /** L'habitant n°index de la ville ou l'on est (objet prive de Villagers). */
     Object villager(int index) {
-        return ((java.util.List<?>) fieldOf(fieldOf(cur(), "villagers"), "list")).get(index);
+        return ((java.util.List<?>) fieldOf(fieldOf(worldPlace(player().getTownId()), "villagers"), "list")).get(index);
     }
 
     com.lucas.guild.game.RouteWalker walkerOf(Object villager) {
@@ -736,7 +739,7 @@ public class Smoke extends ApplicationAdapter {
     /** Dialogues des PNJ lus dans npcs.json, habitants a qui parler, menu Options, barre de vie. */
     void confortSection() {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); resetSettings(); });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        step(() -> game.setScreen(town("facile", 0, 2, 40)));
         frames(5);
 
         // ---------- la barre de vie : pleine, puis basse
@@ -802,7 +805,7 @@ public class Smoke extends ApplicationAdapter {
         click("Partir");
 
         // ---------- le menu Options, depuis la pause
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        step(() -> game.setScreen(town("facile", 0, 2, 40)));
         frames(3);
         key(Input.Keys.ESCAPE);
         shot("c08_pause_avec_options");
@@ -907,15 +910,54 @@ public class Smoke extends ApplicationAdapter {
         while ((t = s.nextText()) != null) s.markShown(t);
     }
 
+    /**
+     * Le monde ouvert, au point (x, y, z) de la ville ou se trouve le joueur (ou de sa derniere ville) : les sections
+     * d'avant le monde ouvert gardent leurs coordonnees de ville (a Aethelgard, ce sont celles du monde).
+     */
+    com.badlogic.gdx.Screen town(String difficulty, float x, float y, float z) {
+        String id = player().getTownId();
+        if (!layout().contains(id) || GameContent.world().place(id).zoneFile != null) {
+            id = player().getHomeTownId();
+        }
+        float[] w = layout().toWorld(id, x, z);
+        return new OpenWorldScreen(game, difficulty, new Vector3(w[0], y, w[1]));
+    }
+
+    /** Un point x (ou z) de la ville ou l'on est, dans le monde ouvert. */
+    float townX(float x) {
+        return layout().origin(player().getTownId())[0] + x;
+    }
+
+    float townZ(float z) {
+        return layout().origin(player().getTownId())[1] + z;
+    }
+
+    /** Un lieu : une zone s'ouvre seule (ses coordonnees de fichier), une ville a son arrivee dans le monde ouvert. */
+    com.badlogic.gdx.Screen place(String id, String difficulty) {
+        if (GameContent.world().place(id).zoneFile != null) {
+            return new ZoneScreen(game, difficulty, null);
+        }
+        return game.arrivalIn(id, difficulty);
+    }
+
+    /** Marche du lieu ou l'on est jusqu'a {@code id} : le temps de la marche passe (comme src/test/.../Trips). */
+    void walkTo(String id) {
+        com.lucas.guild.data.WorldData world = GameContent.world();
+        int minutes = com.lucas.guild.game.World.travelMinutes(world.distanceKm(player().getTownId(), id), world.walkingKmh, player().getSpeedFactor());
+        game.getSession().getClock().advanceMinutes(minutes);
+        player().setTownId(id);
+        player().markVisited(id);
+    }
+
     void goTo(String placeId) {
-        step(() -> { player().setTownId(placeId); player().markVisited(placeId); game.setScreen(game.screenAt(placeId, "facile")); });
+        step(() -> { player().setTownId(placeId); player().markVisited(placeId); game.setScreen(place(placeId, "facile")); });
         frames(5);
     }
 
     /** Toute l'histoire a l'ecran : prologue, mine, fosse, cairn, endurance, chateau, fin. */
     void storySection() {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); setThirdPerson(false); setStoryTexts(true); });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        step(() -> game.setScreen(town("facile", 0, 2, 40)));
         frames(4);
         check("l'ouverture du prologue s'affiche au debut de la partie", () -> flag("inDialog"));
         shot("s00_prologue_ouverture");
@@ -959,7 +1001,8 @@ public class Smoke extends ApplicationAdapter {
         step(() -> { player().setTownId("hautevigne"); game.setScreen(new WorldMapScreen(game, "facile")); });
         frames(3);
         shot("s10_carte_mine_fermee");
-        check("pas de voyage vers un lieu ferme", () -> com.lucas.guild.game.World.travel(game.getSession(), "mine_galeries") == null);
+        check("pas de voyage rapide vers un lieu ferme", () -> com.lucas.guild.game.World.fastTravel(game.getSession(), layout(), "mine_galeries") == null
+                && story().lockReason("mine_galeries") != null);
 
         // ---------- chapitre 1 : le chef gobelin, au fond des ruines
         step(() -> setStoryTexts(false));
@@ -1078,7 +1121,7 @@ public class Smoke extends ApplicationAdapter {
         key(Input.Keys.I);
         shot("s48_inventaire_minerai");
         key(Input.Keys.I);
-        step(() -> { com.lucas.guild.game.World.travel(game.getSession(), "portbrume"); game.setScreen(new InnScreen(game, "facile")); });
+        step(() -> { walkTo("portbrume"); game.setScreen(new InnScreen(game, "facile")); });
         frames(3);
         step(() -> invokeNpc("Innkeeper"));
         click("Remettre le Minerai du serment");
@@ -1232,7 +1275,7 @@ public class Smoke extends ApplicationAdapter {
     /** Les bugs trouves a la relecture : chacun a ici la verification qui echouait avant sa correction. */
     void relectureSection() {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); setThirdPerson(false); });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        step(() -> game.setScreen(town("facile", 0, 2, 40)));
         frames(5);
 
         // ---------- 1) les corps Bullet d'un ecran sont liberes quand on le quitte
@@ -1240,7 +1283,7 @@ public class Smoke extends ApplicationAdapter {
         for (int i = 0; i < 4; i++) {
             step(() -> game.setScreen(new ForgeScreen(game, "facile")));
             frames(3);
-            step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+            step(() -> game.setScreen(town("facile", 0, 2, 40)));
             frames(3);
         }
         step(() -> log("corps Bullet vivants : " + bulletBefore + " avant, " + bulletObjects() + " apres 4 allers-retours ville/forge"));
@@ -1284,7 +1327,7 @@ public class Smoke extends ApplicationAdapter {
         step(() -> setThirdPerson(false));
 
         // ---------- 4) garder Espace enfonce : un saut a la fois, on ne s'envole pas
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        step(() -> game.setScreen(town("facile", 0, 2, 40)));
         frames(40);
         step(() -> maxY = 0f);
         keyDownHold(Input.Keys.SPACE);
@@ -1379,7 +1422,7 @@ public class Smoke extends ApplicationAdapter {
         key(Input.Keys.I);
 
         // ---------- Encombrement : vitesse de marche a vide puis a pleine charge
-        step(() -> game.setScreen(new TownScreen(game, "normale", new Vector3(0, 2, 0))));
+        step(() -> game.setScreen(town("normale", 0, 2, 0)));
         frames(5);
         step(() -> face(0, 2, 100));
         frames(2);
@@ -1390,7 +1433,7 @@ public class Smoke extends ApplicationAdapter {
             Inventaire inv = player().getInventaire();
             while (inv.peutPorter(GameContent.newItem("healing_potion"))) player().addItem(GameContent.newItem("healing_potion"));
         });
-        step(() -> game.setScreen(new TownScreen(game, "normale", new Vector3(0, 2, 0))));
+        step(() -> game.setScreen(town("normale", 0, 2, 0)));
         frames(5);
         step(() -> face(0, 2, 100));
         frames(2);
@@ -1633,7 +1676,7 @@ public class Smoke extends ApplicationAdapter {
     }
 
     void debugSection() {
-        step(() -> { game.startNewGame("normale"); game.setScreen(new TownScreen(game, "normale")); });
+        step(() -> { game.startNewGame("normale"); game.setScreen(town("normale", 0, 2, 0)); });
         frames(40);
         // ---------- debug eteint : F10 ne fait rien
         key(Input.Keys.F10);
@@ -1678,7 +1721,7 @@ public class Smoke extends ApplicationAdapter {
         key(Input.Keys.F10);
         click("Ville");
         frames(5);
-        check("raccourci : Ville", () -> cur() instanceof TownScreen);
+        check("raccourci : Ville", () -> cur() instanceof OpenWorldScreen);
         step(() -> com.lucas.guild.game.DebugMode.setEnabled(false));
     }
 
@@ -1879,17 +1922,15 @@ public class Smoke extends ApplicationAdapter {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); });
 
         // ---------- la carte montre les zones sauvages
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 52))));
+        step(() -> game.setScreen(town("facile", 0, 2, 52)));
         frames(5);
-        step(() -> faceAt(0, 2.5f, 60));
-        frames(2);
-        key(Input.Keys.E);
+        key(Input.Keys.M);
         frames(3);
         check("la carte est ouverte", () -> cur() instanceof WorldMapScreen);
         shot("z00_map_with_wild_zones");
 
         // ---------- arrivee dans la foret des loups (en marchant 3 h)
-        step(() -> { tripStart = minutesNow(); com.lucas.guild.game.World.travel(game.getSession(), "foret_loups"); game.setScreen(game.screenAt("foret_loups", "facile")); });
+        step(() -> { tripStart = minutesNow(); walkTo("foret_loups"); game.setScreen(place("foret_loups", "facile")); });
         frames(40);
         check("on est dans la zone sauvage", () -> cur() instanceof ZoneScreen);
         check("la foret est le lieu courant, la ville de reveil reste Aethelgard", () -> "foret_loups".equals(player().getTownId()) && "aethelgard".equals(player().getHomeTownId()));
@@ -1979,72 +2020,17 @@ public class Smoke extends ApplicationAdapter {
         frames(40);
         check("Continuer reprend dans la foret, dans le monde ouvert", () -> cur() instanceof OpenWorldScreen && "foret_loups".equals(player().getTownId()));
         shot("z33_continue_in_forest");
-        step(() -> game.getSession().setInOpenWorld(false));   // la suite de la section passe par la carte classique
 
         // ---------- les ruines gobelines (par la carte de debug)
-        step(() -> { game.getSession().getPlayer().setTownId("ruines_gobelines"); game.getSession().getPlayer().markVisited("ruines_gobelines"); game.setScreen(game.screenAt("ruines_gobelines", "facile")); });
+        step(() -> { game.getSession().getPlayer().setTownId("ruines_gobelines"); game.getSession().getPlayer().markVisited("ruines_gobelines"); game.setScreen(place("ruines_gobelines", "facile")); });
         frames(40);
         check("ruines : 5 gobelins", () -> monsterCount() == 5);
         shot("z35_ruins_arrival");
         step(() -> faceAt(0, 1.5f, -30));
         frames(2);
         shot("z36_ruins_view");
-
-        // ---------- embuscade (forcee) entre Aethelgard et Port-Brume
-        step(() -> { com.lucas.guild.game.DebugMode.setEnabled(true); com.lucas.guild.game.DebugMode.setForceAmbush(true); com.lucas.guild.game.DebugMode.setInvincible(true);
-                     game.getSession().getPlayer().setTownId("aethelgard"); });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 52))));
-        frames(5);
-        step(() -> faceAt(0, 2.5f, 60));
-        frames(2);
-        key(Input.Keys.E);
-        frames(3);
-        step(() -> tripStart = minutesNow());
-        click("Port-Brume - 33 km - 6 h 35");
-        frames(40);
-        check("embuscade : on est dans le decor de route", () -> cur() instanceof ZoneScreen);
-        check("embuscade : on n'est pas encore arrive", () -> "aethelgard".equals(player().getTownId()) && game.getSession().getPendingDestination() != null);
-        check("embuscade : 1 ou 2 agresseurs", () -> monsterCount() >= 1 && monsterCount() <= 2);
-        check("embuscade : la moitie du trajet a passe", () -> minutesNow() - tripStart > 100 && minutesNow() - tripStart < 395);
-        shot("z40_ambush_start");
-        step(() -> faceAt(0, 4.4f, 26));
-        frames(2);
-        shot("z41_ambush_road_blocked");
-        key(Input.Keys.E);
-        check("la route est barree tant que les agresseurs sont la", () -> cur() instanceof ZoneScreen && game.getSession().getPendingDestination() != null);
-        key(Input.Keys.F5);
-        check("F5 impossible pendant l'embuscade", () -> cur() instanceof ZoneScreen);
-        for (int i = 0; i < 24; i++) {
-            step(this::faceNearestMonster);
-            frames(2);
-            click1();
-            frames(38);
-        }
-        check("agresseurs vaincus", () -> monsterCount() == 0);
-        step(() -> faceAt(0, 4.4f, 26));
-        frames(2);
-        shot("z42_ambush_road_open");
-        key(Input.Keys.E);
-        frames(40);
-        check("fin de l'embuscade : arrivee a Port-Brume", () -> cur() instanceof TownScreen && "portbrume".equals(player().getTownId()));
-        check("le voyage a dure au moins 6 h 35 (le combat a fait passer un peu de temps)", () -> minutesNow() - tripStart >= 395 && minutesNow() - tripStart < 440);
-        check("plus de voyage en cours", () -> game.getSession().getPendingDestination() == null);
-        shot("z43_after_ambush_in_portbrume");
-
-        // ---------- mort pendant une embuscade : reveil a l'auberge de la ville de depart (Port-Brume)
-        step(() -> { com.lucas.guild.game.DebugMode.setInvincible(false); goldBefore = player().getGold(); });
-        step(() -> com.lucas.guild.game.World.startAmbushedTravel(game.getSession(), "aethelgard"));
-        step(() -> game.setScreen(ZoneScreen.ambush(game, "facile")));
-        frames(40);
-        step(() -> player().perdreVie(player().getHealth() - 1));
-        step(() -> face(0, 1.5f, -10));
-        frames(500);
-        check("mort en embuscade : reveil a l'auberge de Port-Brume", () -> cur() instanceof InnScreen && "portbrume".equals(player().getTownId()));
-        check("le voyage est abandonne", () -> game.getSession().getPendingDestination() == null);
-        frames(3);
-        shot("z50_woke_up_after_ambush");
-        step(() -> { com.lucas.guild.game.DebugMode.setForceAmbush(false); com.lucas.guild.game.DebugMode.setEnabled(false); });
     }
+
 
     // ------------------------------------------------------------------ lore (7c)
 
@@ -2056,7 +2042,7 @@ public class Smoke extends ApplicationAdapter {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); });
 
         // ---------- le panneau d'Aethelgard, a l'arrivee par la porte
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 52))));
+        step(() -> game.setScreen(town("facile", 0, 2, 52)));
         frames(5);
         step(() -> faceAt(7, 1.8f, 50));
         frames(2);
@@ -2092,7 +2078,7 @@ public class Smoke extends ApplicationAdapter {
         shot("l12_innkeeper_nothing_new");
 
         // ---------- le journal (J)
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 52))));
+        step(() -> game.setScreen(town("facile", 0, 2, 52)));
         frames(5);
         key(Input.Keys.J);
         check("J ouvre le journal", () -> flag("isJournalOpen"));
@@ -2108,7 +2094,7 @@ public class Smoke extends ApplicationAdapter {
         key(Input.Keys.I);
 
         // ---------- le panneau de la foret, puis la sauvegarde du journal
-        step(() -> { player().setTownId("foret_loups"); player().markVisited("foret_loups"); game.setScreen(game.screenAt("foret_loups", "facile")); });
+        step(() -> { player().setTownId("foret_loups"); player().markVisited("foret_loups"); game.setScreen(place("foret_loups", "facile")); });
         frames(40);
         step(() -> faceAt(5, 1.8f, 66));
         frames(2);
@@ -2150,7 +2136,7 @@ public class Smoke extends ApplicationAdapter {
             player().setTownId("portbrume"); player().markVisited("portbrume");
             com.lucas.guild.game.WorldEvents.start(player(), "penurie_potions", "portbrume", game.getSession().getClock().getCurrentDay());
         });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 52))));
+        step(() -> game.setScreen(town("facile", 0, 2, 52)));
         frames(5);
         shot("e05_town_event_toast");
         step(() -> game.setScreen(new StoreScreen(game, "facile", "Comptoir du Port", "portbrume_store")));
@@ -2180,7 +2166,7 @@ public class Smoke extends ApplicationAdapter {
         key(Input.Keys.ESCAPE);
 
         // ---------- le journal liste les evenements des villes connues
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 52))));
+        step(() -> game.setScreen(town("facile", 0, 2, 52)));
         frames(5);
         key(Input.Keys.J);
         shot("e30_journal_events");
@@ -2219,9 +2205,9 @@ public class Smoke extends ApplicationAdapter {
         key(Input.Keys.ESCAPE);
 
         // ---------- arrivee a Port-Brume : le tableau d'annonces
-        step(() -> { com.lucas.guild.game.World.travel(game.getSession(), "portbrume"); game.setScreen(game.screenAt("portbrume", "facile")); });
+        step(() -> { walkTo("portbrume"); game.setScreen(place("portbrume", "facile")); });
         frames(40);
-        step(() -> faceAt(-7, 1.7f, 50));
+        step(() -> faceAt(townX(-7), 1.7f, townZ(50)));
         frames(2);
         shot("q10_portbrume_board_prompt");
         key(Input.Keys.E);
@@ -2247,9 +2233,9 @@ public class Smoke extends ApplicationAdapter {
 
         // ---------- collecter des oreilles de gobelin : le tableau les prend
         step(() -> { for (int i = 0; i < 4; i++) player().addItem(GameContent.newItem("goblin_ear")); });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 52))));
+        step(() -> game.setScreen(town("facile", 0, 2, 52)));
         frames(5);
-        step(() -> faceAt(-7, 1.7f, 50));
+        step(() -> faceAt(townX(-7), 1.7f, townZ(50)));
         frames(2);
         key(Input.Keys.E);
         click("> Trophées de gobelins (70 Po) [à rendre]");
@@ -2282,7 +2268,7 @@ public class Smoke extends ApplicationAdapter {
 
     void designSection() {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); setThirdPerson(false); });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        step(() -> game.setScreen(town("facile", 0, 2, 40)));
         frames(5);
         shot("d00_first_person");
         key(Input.Keys.V);
@@ -2324,7 +2310,7 @@ public class Smoke extends ApplicationAdapter {
         shot("d21_camera_against_wall");
 
         // ---------- zone sauvage : un loup, a la 3e personne, on le vise toujours bien
-        step(() -> { player().setTownId("foret_loups"); player().markVisited("foret_loups"); game.setScreen(game.screenAt("foret_loups", "facile")); });
+        step(() -> { player().setTownId("foret_loups"); player().markVisited("foret_loups"); game.setScreen(place("foret_loups", "facile")); });
         frames(40);
         step(() -> new com.lucas.guild.game.DebugActions(game.getSession()).addGold(0));
         step(() -> com.lucas.guild.game.DebugMode.setEnabled(true));
@@ -2444,7 +2430,7 @@ public class Smoke extends ApplicationAdapter {
         frames(2);
         shot("n10_giant_rats");
 
-        step(() -> { player().setTownId("foret_loups"); player().markVisited("foret_loups"); game.setScreen(game.screenAt("foret_loups", "facile")); });
+        step(() -> { player().setTownId("foret_loups"); player().markVisited("foret_loups"); game.setScreen(place("foret_loups", "facile")); });
         frames(40);
         step(() -> com.lucas.guild.game.DebugMode.setEnabled(true));
         key(Input.Keys.F10);
@@ -2484,7 +2470,7 @@ public class Smoke extends ApplicationAdapter {
 
     void design8dSection() {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); setThirdPerson(true); });
-        step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(0, 2, 40))));
+        step(() -> game.setScreen(town("facile", 0, 2, 40)));
         frames(8);
         shot("f01_day_shadows_third_person");
         step(() -> faceAt(0, 30f, -60));
@@ -2528,7 +2514,7 @@ public class Smoke extends ApplicationAdapter {
         }
         shot("f11_after_kills");
         step(() -> com.lucas.guild.game.DebugMode.setEnabled(true));
-        step(() -> { player().setTownId("foret_loups"); game.setScreen(game.screenAt("foret_loups", "facile")); });
+        step(() -> { player().setTownId("foret_loups"); game.setScreen(place("foret_loups", "facile")); });
         frames(30);
         key(Input.Keys.F10);
         click("Loup devant moi");
@@ -2556,25 +2542,23 @@ public class Smoke extends ApplicationAdapter {
 
     void worldSection() {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); });
-        // ---------- Aethelgard : la porte sud mene a la carte
-        step(() -> game.setScreen(new TownScreen(game, "normale", new Vector3(0, 2, 52))));
+        // ---------- Aethelgard : la carte (M) ; aucun autre lieu atteint, pas de voyage rapide
+        step(() -> game.setScreen(town("normale", 0, 2, 52)));
         frames(5);
-        step(() -> faceAt(0, 2.5f, 60));
-        frames(2);
-        shot("w01_gate_prompt");
-        key(Input.Keys.E);
+        key(Input.Keys.M);
         frames(3);
-        check("E sur la porte : carte du monde", () -> cur() instanceof WorldMapScreen);
+        check("M : carte du monde", () -> cur() instanceof WorldMapScreen);
+        check("rien d'autre d'atteint : pas de voyage rapide", () -> buttonStartingWith("Port-Brume") == null);
         shot("w02_world_map_from_aethelgard");
+        step(() -> Gdx.input.getInputProcessor().keyDown(Input.Keys.ESCAPE));
+        frames(3);
 
-        // ---------- voyage vers Port-Brume
-        step(() -> worldStart = minutesNow());
-        click("Port-Brume - 33 km - 6 h 35");
+        // ---------- a pied jusqu'a Port-Brume (le temps de la marche)
+        step(() -> { worldStart = minutesNow(); walkTo("portbrume"); game.setScreen(game.arrivalIn("portbrume", "normale")); });
         frames(5);
-        check("arrivee dans la ville de Port-Brume", () -> cur() instanceof TownScreen && "portbrume".equals(player().getTownId()));
-        check("le voyage a pris 6 h 35", () -> minutesNow() - worldStart == 395);
+        check("arrivee dans la ville de Port-Brume", () -> cur() instanceof OpenWorldScreen && "portbrume".equals(player().getTownId()));
+        check("la marche a pris 6 h 35", () -> minutesNow() - worldStart == 395);
         check("Port-Brume est marquee visitee", () -> player().getVisitedPlaces().contains("portbrume"));
-        check("sauvegarde automatique a l'arrivee", () -> Files.exists(Paths.get("save.json")));
         frames(3);
         shot("w10_portbrume_arrival");
 
@@ -2602,30 +2586,30 @@ public class Smoke extends ApplicationAdapter {
         shot("w30_portbrume_inn_dialog_name");
         key(Input.Keys.ESCAPE);
 
-        // ---------- la carte depuis Port-Brume : routes vers Aethelgard et Hautevigne
-        step(() -> game.setScreen(new TownScreen(game, "normale", new Vector3(0, 2, 52))));
+        // ---------- voyage rapide depuis Port-Brume vers Aethelgard (deja atteinte)
+        step(() -> game.setScreen(town("normale", 0, 2, 52)));
         frames(5);
-        step(() -> faceAt(0, 2.5f, 60));
-        frames(2);
-        key(Input.Keys.E);
+        key(Input.Keys.M);
         frames(3);
         shot("w40_world_map_from_portbrume");
-        click("Hautevigne - 52 km - 10 h 25 (arrivée de nuit)");
+        step(() -> worldStart = minutesNow());
+        clickStartingWith("Aethelgard");
         frames(5);
-        check("arrivee a Hautevigne", () -> cur() instanceof TownScreen && "hautevigne".equals(player().getTownId()));
+        check("voyage rapide : a la porte d'Aethelgard", () -> cur() instanceof OpenWorldScreen && "aethelgard".equals(player().getTownId()));
+        check("le voyage rapide a pris le temps de la marche depuis Port-Brume (6 h 35)", () -> minutesNow() - worldStart == 395);
+        check("sauvegarde automatique a l'arrivee", () -> Files.exists(Paths.get("save.json")));
         frames(3);
-        shot("w41_hautevigne_arrival");
+        shot("w41_aethelgard_arrival");
 
-        // ---------- retour par la porte : Echap revient dans la ville
-        step(() -> faceAt(0, 2.5f, 60));
-        frames(2);
-        key(Input.Keys.E);
+        // ---------- Echap sur la carte : retour au meme endroit, sans voyager
+        key(Input.Keys.M);
         frames(3);
         step(() -> Gdx.input.getInputProcessor().keyDown(Input.Keys.ESCAPE));   // la carte est un ecran a Stage : les touches passent par le processeur d'entree
         frames(3);
-        check("Echap sur la carte : retour dans la ville, sans voyager", () -> cur() instanceof TownScreen && "hautevigne".equals(player().getTownId()));
+        check("Echap sur la carte : retour, sans voyager", () -> cur() instanceof OpenWorldScreen && "aethelgard".equals(player().getTownId()));
 
         // ---------- Continuer : la sauvegarde reprend dans la bonne ville
+        step(() -> walkTo("hautevigne"));
         step(() -> game.setScreen(new MainMenuScreen(game)));
         frames(3);
         step(() -> { try { Files.deleteIfExists(Paths.get("save.json")); } catch (Exception e) { throw new RuntimeException(e); } });
@@ -2633,9 +2617,8 @@ public class Smoke extends ApplicationAdapter {
         click("Start");
         click("Continuer");
         frames(30);
-        check("Continuer : on reprend a Hautevigne, dans le monde ouvert", () -> cur() instanceof OpenWorldScreen && "hautevigne".equals(player().getTownId()));
+        check("Continuer (ancienne sauvegarde de ville) : a Hautevigne, dans le monde ouvert", () -> cur() instanceof OpenWorldScreen && "hautevigne".equals(player().getTownId()));
         shot("w50_continue_in_hautevigne");
-        step(() -> game.getSession().setInOpenWorld(false));   // la suite passe par la carte classique
 
         // ---------- debug : voyager sans duree
         step(() -> com.lucas.guild.game.DebugMode.setEnabled(true));
@@ -2643,7 +2626,7 @@ public class Smoke extends ApplicationAdapter {
         shot("w60_debug_panel_with_places");
         click("Aethelgard");
         frames(5);
-        check("debug : teleportation a Aethelgard", () -> cur() instanceof TownScreen && "aethelgard".equals(player().getTownId()));
+        check("debug : teleportation a Aethelgard", () -> cur() instanceof OpenWorldScreen && "aethelgard".equals(player().getTownId()));
         step(() -> com.lucas.guild.game.DebugMode.setEnabled(false));
     }
 
@@ -2716,7 +2699,7 @@ public class Smoke extends ApplicationAdapter {
                 {"t12_winter_1730_early_sunset", "98", "17", "30"},
         };
         // point de vue representatif : depart de la ville (0,2,0), face a la forge (yaw 0 = vers -Z)
-        step(() -> game.setScreen(new TownScreen(game, "normale", new Vector3(0, 2, 0))));
+        step(() -> game.setScreen(town("normale", 0, 2, 0)));
         frames(5);
         for (String[] m : moments) {
             final int day = Integer.parseInt(m[1]), hour = Integer.parseInt(m[2]), minute = Integer.parseInt(m[3]);
@@ -2742,7 +2725,7 @@ public class Smoke extends ApplicationAdapter {
         shot("t20_after_sleep_with_message");
 
         // vitesse de marche : a 20 ans puis a 70 ans (palier "Grand age" : 82 %)
-        step(() -> game.setScreen(new TownScreen(game, "normale", new Vector3(0, 2, 0))));
+        step(() -> game.setScreen(town("normale", 0, 2, 0)));
         frames(5);
         step(() -> face(0, 2, 100));
         frames(2);
@@ -2757,7 +2740,7 @@ public class Smoke extends ApplicationAdapter {
             int day = s.getClock().getCurrentDay();
             s.getPlayer().setBirthDay(day - 70 * 112);
             s.getPlayer().refreshAging(day);
-            game.setScreen(new TownScreen(game, "normale", new Vector3(0, 2, 0)));
+            game.setScreen(town("normale", 0, 2, 0));
         });
         frames(5);
         step(() -> face(0, 2, 100));
@@ -2800,7 +2783,7 @@ public class Smoke extends ApplicationAdapter {
     void building(String name, float bx, float by, float bz, String expectedClass,
                   float nx, float ny, float nz, int walkToNpc, Runnable dialogHook,
                   java.util.function.Supplier<Screen> freshInterior, float townX, float townZ, String num) {
-        step(() -> game.setScreen(new TownScreen(game, "normale", new Vector3(0, 2, 0))));
+        step(() -> game.setScreen(town("normale", 0, 2, 0)));
         frames(5);
         turn(bx, 5.5f, bz);
         keyDownHold(Input.Keys.W);
@@ -2841,7 +2824,7 @@ public class Smoke extends ApplicationAdapter {
         frames(2);
         key(Input.Keys.E);
         frames(30);
-        check("sortie " + name + " -> ville", () -> cur() instanceof TownScreen);
+        check("sortie " + name + " -> ville", () -> cur() instanceof OpenWorldScreen);
         check("autosave en sortant de " + name + " : position devant la porte en ville",
                 () -> {
                     String j = new String(Files.readAllBytes(Paths.get("save.json")), java.nio.charset.StandardCharsets.UTF_8);

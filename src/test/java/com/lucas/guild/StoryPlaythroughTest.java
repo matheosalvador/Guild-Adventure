@@ -50,7 +50,8 @@ class StoryPlaythroughTest {
 
     private void travel(String... places) {
         for (String place : places) {
-            assertNotNull(World.travel(session, place), "voyage vers " + place + " depuis " + player.getTownId());
+            assertTrue(story.lockReason(place) == null, "le lieu " + place + " est ouvert");
+            Trips.walk(session, place);
         }
     }
 

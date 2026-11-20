@@ -212,7 +212,6 @@ class OpenWorldTest {
         assertEquals(14, back.getClock().getCurrentHour());
         assertEquals(37, back.getClock().getCurrentMinute());
         assertEquals(Integer.valueOf(4), back.getPlayer().getMonsterKills().get("foret_loups#1"));
-        assertFalse(back.isInOpenWorld(), "le mode vient de l'ecran ouvert, pas de la sauvegarde");
         Files.deleteIfExists(Paths.get("save.json"));
     }
 }

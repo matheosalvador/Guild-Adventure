@@ -20,12 +20,11 @@ public class WorldData {
     public List<PlaceData> places = new ArrayList<>();
     /** Les routes : des paires d'identifiants de lieux, dans les deux sens. */
     public List<List<String>> links = new ArrayList<>();
-    /** Les embuscades sur les routes entre villes (optionnel) : où elles se jouent et qui attaque. */
+    /** Les embuscades sur les routes du monde ouvert (optionnel) : qui attaque. */
     public AmbushData ambush;
 
-    /** Une embuscade : un décor de route (zoneFile) et les monstres qui attaquent, entre {@code min} et {@code max}. */
+    /** Une embuscade : les monstres qui surgissent, entre {@code min} et {@code max}. */
     public static class AmbushData {
-        public String zoneFile;
         public List<String> monsters = new ArrayList<>();
         public int min = 1;
         public int max = 2;
@@ -112,7 +111,6 @@ public class WorldData {
             throw new IllegalStateException(file + " : \"startPlace\" doit etre l'identifiant d'un lieu (" + startPlace + ")");
         }
         if (ambush != null) {
-            if (ambush.zoneFile == null || ambush.zoneFile.isEmpty()) throw new IllegalStateException(file + " : \"ambush\" : \"zoneFile\" manquant");
             if (ambush.monsters == null || ambush.monsters.isEmpty()) throw new IllegalStateException(file + " : \"ambush\" : \"monsters\" vide");
             if (ambush.min < 1 || ambush.max < ambush.min) throw new IllegalStateException(file + " : \"ambush\" : \"min\" >= 1 et \"max\" >= \"min\" attendus");
         }

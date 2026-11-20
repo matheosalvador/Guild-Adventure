@@ -1,7 +1,6 @@
 package com.lucas.guild.libgdx;
 
 import java.util.List;
-import java.util.Locale;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -20,7 +19,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.lucas.guild.data.GameContent;
-import com.lucas.guild.data.TownData;
 import com.lucas.guild.data.WorldData;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.SaveManager;
@@ -28,9 +26,9 @@ import com.lucas.guild.game.World;
 import com.lucas.guild.model.Adventurer;
 
 /**
- * La carte du monde, atteinte par la porte de la ville : les lieux et les routes à gauche, les
- * routes qui partent d'ici à droite avec leur distance et leur durée. Choisir une route fait
- * passer le temps et amène devant la porte de la ville d'arrivée.
+ * La carte du monde (touche M dans le monde ouvert) : les lieux et les routes à gauche, sans rien qui dise où l'on
+ * est (seuls les lieux déjà atteints ont leur nom) ; à droite, le voyage rapide vers les lieux déjà atteints, qui
+ * fait passer le temps et amène à leur porte.
  *
  * <p>Les lieux sont placés d'après leurs coordonnées (km) de world.json.</p>
  */
@@ -75,31 +73,20 @@ public class WorldMapScreen implements Screen {
         player = session.getPlayer();
         world = GameContent.world();
 
-        String here = player.getTownId();
         Table side = new Table(skin);
         side.setFillParent(true);
         side.right().padRight(25);
         stage.addActor(side);
 
         side.add(UiKit.label(skin, "Carte du monde")).pad(5).row();
-        if (!session.isInOpenWorld()) {
-            // dans le monde ouvert, la carte ne dit pas où l'on est : à chacun de se repérer
-            side.add(UiKit.label(skin, "Vous êtes à " + world.place(here).name)).pad(3).row();
-        }
         side.add(UiKit.label(skin, session.getClock().getDate() + " - " + session.getClock().formatTime())).pad(3).row();
-        boolean fast = session.isInOpenWorld();
-        side.add(UiKit.label(skin, fast ? "-- Voyage rapide (lieux déjà atteints) --" : "-- Routes --")).pad(10).row();
+        side.add(UiKit.label(skin, "-- Voyage rapide (lieux déjà atteints) --")).pad(10).row();
 
-        List<World.Route> routes = fast ? World.fastTravelRoutes(session, com.lucas.guild.game.WorldLayout.standard()) : World.routesFrom(player);
+        List<World.Route> routes = World.fastTravelRoutes(session, com.lucas.guild.game.WorldLayout.standard());
         if (routes.isEmpty()) {
             side.add(UiKit.message(skin, "Aucun autre lieu atteint à pied pour l'instant.")).pad(5).row();
         }
         for (final World.Route route : routes) {
-            String text = String.format(Locale.FRANCE, "%s - %.0f km - %s", route.place.name, route.km, World.formatDuration(route.minutes));
-            int arrival = (session.getClock().getCurrentHour() * 60 + session.getClock().getCurrentMinute() + route.minutes) / 60 % 24;
-            if (WorldData.isZone(route.place)) {
-                text += " [zone sauvage]";
-            }
             if (route.lockedReason != null) {
                 // un lieu fermé par l'histoire : on le voit, avec la raison, mais on ne peut pas y aller
                 Label closed = UiKit.label(skin, route.place.name + " - fermé");
@@ -111,25 +98,18 @@ public class WorldMapScreen implements Screen {
                 side.add(reason).width(330f).padBottom(5).row();
                 continue;
             }
-            if (arrival < 6 || arrival >= 20) {
-                text += " (arrivée de nuit)";
-            }
-            if (fast) {
-                // la distance et la durée se comptent depuis là où l'on est : les montrer trahirait la position
-                text = route.place.name;
-            }
-            side.add(UiKit.button(skin, text, new Runnable() {
+            // seulement le nom : la distance et la durée se comptent depuis là où l'on est, elles trahiraient la position
+            side.add(UiKit.button(skin, route.place.name, new Runnable() {
                 @Override
                 public void run() {
                     travel(route.place.id);
                 }
             })).pad(5).row();
         }
-        String back = session.isInOpenWorld() ? "Retour sur le chemin" : WorldData.isZone(world.place(here)) ? "Retour à la zone" : "Retour à la ville";
-        side.add(UiKit.button(skin, back, new Runnable() {
+        side.add(UiKit.button(skin, "Retour sur le chemin", new Runnable() {
             @Override
             public void run() {
-                backToTown();
+                backToTheRoad();
             }
         })).padTop(25).row();
 
@@ -137,7 +117,7 @@ public class WorldMapScreen implements Screen {
             @Override
             public boolean keyDown(InputEvent event, int keycode) {
                 if (keycode == Input.Keys.ESCAPE) {
-                    backToTown();
+                    backToTheRoad();
                     return true;
                 }
                 return false;
@@ -145,50 +125,24 @@ public class WorldMapScreen implements Screen {
         });
     }
 
-    private void backToTown() {
+    /** On reprend là où l'on s'était arrêté, dans le monde ouvert. */
+    private void backToTheRoad() {
         GameSession session = game.getSession();
-        if (session.isInOpenWorld()) {
-            // le monde ouvert : on reprend là où l'on s'était arrêté
-            game.setScreen(new OpenWorldScreen(game, difficulty,
-                    new com.badlogic.gdx.math.Vector3(session.getWorldX(), 2f, session.getWorldZ())));
-            return;
-        }
-        game.setScreen(game.screenAt(player.getTownId(), difficulty));
+        game.setScreen(new OpenWorldScreen(game, difficulty, new com.badlogic.gdx.math.Vector3(session.getWorldX(), 2f, session.getWorldZ())));
     }
 
+    /** Le voyage rapide : le temps passe, on arrive à la porte du lieu (les embuscades se font sur la route, à pied). */
     private void travel(String placeId) {
         GameSession session = game.getSession();
-        if (session.isInOpenWorld()) {
-            // le voyage rapide : le temps passe, on arrive à la porte du lieu (les embuscades se font sur la route, à pied)
-            String message = World.fastTravel(session, com.lucas.guild.game.WorldLayout.standard(), placeId);
-            if (message == null) {
-                return;
-            }
-            session.getClock().postMessage(message);
-            float[] w = MainGame.arrivalPoint(placeId);
-            session.setWorldPosition(w[0], w[1]);
-            new SaveManager().saveGame(player, session.getClock(), difficulty, w[0], 2f, w[1], OpenWorldScreen.SAVE_SCREEN);
-            game.setScreen(game.arrivalIn(placeId, difficulty));
-            return;
-        }
-        if (World.shouldAmbush(session, placeId, com.lucas.guild.game.GameRandom.create())) {
-            String warning = World.startAmbushedTravel(session, placeId);
-            if (warning != null) {
-                session.getClock().postMessage(warning);
-                game.setScreen(ZoneScreen.ambush(game, difficulty));
-                return;
-            }
-        }
-        String message = World.travel(session, placeId);
+        String message = World.fastTravel(session, com.lucas.guild.game.WorldLayout.standard(), placeId);
         if (message == null) {
             return;
         }
         session.getClock().postMessage(message);
-        TownData.Point3 a = GameContent.arrival(placeId);
-        boolean zone = WorldData.isZone(world.place(placeId));
-        // sauvegarde automatique à l'arrivée : devant la porte de la ville, ou au bord de la route de la zone
-        new SaveManager().saveGame(player, session.getClock(), difficulty, a.x, a.y, a.z, zone ? "Zone" : "Town");
-        game.setScreen(game.screenAt(placeId, difficulty));
+        float[] w = MainGame.arrivalPoint(placeId);
+        session.setWorldPosition(w[0], w[1]);
+        new SaveManager().saveGame(player, session.getClock(), difficulty, w[0], 2f, w[1], OpenWorldScreen.SAVE_SCREEN);
+        game.setScreen(game.arrivalIn(placeId, difficulty));
     }
 
     // ------------------------------------------------------------------ dessin
@@ -229,8 +183,7 @@ public class WorldMapScreen implements Screen {
     private void drawMap() {
         shapes.setProjectionMatrix(stage.getCamera().combined);
         batch.setProjectionMatrix(stage.getCamera().combined);
-        // dans le monde ouvert, rien ne montre où l'on est (ni point, ni lieu ni routes mis en avant)
-        String here = game.getSession().isInOpenWorld() ? null : player.getTownId();
+        // rien ne montre où l'on est : ni point, ni lieu ni routes mis en avant
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(0.18f, 0.24f, 0.2f, 1f);
@@ -242,8 +195,7 @@ public class WorldMapScreen implements Screen {
         for (List<String> link : world.links) {
             float[] a = project(world.place(link.get(0)));
             float[] b = project(world.place(link.get(1)));
-            boolean fromHere = here != null && link.contains(here);
-            shapes.setColor(fromHere ? Color.GOLD : Color.GRAY);
+            shapes.setColor(Color.GRAY);
             shapes.line(a[0], a[1], b[0], b[1]);
         }
         shapes.end();
@@ -255,14 +207,12 @@ public class WorldMapScreen implements Screen {
             }
             float[] xy = project(p);
             boolean zone = WorldData.isZone(p);
-            boolean isHere = p.id.equals(here);
-            shapes.setColor(isHere ? Color.YELLOW
-                    : player.getVisitedPlaces().contains(p.id) ? (zone ? Color.LIME : Color.WHITE)
+            shapes.setColor(player.getVisitedPlaces().contains(p.id) ? (zone ? Color.LIME : Color.WHITE)
                     : zone ? Color.FOREST : Color.GRAY);
             if (zone) {
                 shapes.rect(xy[0] - 7f, xy[1] - 7f, 14f, 14f);   // une zone sauvage : un carré ; une ville : un rond
             } else {
-                shapes.circle(xy[0], xy[1], isHere ? 11f : 8f);
+                shapes.circle(xy[0], xy[1], 8f);
             }
         }
         shapes.end();
@@ -273,7 +223,7 @@ public class WorldMapScreen implements Screen {
                 continue;
             }
             float[] xy = project(p);
-            boolean known = player.getVisitedPlaces().contains(p.id) || (here != null && isNeighborOfHere(p.id));
+            boolean known = player.getVisitedPlaces().contains(p.id);
             // un lieu collé à une ville (sa mine, son arène) : son nom s'écrit au-dessus, pour ne pas recouvrir celui de la ville
             float labelY = isNextToATown(p) ? xy[1] + 26f : xy[1] - 16f;
             font.draw(batch, known ? p.name : "???", xy[0] - 30f, labelY);
@@ -288,15 +238,6 @@ public class WorldMapScreen implements Screen {
         }
         for (WorldData.PlaceData other : world.places) {
             if (!WorldData.isZone(other) && world.distanceKm(place.id, other.id) < 4.0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isNeighborOfHere(String id) {
-        for (WorldData.PlaceData n : world.neighbors(player.getTownId())) {
-            if (n.id.equals(id)) {
                 return true;
             }
         }

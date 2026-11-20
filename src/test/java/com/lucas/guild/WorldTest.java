@@ -53,46 +53,22 @@ class WorldTest {
     }
 
     @Test
-    void travelMovesThePlayerAndTime() {
-        GameSession s = GameSession.newGame("normale");
-        Adventurer p = s.getPlayer();
-        assertEquals("aethelgard", p.getTownId());
-        assertEquals(List.of("aethelgard"), p.getVisitedPlaces());
-        assertEquals(List.of("portbrume", "hautevigne", "foret_loups", "ruines_gobelines"), names(World.routesFrom(p)));
-
-        int start = s.getClock().getCurrentDay() * 1440 + s.getClock().getCurrentHour() * 60 + s.getClock().getCurrentMinute();
-        String message = World.travel(s, "portbrume");
-        assertNotNull(message);
-        assertTrue(message.contains("Port-Brume") && message.contains("6 h 35"), message);
-        int end = s.getClock().getCurrentDay() * 1440 + s.getClock().getCurrentHour() * 60 + s.getClock().getCurrentMinute();
-        assertEquals(395, end - start);
-        assertEquals("portbrume", p.getTownId());
-        assertEquals(List.of("aethelgard", "portbrume"), p.getVisitedPlaces());
-        assertEquals(List.of("aethelgard", "hautevigne", "ruines_gobelines", "fosse_debardeurs"), names(World.routesFrom(p)));
-    }
-
-    @Test
-    void noRouteNoTravel() {
-        GameSession s = GameSession.newGame("normale");
-        assertNull(World.travel(s, "aethelgard"), "on ne voyage pas vers l'endroit ou on est");
-        assertNull(World.travel(s, "nulle-part"));
-        assertEquals("aethelgard", s.getPlayer().getTownId());
-    }
-
-    @Test
     void heavyLoadSlowsTravel() {
         GameSession light = GameSession.newGame("normale");
         GameSession heavy = GameSession.newGame("normale");
         while (heavy.getPlayer().addItem(GameContent.newItem("healing_potion"))) { /* plein */ }
-        int a = World.routesFrom(light.getPlayer()).get(0).minutes;
-        int b = World.routesFrom(heavy.getPlayer()).get(0).minutes;
+        light.getPlayer().markVisited("portbrume");
+        heavy.getPlayer().markVisited("portbrume");
+        com.lucas.guild.game.WorldLayout layout = com.lucas.guild.game.WorldLayout.standard();
+        int a = World.fastTravelRoutes(light, layout).get(0).minutes;
+        int b = World.fastTravelRoutes(heavy, layout).get(0).minutes;
         assertTrue(b > a, "charge pleine : trajet plus long (" + a + " -> " + b + ")");
     }
 
     @Test
     void locationSurvivesSaveAndOldSavesStartAtTheStartPlace() throws Exception {
         GameSession s = GameSession.newGame("normale");
-        World.travel(s, "hautevigne");
+        Trips.walk(s, "hautevigne");
         SaveManager sm = new SaveManager();
         assertTrue(sm.saveGame(s.getPlayer(), s.getClock(), "normale", 0, 2, 52, "Town"));
         GameData data = sm.loadGame();

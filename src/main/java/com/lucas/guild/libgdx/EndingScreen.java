@@ -69,11 +69,17 @@ public class EndingScreen implements Screen {
                 if (text != null) {
                     story.markShown(text);
                 }
+                // on rejoue là où l'on était : dans le lieu fermé (la crypte...), ou à l'arrivée du lieu dans le monde ouvert
                 String here = session.getPlayer().getTownId();
-                com.lucas.guild.data.TownData.Point3 a = com.lucas.guild.data.GameContent.arrival(here);
-                boolean zone = com.lucas.guild.data.WorldData.isZone(com.lucas.guild.data.GameContent.world().place(here));
-                new SaveManager().saveGame(session.getPlayer(), session.getClock(), difficulty, a.x, a.y, a.z, zone ? "Zone" : "Town");
-                game.setScreen(game.screenAt(here, difficulty));
+                if (!com.lucas.guild.game.WorldLayout.standard().contains(here)) {
+                    com.lucas.guild.data.TownData.Point3 a = com.lucas.guild.data.GameContent.arrival(here);
+                    new SaveManager().saveGame(session.getPlayer(), session.getClock(), difficulty, a.x, a.y, a.z, "Zone");
+                    game.setScreen(new ZoneScreen(game, difficulty, null));
+                    return;
+                }
+                float[] w = MainGame.arrivalPoint(here);
+                new SaveManager().saveGame(session.getPlayer(), session.getClock(), difficulty, w[0], 2f, w[1], OpenWorldScreen.SAVE_SCREEN);
+                game.setScreen(game.arrivalIn(here, difficulty));
             }
         })).padTop(30).row();
     }

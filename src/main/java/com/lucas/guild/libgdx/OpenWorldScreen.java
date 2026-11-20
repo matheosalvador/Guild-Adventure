@@ -225,11 +225,6 @@ public class OpenWorldScreen extends BaseWorldScreen {
         return 10f;
     }
 
-    @Override
-    protected boolean isOpenWorld() {
-        return true;
-    }
-
     /** Les objets jetés restent là où on les a jetés, dans tout le monde ouvert. */
     @Override
     protected String sceneKey() {
@@ -521,7 +516,7 @@ public class OpenWorldScreen extends BaseWorldScreen {
                     if (place.group != g) {
                         return;
                     }
-                    TownScreen.TownBuilding building = new TownScreen.TownBuilding(b.name, b.interior, b.shop);
+                    TownBuilding building = new TownBuilding(b.name, b.interior, b.shop);
                     box(g, 10f, 10f, 10f, ColorNames.parse(b.color, file, "batiment \"" + b.name + "\""), o[0] + b.x, 5.5f, o[1] + b.z, building);
                     for (TownData.PartData part : b.parts) {
                         part(g, part, o[0] + b.x, o[1] + b.z, file, building);
@@ -762,22 +757,10 @@ public class OpenWorldScreen extends BaseWorldScreen {
         }
         if (roadMeters >= AMBUSH_STRETCH) {
             roadMeters -= AMBUSH_STRETCH;
-            if (rollAmbush()) {
+            if (com.lucas.guild.game.World.rollRoadAmbush(game.getSession(), ambushRandom)) {
                 startAmbush(p);
             }
         }
-    }
-
-    private boolean rollAmbush() {
-        if (GameContent.world().ambush == null) {
-            return false;
-        }
-        if (com.lucas.guild.game.DebugMode.isForceAmbush()) {
-            return true;
-        }
-        // une fin de l'histoire peut rendre les routes plus sûres
-        int percent = story().ambushPercent(GameContent.ambushPercent(difficulty));
-        return ambushRandom.nextInt(100) < percent;
     }
 
     /** Les agresseurs surgissent une vingtaine de mètres devant le joueur et restent dans les parages. */
@@ -854,8 +837,8 @@ public class OpenWorldScreen extends BaseWorldScreen {
 
     @Override
     protected String getInteractionPrompt(Object userData) {
-        if (userData instanceof TownScreen.TownBuilding) {
-            return "Entrer dans: " + ((TownScreen.TownBuilding) userData).name + " (E)";
+        if (userData instanceof TownBuilding) {
+            return "Entrer dans: " + ((TownBuilding) userData).name + " (E)";
         }
         if (userData instanceof ChestRef) {
             return ((ChestRef) userData).lid != null ? "Ouvrir le coffre (E)" : "Coffre vide";
@@ -875,10 +858,10 @@ public class OpenWorldScreen extends BaseWorldScreen {
 
     @Override
     protected boolean onInteract(Object userData) {
-        if (userData instanceof TownScreen.TownBuilding) {
+        if (userData instanceof TownBuilding) {
             Vector3 p = playerPosition();
             saveManager.saveGame(player, gameClock, difficulty, p.x, p.y, p.z, SAVE_SCREEN);
-            game.setScreen(TownScreen.interiorScreen(game, difficulty, (TownScreen.TownBuilding) userData));
+            game.setScreen(((TownBuilding) userData).interiorScreen(game, difficulty));
             return true;
         }
         if (userData instanceof ChestRef) {

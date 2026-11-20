@@ -42,19 +42,12 @@ public class GameSession {
     /** L'écran de la sauvegarde (« Town », « Zone », « World » pour le monde ouvert), ou null. */
     private String savedScreen;
 
-    /**
-     * Le joueur est-il dans le monde ouvert (prototype) ? Les intérieurs y ramènent, et la carte y affiche sa
-     * position. Pas sauvegardé : la sauvegarde le dit par son écran « World ».
-     */
-    private boolean inOpenWorld;
+    /** La dernière position connue du joueur dans le monde ouvert (pour la carte et le retour depuis un menu). */
     private float worldX;
     private float worldZ;
 
     /** Les objets au sol (rangés dans le personnage : sauvegardés avec lui). */
     private final GroundItems ground;
-    /** Voyage coupé par une embuscade : le lieu où l'on va et les minutes qu'il reste (pas sauvegardé). */
-    private String pendingDestination;
-    private int pendingMinutes;
 
     private GameSession(Adventurer player, GameClock clock, String difficulty,
                         boolean hasSavedPosition, float x, float y, float z) {
@@ -179,14 +172,6 @@ public class GameSession {
         return savedScreen;
     }
 
-    public boolean isInOpenWorld() {
-        return inOpenWorld;
-    }
-
-    public void setInOpenWorld(boolean inOpenWorld) {
-        this.inOpenWorld = inOpenWorld;
-    }
-
     /** Monde ouvert : la dernière position connue du joueur, en m (pour la carte et le retour depuis un menu). */
     public void setWorldPosition(float x, float z) {
         this.worldX = x;
@@ -222,24 +207,6 @@ public class GameSession {
 
     public GroundItems getGround() {
         return ground;
-    }
-
-    public void setPendingTravel(String placeId, int minutesLeft) {
-        this.pendingDestination = placeId;
-        this.pendingMinutes = minutesLeft;
-    }
-
-    public String getPendingDestination() {
-        return pendingDestination;
-    }
-
-    public int getPendingMinutes() {
-        return pendingMinutes;
-    }
-
-    public void clearPendingTravel() {
-        this.pendingDestination = null;
-        this.pendingMinutes = 0;
     }
 
     public boolean hasSavedPosition() {

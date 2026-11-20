@@ -71,27 +71,29 @@ difficulties.json
     encumbranceStart = part de la charge max a partir de laquelle on ralentit (0.5 = la moitie) ;
     minSpeedPercent = vitesse (en %) quand on est charge au maximum ;
     startingGold = or de depart ; startingItems = identifiants (items.json) des objets de depart ;
-    ambushPercent = chance (0 a 100 %) d'une embuscade a chaque voyage entre deux villes (0 = jamais).
+    ambushPercent = chance (0 a 100 %) d'une embuscade a chaque etape de 1500 m marchee sur la route (0 = jamais).
 
 world.json
     Le monde : les lieux (villes) et les routes. Chaque lieu : id, name, townFile (le fichier de sa ville :
-    town.json, town_portbrume.json...) et sa position x/z sur la carte du monde, EN KM. Les routes sont des
-    paires d'identifiants. La duree d'un trajet n'est pas ecrite : elle vient de la distance et de
-    walkingKmh (vitesse de marche, km/h), et elle s'allonge si le personnage est charge ou age.
+    town.json, town_portbrume.json...) et sa position x/z sur la carte du monde, EN KM (dans le monde ouvert :
+    x 100 m, voir openworld.json). Les routes sont des paires d'identifiants : le jeu trace une route a pied pour
+    chacune. La duree d'un voyage rapide vient de la distance et de walkingKmh (vitesse de marche, km/h), et
+    elle s'allonge si le personnage est charge ou age.
     startPlace = ou commence une nouvelle partie. Pour ajouter une ville : une ligne dans "places", une ou
     plusieurs dans "links", et son fichier de ville.
     Un lieu est une ville (townFile) OU une zone sauvage (zoneFile : zone_foret.json...), jamais les deux.
-    "ambush" (facultatif) = les embuscades entre villes : zoneFile (le decor de la route, zone_route.json),
-    monsters (qui attaque) et min/max (combien d'agresseurs). Le voyage est coupe a la moitie ; on repart
-    en vainquant les agresseurs. Si on tombe, on se reveille a l'auberge de la ville de depart.
+    "ambush" (facultatif) = les embuscades sur les routes du monde ouvert : monsters (qui attaque) et min/max
+    (combien d'agresseurs surgissent devant le joueur). Pas de sauvegarde tant qu'ils sont la ; laisses loin
+    derriere, ils abandonnent. Si on tombe, on se reveille a l'auberge de la derniere ville.
     Facultatif, pour l'histoire : "requires" = conditions (voir story.json) pour pouvoir s'y rendre, et
-    "lockedText" = la raison affichee sur la carte tant que le lieu est ferme ; "hidden" = true pour une zone
+    "lockedText" = la raison affichee (a sa porte, et sur la carte) tant que le lieu est ferme ; "hidden" = true pour une zone
     qui n'est pas sur la carte (un etage de donjon : on n'y arrive que par une porte, aucune route n'y mene).
     Le lieu de depart ne peut etre ni ferme ni cache.
 
-zone_foret.json, zone_ruines.json, zone_route.json (une zone sauvage par fichier)
+zone_foret.json, zone_ruines.json, zone_mine_*.json... (une zone par fichier)
     Un terrain carre : "ground" (couleur), "size" (cote, en m), "arrival" (ou on arrive), "exit" (la borne de
-    route : la viser ouvre la carte du monde), "decor" (boites, comme pour une ville : arbres, murs...),
+    sortie d'un lieu ferme : elle ramene devant sa porte dans le monde ouvert ; la foret et les ruines sont
+    posees dans le monde ouvert et n'en ont pas besoin), "decor" (boites, comme pour une ville : arbres, murs...),
     "monsters" (id de monsters.json + x/z ; ils reapparaissent a chaque visite) et "chests" (x/z, gold, items =
     identifiants de items.json, respawnDays = jours avant qu'un coffre ouvert se remplisse de nouveau).
     Les objets jetes ou laches par les monstres restent au sol 7 jours de jeu (sauvegardes avec le personnage).

@@ -137,6 +137,9 @@ public class TownData {
             if (b.name == null || b.name.isEmpty()) throw new IllegalStateException(where + " : \"name\" manquant");
             if (b.type == null) throw new IllegalStateException(where + " : \"type\" manquant");
             if (b.interior == null) throw new IllegalStateException(where + " : \"interior\" manquant");
+            if (!java.util.Arrays.asList("forge", "guild", "inn", "store").contains(b.interior)) {
+                throw new IllegalStateException(where + " : interieur inconnu \"" + b.interior + "\" (attendu : forge, guild, inn ou store)");
+            }
             if (b.color == null) throw new IllegalStateException(where + " : \"color\" manquant");
             if (b.exit == null) throw new IllegalStateException(where + " : \"exit\" manquant");
             if ("store".equals(b.interior) && (b.shop == null || b.shop.isEmpty())) {

@@ -330,16 +330,6 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected void onMonsterKilled(Monster monster) {
     }
 
-    /** Cet écran est-il le monde ouvert ? (prototype) */
-    protected boolean isOpenWorld() {
-        return false;
-    }
-
-    /** Cet écran garde-t-il le mode du monde ouvert tel qu'il est ? (les intérieurs : on y entre et on en sort) */
-    protected boolean keepsWorldMode() {
-        return false;
-    }
-
     /** Ce lieu prévient-il du marché en cours quand on y arrive ? (la ville, pas les intérieurs) */
     protected boolean announcesEvents() {
         return false;
@@ -368,9 +358,6 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         player = session.getPlayer();
         gameClock = session.getClock();
         townName = GameContent.world().place(player.getTownId()).name;   // lu une fois : le HUD le redessine à chaque image
-        if (!keepsWorldMode()) {
-            session.setInOpenWorld(isOpenWorld());   // la ville ou une zone classique : on quitte le monde ouvert
-        }
 
         setup3DEnvironment();
         setupPhysics();

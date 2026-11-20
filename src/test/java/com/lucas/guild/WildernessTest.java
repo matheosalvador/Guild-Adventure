@@ -156,8 +156,7 @@ class WildernessTest {
         GameSession s = GameSession.newGame("normale");
         Adventurer p = s.getPlayer();
         assertTrue(GameContent.world().place("foret_loups").zoneFile != null);
-        String message = World.travel(s, "foret_loups");
-        assertNotNull(message);
+        Trips.walk(s, "foret_loups");
         assertEquals("foret_loups", p.getTownId());
         assertEquals("aethelgard", p.getHomeTownId(), "une zone n'est pas une ville : on se souvient de la derniere ville");
         assertNotNull(GameContent.zone("foret_loups"));
@@ -172,7 +171,7 @@ class WildernessTest {
             assertFalse(zone.chests.isEmpty(), id + " : des coffres");
             assertNotNull(zone.exit, id + " : une borne de route");
         }
-        assertNotNull(GameContent.ambushZone(), "le decor des embuscades");
+        assertNotNull(GameContent.world().ambush, "les embuscades sur la route");
     }
 
     // ------------------------------------------------------------------ embuscades
@@ -182,12 +181,11 @@ class WildernessTest {
         GameSession easy = GameSession.newGame("facile");
         Random random = new Random(7);
         for (int i = 0; i < 200; i++) {
-            assertFalse(World.shouldAmbush(easy, "portbrume", random), "pas d'embuscade en facile");
+            assertFalse(World.rollRoadAmbush(easy, random), "pas d'embuscade en facile");
         }
         DebugMode.setEnabled(true);
         DebugMode.setForceAmbush(true);
-        assertTrue(World.shouldAmbush(easy, "portbrume", random), "debug : embuscade forcee");
-        assertFalse(World.shouldAmbush(easy, "foret_loups", random), "jamais en allant dans une zone sauvage");
+        assertTrue(World.rollRoadAmbush(easy, random), "debug : embuscade forcee");
     }
 
     @Test
@@ -197,7 +195,7 @@ class WildernessTest {
             GameSession s = GameSession.newGame(difficulty);
             int hits = 0;
             for (int i = 0; i < 1000; i++) {
-                if (World.shouldAmbush(s, "portbrume", random)) {
+                if (World.rollRoadAmbush(s, random)) {
                     hits++;
                 }
             }
@@ -207,42 +205,13 @@ class WildernessTest {
         assertTrue(GameContent.ambushPercent("realiste") > GameContent.ambushPercent("normale"));
     }
 
-    @Test
-    void ambushedTravelSplitsTheTime() {
-        GameSession s = GameSession.newGame("normale");
-        int start = minutesOf(s);
-        String warning = World.startAmbushedTravel(s, "portbrume");
-        assertNotNull(warning);
-        assertEquals("aethelgard", s.getPlayer().getTownId(), "pas encore arrive");
-        assertEquals("portbrume", s.getPendingDestination());
-        int before = minutesOf(s) - start;
-        assertTrue(before > 0 && before < 395, "une partie du trajet seulement : " + before);
-
-        String arrival = World.finishTravel(s);
-        assertNotNull(arrival);
-        assertEquals(395, minutesOf(s) - start, "la duree totale ne change pas");
-        assertEquals("portbrume", s.getPlayer().getTownId());
-        assertTrue(s.getPlayer().getVisitedPlaces().contains("portbrume"));
-        assertNull(s.getPendingDestination());
-        assertNull(World.finishTravel(s), "plus de voyage en cours");
-    }
-
     // ------------------------------------------------------------------ défaite en route
-
-    @Test
-    void deathOnAmbushWakesUpInTheTownWhereTheTripBegan() {
-        GameSession s = GameSession.newGame("normale");
-        World.startAmbushedTravel(s, "portbrume");
-        DeathPenalty.apply(s);
-        assertEquals("aethelgard", s.getPlayer().getTownId(), "reveil a l'auberge de la ville de depart");
-        assertNull(s.getPendingDestination(), "le voyage est abandonne");
-    }
 
     @Test
     void deathInAWildZoneWakesUpInTheLastTown() {
         GameSession s = GameSession.newGame("normale");
-        World.travel(s, "portbrume");
-        World.travel(s, "ruines_gobelines");
+        Trips.walk(s, "portbrume");
+        Trips.walk(s, "ruines_gobelines");
         assertEquals("ruines_gobelines", s.getPlayer().getTownId());
         DeathPenalty.apply(s);
         assertEquals("portbrume", s.getPlayer().getTownId(), "la derniere ville visitee");

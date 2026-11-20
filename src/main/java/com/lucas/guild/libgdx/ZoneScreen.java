@@ -23,12 +23,11 @@ import com.lucas.guild.game.World;
 import com.lucas.guild.model.Item;
 
 /**
- * Une zone : une zone sauvage (forêt, ruines...), un lieu fermé (galerie de mine, salle de château) ou le bout de
- * route d'une embuscade. Un terrain avec des monstres, des coffres, une borne de route qui ramène à la carte du
- * monde, et parfois des portes vers d'autres zones ou une arène.
+ * Un lieu fermé du monde ouvert (galerie de mine, fosse, cour et salles du château), où l'on entre par sa porte :
+ * un terrain avec des monstres, des coffres, une borne de sortie qui ramène devant la porte dans le monde ouvert,
+ * et parfois des portes vers d'autres zones ou une arène. Sert aussi au debug pour ouvrir n'importe quelle zone.
  *
- * <p>Tout vient d'un fichier {@code zone_*.json} (voir {@link ZoneData}). Dans une embuscade, la borne
- * ne laisse repartir qu'une fois les agresseurs vaincus.</p>
+ * <p>Tout vient d'un fichier {@code zone_*.json} (voir {@link ZoneData}).</p>
  */
 public class ZoneScreen extends BaseWorldScreen {
 
@@ -54,7 +53,6 @@ public class ZoneScreen extends BaseWorldScreen {
     }
 
     private final Vector3 spawn;
-    private final boolean ambush;
     private final Color sky = new Color(0.5f, 0.8f, 1f, 1f);
     private ZoneData zone;
     private String zoneId;
@@ -65,25 +63,15 @@ public class ZoneScreen extends BaseWorldScreen {
 
     /** Une zone du monde ; {@code spawn} peut être null (on apparaît à l'arrivée de la zone). */
     public ZoneScreen(MainGame game, String difficulty, Vector3 spawn) {
-        this(game, difficulty, spawn, false);
-    }
-
-    /** Le bout de route d'une embuscade, entre deux villes. */
-    public static ZoneScreen ambush(MainGame game, String difficulty) {
-        return new ZoneScreen(game, difficulty, null, true);
-    }
-
-    private ZoneScreen(MainGame game, String difficulty, Vector3 spawn, boolean ambush) {
         super(game, difficulty);
         this.spawn = spawn;
-        this.ambush = ambush;
     }
 
     /** Les données de la zone, lues à la première demande (l'éclairage en a besoin avant la construction du décor). */
     private ZoneData zone() {
         if (zone == null) {
             zoneId = game.getSession().getPlayer().getTownId();
-            zone = ambush ? GameContent.ambushZone() : GameContent.zone(zoneId);
+            zone = GameContent.zone(zoneId);
         }
         return zone;
     }
@@ -123,30 +111,13 @@ public class ZoneScreen extends BaseWorldScreen {
         return 8f;
     }
 
-    /**
-     * Un lieu fermé du monde ouvert (mine, fosse, château, et leurs étages) : on y entre par sa porte et on en
-     * ressort devant elle, sans quitter le monde ouvert.
-     */
-    @Override
-    protected boolean keepsWorldMode() {
-        return !ambush && com.lucas.guild.game.WorldLayout.standard().portalFor(game.getSession().getPlayer().getTownId()) != null;
-    }
-
-    @Override
-    protected String sceneKey() {
-        return ambush ? "ambush@" + player.getTownId() : super.sceneKey();
-    }
-
     // ------------------------------------------------------------------ décor
 
     @Override
     protected void buildWorld() {
         zone();
-        String file = ambush ? "world.json (ambush)" : "zone de " + zoneId;
+        String file = "zone de " + zoneId;
         float half = zone.size / 2f;
-        if (ambush && game.getSession().getPendingDestination() != null) {
-            townName = "En route vers " + GameContent.world().place(game.getSession().getPendingDestination()).name;
-        }
 
         addBox(zone.size, 1f, zone.size, ColorNames.parse(zone.ground, file, "le sol"), 0, 0, 0, null);
         // les bords du terrain : une haie épaisse dehors, des murs dans un lieu fermé ; infranchissables
@@ -177,22 +148,16 @@ public class ZoneScreen extends BaseWorldScreen {
             addVisualBox(2.2f, 3.4f, 0.8f, new Color(wood).mul(0.55f, 0.55f, 0.55f, 1f), door.x, 2.2f, door.z);
         }
 
-        if (!ambush) {
-            buildChests();
-        }
+        buildChests();
 
         combat.setBounds(-half + 1.5f, half - 1.5f, -half + 1.5f, half - 1.5f);
-        if (ambush) {
-            spawnAmbushers();
-        } else {
-            for (ZoneData.SpawnData m : zone.monsters) {
-                if (story().holds(m.requires)) {
-                    combat.spawn(m.id, m.x, m.z);
-                }
+        for (ZoneData.SpawnData m : zone.monsters) {
+            if (story().holds(m.requires)) {
+                combat.spawn(m.id, m.x, m.z);
             }
-            if (zone.arena != null) {
-                arena = new Arena(zone.arena);
-            }
+        }
+        if (zone.arena != null) {
+            arena = new Arena(zone.arena);
         }
     }
 
@@ -204,18 +169,6 @@ public class ZoneScreen extends BaseWorldScreen {
             if (Chests.isFull(player, Chests.key(zoneId, i), chest, today)) {
                 chestLids.put(i, addVisualBox(1.4f, 0.3f, 0.9f, Color.GOLDENROD, chest.x, 1.45f, chest.z));
             }
-        }
-    }
-
-    /** Les agresseurs d'une embuscade : entre « min » et « max », tirés parmi ceux du monde, devant le joueur. */
-    private void spawnAmbushers() {
-        WorldData.AmbushData config = GameContent.world().ambush;
-        int count = config.min + random.nextInt(config.max - config.min + 1);
-        for (int i = 0; i < count; i++) {
-            String id = config.monsters.get(random.nextInt(config.monsters.size()));
-            float x = zone.arrival.x + (random.nextFloat() - 0.5f) * 8f;
-            float z = zone.arrival.z - 8f - i * 2.5f;
-            combat.spawn(id, x, z);
         }
     }
 
@@ -272,13 +225,7 @@ public class ZoneScreen extends BaseWorldScreen {
     @Override
     protected String getInteractionPrompt(Object userData) {
         if (ROAD.equals(userData)) {
-            if (ambush) {
-                return combat.count() > 0 ? "Des ennemis vous barrent la route !" : "Reprendre la route (E)";
-            }
-            if (arena != null && arena.isRunning()) {
-                return "Quitter l'arène : l'épreuve sera perdue (E)";
-            }
-            return game.getSession().isInOpenWorld() ? "Sortir (E)" : "Prendre la route (E)";
+            return arena != null && arena.isRunning() ? "Quitter l'arène : l'épreuve sera perdue (E)" : "Sortir (E)";
         }
         if (userData instanceof ChestRef) {
             return chestLids.containsKey(((ChestRef) userData).index) ? "Ouvrir le coffre (E)" : "Coffre vide";
@@ -307,33 +254,12 @@ public class ZoneScreen extends BaseWorldScreen {
         return false;
     }
 
+    /** La borne de sortie : on ressort dans le monde ouvert, devant la porte du lieu (sauvegarde automatique). */
     private void takeTheRoad() {
-        GameSession session = game.getSession();
-        if (!ambush) {
-            failArena();
-            com.lucas.guild.game.WorldLayout layout = com.lucas.guild.game.WorldLayout.standard();
-            String portal = layout.portalFor(zoneId);
-            if (session.isInOpenWorld() && portal != null) {
-                // on ressort devant la porte du lieu, dans le monde ouvert
-                float[] w = layout.portalExit(portal);
-                saveManager.saveGame(player, gameClock, difficulty, w[0], 2f, w[1], OpenWorldScreen.SAVE_SCREEN);
-                game.setScreen(new OpenWorldScreen(game, difficulty, new Vector3(w[0], 2f, w[1])));
-                return;
-            }
-            game.setScreen(new WorldMapScreen(game, difficulty));
-            return;
-        }
-        if (combat.count() > 0) {
-            gameClock.postMessage("Des ennemis vous barrent la route !");
-            return;
-        }
-        String message = World.finishTravel(session);
-        if (message != null) {
-            gameClock.postMessage(message);
-        }
-        TownData.Point3 a = GameContent.arrival(player.getTownId());
-        saveManager.saveGame(player, gameClock, difficulty, a.x, a.y, a.z, "Town");
-        game.setScreen(game.screenAt(player.getTownId(), difficulty));
+        failArena();
+        float[] w = MainGame.arrivalPoint(zoneId);
+        saveManager.saveGame(player, gameClock, difficulty, w[0], 2f, w[1], OpenWorldScreen.SAVE_SCREEN);
+        game.setScreen(new OpenWorldScreen(game, difficulty, new Vector3(w[0], 2f, w[1])));
     }
 
     /** Franchit une porte : on passe dans l'autre zone, avec une sauvegarde automatique à l'arrivée. */
@@ -375,10 +301,6 @@ public class ZoneScreen extends BaseWorldScreen {
     @Override
     protected boolean onGlobalKeyDown(int keycode) {
         if (keycode == Input.Keys.F5) {
-            if (ambush) {
-                gameClock.postMessage("Impossible de sauvegarder pendant une embuscade.");
-                return true;
-            }
             if (arena != null && arena.isRunning()) {
                 gameClock.postMessage("Impossible de sauvegarder pendant l'épreuve.");
                 return true;

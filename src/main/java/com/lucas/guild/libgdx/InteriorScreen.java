@@ -84,26 +84,12 @@ public abstract class InteriorScreen extends BaseWorldScreen {
     /** Action de E sur un PNJ ou un objet propre à ce lieu. @return true si géré. */
     protected abstract boolean onNpcInteract(Object userData);
 
-    /** On entre et on sort d'un intérieur sans quitter le monde ouvert (s'il y était). */
-    @Override
-    protected boolean keepsWorldMode() {
-        return true;
-    }
-
-    /** Sauvegarde automatique puis retour en ville, devant la porte du bâtiment (dans le monde ouvert si on en vient). */
+    /** Sauvegarde automatique puis retour dans le monde ouvert, devant la porte du bâtiment. */
     private void leaveToTown() {
-        com.lucas.guild.game.WorldLayout layout = com.lucas.guild.game.WorldLayout.standard();
-        if (game.getSession().isInOpenWorld() && layout.contains(player.getTownId())) {
-            float[] w = layout.toWorld(player.getTownId(), townSpawn.x, townSpawn.z);
-            saveManager.saveGame(player, gameClock, difficulty, w[0], townSpawn.y, w[1], OpenWorldScreen.SAVE_SCREEN);
-            game.setScreen(new OpenWorldScreen(game, difficulty, new Vector3(w[0], townSpawn.y, w[1])));
-            return;
-        }
-        // On sauvegarde la position DANS LA VILLE (devant la porte), pas celle de l'intérieur.
-        Vector3 spawn = new Vector3(townSpawn);
-        saveManager.saveGame(player, gameClock, difficulty, spawn.x, spawn.y, spawn.z, "Town");
+        float[] w = com.lucas.guild.game.WorldLayout.standard().toWorld(player.getTownId(), townSpawn.x, townSpawn.z);
+        saveManager.saveGame(player, gameClock, difficulty, w[0], townSpawn.y, w[1], OpenWorldScreen.SAVE_SCREEN);
         Gdx.app.log("SAVE", "Sauvegarde automatique en quittant " + placeName);
-        game.setScreen(new TownScreen(game, difficulty, spawn));
+        game.setScreen(new OpenWorldScreen(game, difficulty, new Vector3(w[0], townSpawn.y, w[1])));
     }
 
     // ------------------------------------------------------------------ PNJ de npcs.json

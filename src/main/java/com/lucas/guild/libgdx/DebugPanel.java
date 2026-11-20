@@ -111,7 +111,7 @@ class DebugPanel {
 
         section(list, "Aller à");
         buttons(list,
-                action("Ville", () -> go(game.screenAt(session.getPlayer().getHomeTownId(), difficulty))),
+                action("Ville", () -> go(game.arrivalIn(session.getPlayer().getHomeTownId(), difficulty))),
                 action("Forge", () -> go(new ForgeScreen(game, difficulty))),
                 action("Guilde", () -> go(new GuildScreen(game, difficulty))),
                 action("Auberge", () -> go(new InnScreen(game, difficulty))),
@@ -124,9 +124,9 @@ class DebugPanel {
             places.add(action(place.name, () -> {
                 session.getPlayer().setTownId(place.id);
                 session.getPlayer().markVisited(place.id);
-                // un lieu fermé ou un étage caché du monde ouvert : on y entre directement
-                boolean closed = session.isInOpenWorld() && !com.lucas.guild.game.WorldLayout.standard().contains(place.id);
-                return go(closed ? new ZoneScreen(game, difficulty, null) : game.screenAt(place.id, difficulty));
+                // un lieu fermé ou un étage caché : on y entre directement ; sinon, à son arrivée dans le monde ouvert
+                boolean closed = !com.lucas.guild.game.WorldLayout.standard().contains(place.id);
+                return go(closed ? new ZoneScreen(game, difficulty, null) : game.arrivalIn(place.id, difficulty));
             }));
         }
         buttons(list, places.toArray());
