@@ -382,6 +382,21 @@ public class Smoke extends ApplicationAdapter {
         return null;
     }
 
+    /** Un texte visible de l'ecran commence-t-il par {@code prefix} ? */
+    boolean labelShownStartingWith(String prefix) {
+        return labelStartingWith(stageOf().getRoot(), prefix);
+    }
+
+    static boolean labelStartingWith(Group g, String prefix) {
+        for (Actor a : g.getChildren()) {
+            if (!a.isVisible()) continue;
+            if (a instanceof com.badlogic.gdx.scenes.scene2d.ui.Label
+                    && ((com.badlogic.gdx.scenes.scene2d.ui.Label) a).getText().toString().startsWith(prefix)) return true;
+            if (a instanceof Group && labelStartingWith((Group) a, prefix)) return true;
+        }
+        return false;
+    }
+
     static void collectAllButtons(Group g, List<TextButton> out) {
         for (Actor a : g.getChildren()) {
             if (!a.isVisible()) continue;
@@ -477,7 +492,8 @@ public class Smoke extends ApplicationAdapter {
         key(Input.Keys.M);
         frames(2);
         check("M ouvre la carte", () -> cur() instanceof WorldMapScreen);
-        shot("w04_carte_avec_le_joueur");
+        check("la carte ne dit pas ou l'on est", () -> !labelShownStartingWith("Vous êtes"));
+        shot("w04_carte_sans_position");
         click("Retour sur le chemin");
         frames(3);
         check("retour sur le chemin, au meme endroit", () -> cur() instanceof OpenWorldScreen

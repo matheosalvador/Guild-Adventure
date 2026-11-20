@@ -82,9 +82,10 @@ public class WorldMapScreen implements Screen {
         stage.addActor(side);
 
         side.add(UiKit.label(skin, "Carte du monde")).pad(5).row();
-        boolean onTheWay = session.isInOpenWorld()
-                && com.lucas.guild.game.WorldLayout.standard().placeAt(session.getWorldX(), session.getWorldZ()) == null;
-        side.add(UiKit.label(skin, onTheWay ? "Vous êtes en chemin (point rouge)" : "Vous êtes à " + world.place(here).name)).pad(3).row();
+        if (!session.isInOpenWorld()) {
+            // dans le monde ouvert, la carte ne dit pas où l'on est : à chacun de se repérer
+            side.add(UiKit.label(skin, "Vous êtes à " + world.place(here).name)).pad(3).row();
+        }
         side.add(UiKit.label(skin, session.getClock().getDate() + " - " + session.getClock().formatTime())).pad(3).row();
         boolean fast = session.isInOpenWorld();
         side.add(UiKit.label(skin, fast ? "-- Voyage rapide (lieux déjà atteints) --" : "-- Routes --")).pad(10).row();
@@ -112,6 +113,10 @@ public class WorldMapScreen implements Screen {
             }
             if (arrival < 6 || arrival >= 20) {
                 text += " (arrivée de nuit)";
+            }
+            if (fast) {
+                // la distance et la durée se comptent depuis là où l'on est : les montrer trahirait la position
+                text = route.place.name;
             }
             side.add(UiKit.button(skin, text, new Runnable() {
                 @Override
@@ -224,7 +229,8 @@ public class WorldMapScreen implements Screen {
     private void drawMap() {
         shapes.setProjectionMatrix(stage.getCamera().combined);
         batch.setProjectionMatrix(stage.getCamera().combined);
-        String here = player.getTownId();
+        // dans le monde ouvert, rien ne montre où l'on est (ni point, ni lieu ni routes mis en avant)
+        String here = game.getSession().isInOpenWorld() ? null : player.getTownId();
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(0.18f, 0.24f, 0.2f, 1f);
@@ -236,7 +242,7 @@ public class WorldMapScreen implements Screen {
         for (List<String> link : world.links) {
             float[] a = project(world.place(link.get(0)));
             float[] b = project(world.place(link.get(1)));
-            boolean fromHere = link.contains(here);
+            boolean fromHere = here != null && link.contains(here);
             shapes.setColor(fromHere ? Color.GOLD : Color.GRAY);
             shapes.line(a[0], a[1], b[0], b[1]);
         }
@@ -249,24 +255,15 @@ public class WorldMapScreen implements Screen {
             }
             float[] xy = project(p);
             boolean zone = WorldData.isZone(p);
-            shapes.setColor(p.id.equals(here) ? Color.YELLOW
+            boolean isHere = p.id.equals(here);
+            shapes.setColor(isHere ? Color.YELLOW
                     : player.getVisitedPlaces().contains(p.id) ? (zone ? Color.LIME : Color.WHITE)
                     : zone ? Color.FOREST : Color.GRAY);
             if (zone) {
                 shapes.rect(xy[0] - 7f, xy[1] - 7f, 14f, 14f);   // une zone sauvage : un carré ; une ville : un rond
             } else {
-                shapes.circle(xy[0], xy[1], p.id.equals(here) ? 11f : 8f);
+                shapes.circle(xy[0], xy[1], isHere ? 11f : 8f);
             }
-        }
-        GameSession session = game.getSession();
-        if (session.isInOpenWorld()) {
-            // monde ouvert : le joueur, là où il est vraiment
-            float[] km = com.lucas.guild.game.WorldLayout.standard().toMap(session.getWorldX(), session.getWorldZ());
-            float[] xy = project(km[0], km[1]);
-            shapes.setColor(Color.BLACK);
-            shapes.circle(xy[0], xy[1], 7f);
-            shapes.setColor(Color.RED);
-            shapes.circle(xy[0], xy[1], 5f);
         }
         shapes.end();
 
@@ -276,7 +273,7 @@ public class WorldMapScreen implements Screen {
                 continue;
             }
             float[] xy = project(p);
-            boolean known = player.getVisitedPlaces().contains(p.id) || isNeighborOfHere(p.id);
+            boolean known = player.getVisitedPlaces().contains(p.id) || (here != null && isNeighborOfHere(p.id));
             // un lieu collé à une ville (sa mine, son arène) : son nom s'écrit au-dessus, pour ne pas recouvrir celui de la ville
             float labelY = isNextToATown(p) ? xy[1] + 26f : xy[1] - 16f;
             font.draw(batch, known ? p.name : "???", xy[0] - 30f, labelY);

@@ -249,8 +249,8 @@ openworld.json (le monde ouvert, voir docs/CADRAGE-MONDE-OUVERT.md)
     murs par les coins si besoin, jusqu'a la porte de l'autre lieu. "roads" ne sert qu'a corriger un trace qui
     couperait un autre lieu : from, to (une liaison) et via = points de passage {x, z} en m dans le monde (un test
     verifie qu'aucune route ne traverse un lieu).
-    En jeu : M ouvre la carte (le joueur y est un point rouge) et propose le voyage rapide vers les lieux deja
-    atteints ; F5 sauvegarde la position dans le monde ; en chemin, tous les 1500 m, une embuscade peut surgir
+    En jeu : M ouvre la carte (elle ne montre pas ou l'on est : ni point, ni lieu mis en avant, et seuls les lieux
+    deja atteints y ont leur nom) et propose le voyage rapide vers les lieux deja atteints ; F5 sauvegarde la position dans le monde ; en chemin, tous les 1500 m, une embuscade peut surgir
     (chance de la difficulte, "ambushPercent" de difficulties.json ; monstres de "ambush" dans world.json).
 
 settings.json (pas dans ce dossier : a cote de save.json, cree par le jeu)

@@ -101,7 +101,8 @@ la route du monde rejoint le chemin de la forêt.
   (aucun n'en a besoin aujourd'hui). À pied, les trajets durent 5 à 10 % de plus que sur la carte (le détour par
   les portes). Les morceaux de route sont fusionnés avec leur carreau (sinon ~800 morceaux dessinés à chaque image :
   les images/s tombaient de moitié) ;
-- la carte (M) : le joueur y est un point rouge ; **voyage rapide** vers les lieux déjà atteints seulement, durée
+- la carte (M) : **elle ne montre pas où l'on est** (demande de Lucas : ni point, ni lieu ni routes mis en avant,
+  pas de mini-carte ; seuls les lieux déjà atteints ont leur nom) ; **voyage rapide** vers les lieux déjà atteints seulement, durée
   comptée depuis là où l'on est (`World.fastTravelRoutes`) ;
 - **embuscades sur la route** : en chemin, tous les 1500 m, une chance selon la difficulté (`ambushPercent`, et les
   effets de l'histoire) ; 1 ou 2 monstres de `world.json` (« ambush ») surgissent devant ; pas de F5 tant qu'ils
