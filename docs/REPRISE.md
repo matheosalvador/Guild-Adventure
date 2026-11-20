@@ -9,8 +9,17 @@ ouvert la PR vers `main` le 2026-11-19.
 
 ```text
 general_develop (9e6b2a0)   A à E + prototype du monde ouvert + correctif d'encodage de compile_check.bat
- └─ feature/monde-ouvert-complet   tout l'extérieur en monde ouvert (non fusionnée, non poussée)
+ └─ feature/monde-ouvert-complet   tout l'extérieur en monde ouvert, carte sans position
+     └─ feature/butin-sol              le butin au sol sauvegardé (7 jours)
+         └─ feature/finitions-visuelles    sol sans dents de scie, jonction route / chemin des zones
+             └─ feature/menage-ancien-chemin   TownScreen, carte classique et scène d'embuscade retirés
+                 └─ feature/monde-rempli          sites, choses à ramasser, voyageurs, bandit
+                     └─ feature/reglage-combats       simulation des combats, chefs renforcés (à valider)
+                         └─ feature/relief                collines en pleine campagne
 ```
+
+Aucune de ces branches n'est fusionnée ni poussée (demandes de Lucas du 2026-11-20 : « 1 remplir le monde, 2
+sauvegarder le butin au sol, 3 oui, 4 oui, 5 ok et 6 oui »).
 
 ## Où on en est
 
@@ -112,33 +121,56 @@ la route du monde rejoint le chemin de la forêt.
   partie neuve, aller-retour à pied par la route tracée, Port-Brume et son tableau, la fosse aller-retour, la mine
   fermée, voyage rapide, embuscade forcée, aucune fuite).
 
-**Ce qui reste de l'ancien chemin** : `TownScreen` et la carte « classique » (voyage d'un lieu voisin à l'autre,
-embuscade en scène à part `zone_route.json`) ne servent plus en jeu ; le banc s'en sert encore dans ses sections
-d'avant le monde ouvert (il construit `TownScreen` directement). Les retirer demande de passer ces sections au
-monde ouvert : un chantier de banc à part.
+**La suite du 2026-11-20** (une branche par point, dans l'ordre ci-dessus) :
 
-État vérifié (2026-11-20) : **323 tests JUnit verts** ; parcours complet `FIN: AUCUNE ERREUR`, **269 captures**,
-247 vérifications. Comparées au parcours d'avant ce chantier : les différences sont les écrans qui ouvrent
+- **Carte** : elle ne montre plus où l'on est (ni point, ni lieu ni routes mis en avant, voyage rapide sans distance),
+  pas de mini-carte (demande de Lucas).
+- **Butin au sol** : rangé dans le personnage (`model/GroundDrop`, `Adventurer.groundItems`), donc sauvegardé ; il
+  disparaît au bout de 7 jours de jeu (`GroundItems.LIFETIME_DAYS`).
+- **Finitions** : le sol du monde ouvert est fait de surfaces plates (les côtés des boîtes se disputaient le dessus
+  des voisines : des dents de scie au loin) ; la route s'arrête net à l'entrée des zones, à la hauteur de leur chemin.
+- **Ménage** : `TownScreen`, la carte classique (`World.routesFrom/travel`), la scène d'embuscade (`zone_route.json`,
+  `ZoneScreen.ambush`, le voyage coupé) et le drapeau « dans le monde ouvert » sont retirés : tout passe par le monde
+  ouvert. `TownBuilding` garde l'ouverture des intérieurs ; le tirage d'embuscade est `World.rollRoadAmbush`. Les
+  tests marchent d'un lieu à l'autre avec `Trips` (test) et le banc avec `walkTo`, `town(...)`, `place(...)`.
+  `ZoneScreen` sert aux lieux fermés et au banc (il ouvre une zone seule, avec ses coordonnées de fichier).
+- **Monde rempli** (`openworld.json`) : six sites près des routes (camp de bandits, tour de guet de la garnison,
+  ferme et ses fermiers, stèle des voyageurs, campement gobelin, cabane du bûcheron), de l'herbe de soin et du minerai
+  à ramasser (semés par carreau, ils repoussent ; `game/Gathering`, `Adventurer.gathered`), trois voyageurs qui font
+  la route et parlent (`Villagers.travelers` : leur place dépend de l'heure). Nouveau monstre : le bandit. Les
+  constructions sont découpées en petits travaux (une partie de bâtiment, un habitant, ce qu'on ramasse).
+- **Combats** : `CombatBalanceTest` simule chaque combat de l'histoire avec les vraies règles ; chefs renforcés
+  (Holt 300 PV, Varn 460 PV et 25 de dégâts, Aldric 760 PV). Compte rendu **à valider par Lucas** :
+  `docs/REGLAGE-COMBATS.md`.
+- **Relief** : collines douces en pleine campagne (`Terrain.height`, 7 m au plus, pentes sous 20°), plates sur les
+  routes et dans les lieux ; sol en grille de hauteurs (dessinée, et solide près du joueur :
+  `btHeightfieldTerrainShape`) ; arbres, choses à ramasser, monstres et objets au sol suivent le sol.
+- **Banc** : sections `rempli` (sites, cueillette, voyageurs) et `relief` (tenir debout et monter une pente). La
+  vérification de fluidité porte sur le temps des constructions (40 ms au plus) : pendant ces travaux, un autre jeu
+  tournait sur la machine de Lucas et faussait les images par seconde.
+
+État vérifié (2026-11-20, sur `feature/relief`) : **336 tests JUnit verts** ; parcours complet `FIN: AUCUNE ERREUR`,
+**273 captures**. Avant (fin du monde ouvert complet) : 323 tests, 269 captures, 247 vérifications. Comparées au parcours d'avant ce chantier : les différences sont les écrans qui ouvrent
 maintenant le monde ouvert (F9, Continuer, création), le panneau retiré, et le hasard des combats et des événements
 décalé (le monde ouvert tire aussi des nombres). Marche : environ 160 images/s, pire image de construction 15 à
 29 ms.
 
-Pas encore fait (décisions du cadrage) : le butin laissé au sol n'est pas sauvegardé (7 jours prévus) ; le relief.
+Les décisions du cadrage du monde ouvert sont toutes réalisées.
 
 ## En attente de Lucas
 
 1. Ses tests à la main du chantier A (l'escalier de l'auberge), de l'histoire et du chantier C (parler aux
    habitants, Options, plein écran : le banc ne le clique pas, la fenêtre de test est cachée).
-2. Les **chiffres des combats** : ils sont ceux du cahier (§9), **pas encore réglés par un vrai combat simulé**.
-   Le test de l'histoire vérifie les phases, les renforts, le soin et la reddition, pas la difficulté.
+2. Les **chiffres des combats** : réglés par simulation, **à valider** (`docs/REGLAGE-COMBATS.md`, trois questions).
 3. Les autres points de `RELECTURE.md` §4 (3 et 5 à 11), toujours sans réponse.
 4. Son accord pour les fusions (dans l'ordre des branches ci-dessus).
 
 ## Ensuite (ne pas commencer sans l'accord de Lucas)
 
-Selon l'avis de Lucas après avoir essayé le monde ouvert complet (`.\compile_check.bat` puis `.\run.bat`, Nouvelle
-partie) : le butin au sol sauvegardé, passer le banc au monde ouvert puis retirer `TownScreen` et la carte classique,
-des choses à croiser en chemin, le relief.
+Les six points du 2026-11-20 sont faits. Selon l'avis de Lucas après avoir joué (`.\compile_check.bat` puis
+`.un.bat`, Nouvelle partie) : valider les combats (`docs/REGLAGE-COMBATS.md`), puis les fusions et une PR vers
+`main` (brouillon à lui montrer). Idées notées, pas commencées : plus de sites et de voyageurs, des collines plus
+hautes (constantes de `Terrain`), utiliser l'herbe de soin (fabriquer des potions ?).
 
 ## Vérifier l'état
 
