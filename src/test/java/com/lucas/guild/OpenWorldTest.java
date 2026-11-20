@@ -119,6 +119,43 @@ class OpenWorldTest {
     }
 
     @Test
+    void hillsOnlyInTheCountryside() {
+        // plat dans les lieux, les sites et sur les routes
+        assertEquals(0f, Terrain.height(layout, 0f, 0f), 0f, "Aethelgard");
+        assertEquals(0f, Terrain.height(layout, -900f, -1200f), 0f, "la foret");
+        for (OpenWorldData.SiteData site : GameContent.openWorld().sites) {
+            assertEquals(0f, Terrain.height(layout, site.x, site.z), 0f, site.id);
+        }
+        for (OpenWorldData.RoadData road : layout.roads()) {
+            for (int i = 0; i + 1 < road.points.size(); i++) {
+                OpenWorldData.PointData a = road.points.get(i);
+                OpenWorldData.PointData b = road.points.get(i + 1);
+                for (float t = 0f; t <= 1f; t += 0.1f) {
+                    float x = a.x + (b.x - a.x) * t;
+                    float z = a.z + (b.z - a.z) * t;
+                    assertEquals(0f, Terrain.height(layout, x, z), 0f, "route " + road.from + " -> " + road.to);
+                }
+            }
+        }
+        // des collines ailleurs, toujours les memes, jamais de creux ni de pente trop raide
+        float highest = 0f;
+        float steepest = 0f;
+        for (float x = -1200f; x <= 1200f; x += 16f) {
+            for (float z = -1200f; z <= 1200f; z += 16f) {
+                float h = Terrain.height(layout, x, z);
+                assertTrue(h >= 0f && h <= Terrain.MAX_HEIGHT, "hauteur " + h + " en " + x + ", " + z);
+                assertEquals(h, Terrain.height(layout, x, z), 0f, "toujours la meme");
+                highest = Math.max(highest, h);
+                float dx = Terrain.height(layout, x + 1f, z) - h;
+                float dz = Terrain.height(layout, x, z + 1f) - h;
+                steepest = Math.max(steepest, (float) Math.hypot(dx, dz));
+            }
+        }
+        assertTrue(highest > 4f, "de vraies collines : " + highest + " m au plus haut");
+        assertTrue(steepest < 0.36f, "pentes douces (moins de 20 degres) : " + Math.toDegrees(Math.atan(steepest)) + " degres");
+    }
+
+    @Test
     void sitesSitBesideTheRoadsNotOnThem() {
         OpenWorldData data = GameContent.openWorld();
         assertTrue(data.sites.size() >= 6, "des choses a croiser en chemin : " + data.sites.size());

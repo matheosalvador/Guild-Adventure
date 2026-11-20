@@ -330,6 +330,12 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     protected void onMonsterKilled(Monster monster) {
     }
 
+    /** Le relief : les monstres et les objets au sol suivent cette hauteur du sol (le monde ouvert la donne). */
+    protected void setGroundHeight(CombatScene.Ground height) {
+        combat.setGround(height);
+        groundItems.setGround(height);
+    }
+
     /** Ce lieu prévient-il du marché en cours quand on y arrive ? (la ville, pas les intérieurs) */
     protected boolean announcesEvents() {
         return false;

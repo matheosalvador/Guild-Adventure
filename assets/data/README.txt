@@ -262,6 +262,9 @@ openworld.json (le monde ouvert, voir docs/CADRAGE-MONDE-OUVERT.md)
     murs par les coins si besoin, jusqu'a la porte de l'autre lieu. "roads" ne sert qu'a corriger un trace qui
     couperait un autre lieu : from, to (une liaison) et via = points de passage {x, z} en m dans le monde (un test
     verifie qu'aucune route ne traverse un lieu).
+    Le relief : des collines douces en pleine campagne (7 m au plus, pentes de moins de 20 degres), jamais sur
+    les routes, dans les lieux, les entrees et les sites, ni sur leurs bords (tout y est pose sur un sol plat). Il
+    n'est pas dans ce fichier : il est fabrique par le jeu (game/Terrain, constantes BIG_HEIGHT et SMALL_HEIGHT).
     En jeu : M ouvre la carte (elle ne montre pas ou l'on est : ni point, ni lieu mis en avant, et seuls les lieux
     deja atteints y ont leur nom) et propose le voyage rapide vers les lieux deja atteints ; F5 sauvegarde la position dans le monde ; en chemin, tous les 1500 m, une embuscade peut surgir
     (chance de la difficulte, "ambushPercent" de difficulties.json ; monstres de "ambush" dans world.json).

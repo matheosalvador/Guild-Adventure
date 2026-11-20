@@ -42,6 +42,13 @@ final class GroundItemViews {
         this.boxes = boxes;
     }
 
+    /** La hauteur du sol (le relief du monde ouvert ; 0 ailleurs). */
+    private CombatScene.Ground height = (x, z) -> 0f;
+
+    void setGround(CombatScene.Ground height) {
+        this.height = height;
+    }
+
     /** Montre les objets déjà au sol dans ce lieu (on y revient). */
     void showExisting() {
         for (com.lucas.guild.model.GroundDrop drop : ground.in(scene)) {
@@ -59,7 +66,7 @@ final class GroundItemViews {
     }
 
     private void show(com.lucas.guild.model.GroundDrop drop) {
-        views.put(drop, boxes.box(0.5f, 0.3f, 0.5f, colorOf(drop.item), drop.x, 0.65f, drop.z));
+        views.put(drop, boxes.box(0.5f, 0.3f, 0.5f, colorOf(drop.item), drop.x, 0.65f + height.at(drop.x, drop.z), drop.z));
     }
 
     /** Pose un objet au sol en (x, z). */

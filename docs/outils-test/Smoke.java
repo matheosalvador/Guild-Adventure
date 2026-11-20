@@ -209,6 +209,9 @@ public class Smoke extends ApplicationAdapter {
 
         // =================================================== CE QU'ON CROISE EN CHEMIN
         rempliSection();
+
+        // =================================================== LE RELIEF
+        reliefSection();
     }
 
     // ------------------------------------------------------------------ monde ouvert (prototype)
@@ -509,7 +512,8 @@ public class Smoke extends ApplicationAdapter {
             teleport(n.x, 2f, n.z + 1.6f);
         });
         frames(5);
-        step(() -> { com.lucas.guild.game.Terrain.Node n = (com.lucas.guild.game.Terrain.Node) nearestNode; faceAt(n.x, 0.9f, n.z); });
+        step(() -> { com.lucas.guild.game.Terrain.Node n = (com.lucas.guild.game.Terrain.Node) nearestNode;
+                     faceAt(n.x, 0.9f + com.lucas.guild.game.Terrain.height(layout(), n.x, n.z), n.z); });
         frames(3);
         shot("r30_herbe_a_cueillir");
         check("on vise l'herbe", () -> aimed() != null && aimed().getClass().getSimpleName().equals("GatherRef"));
@@ -544,6 +548,91 @@ public class Smoke extends ApplicationAdapter {
         shot("r40_colporteur");
         click("Au revoir");
         step(() -> { com.lucas.guild.game.DebugMode.setInvincible(false); com.lucas.guild.game.DebugMode.setEnabled(false); });
+    }
+
+    // ------------------------------------------------------------------ le relief
+
+    float hillX, hillZ, hillH;
+    float yBefore;
+
+    /** Le joueur sur une colline : il tient debout sur la pente, y marche, et ne passe jamais sous le sol. */
+    void reliefSection() {
+        step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); resetSettings(); setStoryTexts(false); });
+        step(() -> game.setScreen(game.arrivalIn("aethelgard", "facile")));
+        settleWorld();
+        step(() -> {
+            // la colline la plus haute pres de la route de la foret
+            hillH = -1f;
+            for (float x = -700f; x <= -200f; x += 8f) {
+                for (float z = -800f; z <= -300f; z += 8f) {
+                    float h = com.lucas.guild.game.Terrain.height(layout(), x, z);
+                    if (h > hillH) { hillH = h; hillX = x; hillZ = z; }
+                }
+            }
+            log(String.format(java.util.Locale.ROOT, "colline : %.1f m en (%.0f, %.0f)", hillH, hillX, hillZ));
+            teleport(hillX + 45f, 2f, hillZ + 45f);
+        });
+        settleWorld();
+        frames(90);
+        check("une vraie colline pres de la route", () -> hillH > 4f);
+        check("au pied de la pente, debout sur le sol (ni dedans, ni en l'air)", () -> {
+            Vector3 p = pc().getPlayerBody().getCenterOfMassPosition();
+            float ground = 0.5f + com.lucas.guild.game.Terrain.height(layout(), p.x, p.z);
+            log(String.format(java.util.Locale.ROOT, "pieds a %.2f m, sol a %.2f m", p.y - 1f, ground));
+            return Math.abs((p.y - 1f) - ground) < 0.35f;
+        });
+        step(() -> faceAt(hillX, hillH + 2f, hillZ));
+        frames(2);
+        shot("h01_colline");
+        // on monte vers le sommet
+        step(() -> { yBefore = pc().getPlayerBody().getCenterOfMassPosition().y; ((InputProcessor) cur()).keyDown(Input.Keys.W); });
+        for (int i = 0; i < 300; i++) {
+            step(() -> faceAt(hillX, pc().getPlayerBody().getCenterOfMassPosition().y, hillZ));
+            frames(1);
+        }
+        step(() -> ((InputProcessor) cur()).keyUp(Input.Keys.W));
+        frames(30);
+        check("on monte la pente en marchant (au moins les deux tiers de la montee jusqu'au sommet)", () -> {
+            float climb = 0.5f + hillH + 1f - yBefore;
+            float done = pc().getPlayerBody().getCenterOfMassPosition().y - yBefore;
+            log(String.format(java.util.Locale.ROOT, "montee : %.2f m sur %.2f m", done, climb));
+            return climb > 0.5f && done >= climb * 0.66f;
+        });
+        check("en haut, toujours sur le sol", () -> {
+            Vector3 p = pc().getPlayerBody().getCenterOfMassPosition();
+            float ground = 0.5f + com.lucas.guild.game.Terrain.height(layout(), p.x, p.z);
+            log(String.format(java.util.Locale.ROOT, "en haut : pieds a %.2f m, sol a %.2f m", p.y - 1f, ground));
+            return Math.abs((p.y - 1f) - ground) < 0.35f;
+        });
+        step(() -> { Vector3 p = pc().getPlayerBody().getCenterOfMassPosition(); face(p.x, p.y - 2f, p.z + 40f); });
+        frames(2);
+        shot("h02_depuis_le_sommet");
+        // un loup sur la pente : il suit le sol
+        step(() -> com.lucas.guild.game.DebugMode.setEnabled(true));
+        step(() -> invokeDebugSpawn("wolf"));
+        frames(20);
+        check("un loup sur la pente pose les pattes sur le sol", () -> {
+            com.lucas.guild.game.Monster m = monsterNear(hillX, hillZ);
+            Object entry = null;
+            for (Object e : (java.util.List<?>) fieldOf(fieldOf(cur(), "combat"), "entries")) {
+                if (fieldOf(e, "monster") == m) entry = e;
+            }
+            Object character = fieldOf(entry, "character");
+            Object root = fieldOf(character, "root");
+            float y = ((com.badlogic.gdx.math.Matrix4) root).getTranslation(new Vector3()).y;
+            float ground = 0.5f + com.lucas.guild.game.Terrain.height(layout(), m.x, m.z);
+            log(String.format(java.util.Locale.ROOT, "loup : pattes a %.2f m, sol a %.2f m", y, ground));
+            return Math.abs(y - ground) < 0.3f;
+        });
+        step(() -> com.lucas.guild.game.DebugMode.setEnabled(false));
+    }
+
+    void invokeDebugSpawn(String id) {
+        try {
+            java.lang.reflect.Method m = BaseWorldScreen.class.getDeclaredMethod("debugSpawn", String.class);
+            m.setAccessible(true);
+            m.invoke(cur(), id);
+        } catch (Exception e) { throw new RuntimeException(e); }
     }
 
     /** Clique le premier bouton visible dont le texte commence par {@code prefix}. */
@@ -1380,6 +1469,9 @@ public class Smoke extends ApplicationAdapter {
     }
 
     void teleport(float x, float y, float z) {
+        if (cur() instanceof OpenWorldScreen) {
+            y += com.lucas.guild.game.Terrain.height(layout(), x, z);   // le relief : on arrive au-dessus du sol, pas dedans
+        }
         com.badlogic.gdx.physics.bullet.dynamics.btRigidBody body = pc().getPlayerBody();
         body.proceedToTransform(new com.badlogic.gdx.math.Matrix4().setTranslation(x, y, z));
         body.setLinearVelocity(new Vector3());

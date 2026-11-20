@@ -100,6 +100,11 @@ public class OpenWorldScreen extends BaseWorldScreen {
         Group solid;
         /** Ce qu'on peut ramasser sur le carreau (pas fusionné : une chose ramassée disparaît seule). */
         Group gather;
+        /** Les hauteurs du sol aux points de la grille du carreau (null : pas encore calculées) ; tout à 0 = plat. */
+        float[] heights;
+        boolean hilly;
+        /** Les hauteurs données au corps solide du relief (Bullet les lit tant qu'il existe). */
+        java.nio.FloatBuffer heightData;
 
         Tile(int tx, int tz) {
             this.tx = tx;
@@ -266,6 +271,9 @@ public class OpenWorldScreen extends BaseWorldScreen {
         physics().addRigidBody(groundBody);
 
         buildRoads();
+        setGroundHeight(this::groundAt);
+        // une position sur une colline (rechargée, ou revenue de la carte) : on part au-dessus du sol, pas dedans
+        spawn.y = Math.max(spawn.y, 0.5f + groundAt(spawn.x, spawn.z) + 1.5f);
         GameContent.models();
         GameContent.monsters();
         for (OpenWorldData.PortalData p : data.portals) {
@@ -441,6 +449,8 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 if (!tiles.containsKey(key)) {
                     final Tile tile = new Tile(tx, tz);
                     tiles.put(key, tile);
+                    // les hauteurs du relief d'abord (un travail à part), puis le carreau
+                    work.add(() -> heightsOf(tile));
                     work.add(() -> buildTile(tile));
                 }
             }
@@ -470,17 +480,94 @@ public class OpenWorldScreen extends BaseWorldScreen {
         }
     }
 
+    /** Points de la grille du relief sur un côté de carreau (un tous les 4 m pour un carreau de 128 m). */
+    private static final int GRID = 33;
+
+    /** Les hauteurs du sol du carreau, calculées une fois. */
+    private float[] heightsOf(Tile tile) {
+        if (tile.heights == null) {
+            float step = data.tileSize / (GRID - 1);
+            float[] h = new float[GRID * GRID];
+            boolean hilly = false;
+            for (int j = 0; j < GRID; j++) {
+                for (int i = 0; i < GRID; i++) {
+                    h[j * GRID + i] = Terrain.height(layout, tile.tx * data.tileSize + i * step, tile.tz * data.tileSize + j * step);
+                    hilly |= h[j * GRID + i] > 0.01f;
+                }
+            }
+            tile.heights = h;
+            tile.hilly = hilly;
+        }
+        return tile.heights;
+    }
+
+    /** La hauteur du sol en (x, z) (le relief, au-dessus du sol plat). */
+    private float groundAt(float x, float z) {
+        return Terrain.height(layout, x, z);
+    }
+
+    /**
+     * Le sol bosselé d'un carreau : une grille de triangles (un point tous les 4 m), dont le dessus est 5 cm plus bas
+     * que le sol solide, comme le sol plat.
+     */
+    private void terrainMesh(Group g, Tile tile, Color color) {
+        float[] h = heightsOf(tile);
+        float step = data.tileSize / (GRID - 1);
+        com.badlogic.gdx.graphics.g3d.utils.ModelBuilder builder = new com.badlogic.gdx.graphics.g3d.utils.ModelBuilder();
+        builder.begin();
+        com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder part = builder.part("sol", com.badlogic.gdx.graphics.GL20.GL_TRIANGLES,
+                com.badlogic.gdx.graphics.VertexAttributes.Usage.Position | com.badlogic.gdx.graphics.VertexAttributes.Usage.Normal,
+                new com.badlogic.gdx.graphics.g3d.Material(com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute.createDiffuse(color)));
+        Vector3 pos = new Vector3();
+        Vector3 nor = new Vector3();
+        for (int j = 0; j < GRID; j++) {
+            for (int i = 0; i < GRID; i++) {
+                float left = h[j * GRID + Math.max(0, i - 1)];
+                float right = h[j * GRID + Math.min(GRID - 1, i + 1)];
+                float back = h[Math.max(0, j - 1) * GRID + i];
+                float front = h[Math.min(GRID - 1, j + 1) * GRID + i];
+                nor.set(left - right, 2f * step, back - front).nor();
+                pos.set(i * step, 0.45f + h[j * GRID + i], j * step);
+                part.vertex(pos, nor, null, null);
+            }
+        }
+        for (int j = 0; j + 1 < GRID; j++) {
+            for (int i = 0; i + 1 < GRID; i++) {
+                short a = (short) (j * GRID + i);
+                short b = (short) (j * GRID + i + 1);
+                short c = (short) ((j + 1) * GRID + i);
+                short d = (short) ((j + 1) * GRID + i + 1);
+                part.triangle(a, c, b);   // vers le haut
+                part.triangle(b, c, d);
+            }
+        }
+        com.badlogic.gdx.graphics.g3d.Model model = builder.end();
+        g.owned.add(model);
+        ModelInstance instance = new ModelInstance(model);
+        instance.transform.setTranslation(tile.tx * data.tileSize, 0f, tile.tz * data.tileSize);
+        g.visuals.add(instance);
+        if (!g.cached) {
+            instances.add(instance);
+        }
+    }
+
     private void buildTile(Tile tile) {
         if (tiles.get(tileKey(tile.tx, tile.tz)) != tile) {
             return;   // défait avant d'être construit
         }
+        heightsOf(tile);
         Group g = new Group();
         g.cached = true;
         float size = data.tileSize;
         float cx = (tile.tx + 0.5f) * size;
         float cz = (tile.tz + 0.5f) * size;
         // le sol dessiné est un peu plus bas que le sol solide (0,5) : sous une ville ou une forêt, le leur le recouvre
-        groundPatch(g, size, ColorNames.parse(data.ground, "openworld.json", "le sol"), cx, cz, -0.05f);
+        Color groundColor = ColorNames.parse(data.ground, "openworld.json", "le sol");
+        if (tile.hilly) {
+            terrainMesh(g, tile, groundColor);
+        } else {
+            groundPatch(g, size, groundColor, cx, cz, -0.05f);
+        }
         List<float[]> pieces = roadPieces.get(tileKey(tile.tx, tile.tz));
         if (pieces != null) {
             for (float[] piece : pieces) {
@@ -492,11 +579,14 @@ public class OpenWorldScreen extends BaseWorldScreen {
             float s = TREE_SCALE[tree.size];
             float trunkH = (tree.kind == 0 ? 5.8f : 3.5f) * s;
             float trunkW = (tree.kind == 0 ? 0.8f : 1f) * s;
-            visual(g, "box", trunkW, trunkH, trunkW, TRUNK, tree.x, 0.5f + trunkH / 2f, tree.z, null);
+            // le tronc s'enfonce un peu dans le sol : sur une pente, il ne flotte pas
+            float foot = 0.5f + groundAt(tree.x, tree.z) - 0.3f;
+            visual(g, "box", trunkW, trunkH + 0.3f, trunkW, TRUNK, tree.x, foot + (trunkH + 0.3f) / 2f, tree.z, null);
+            float top = foot + 0.3f + trunkH;
             if (tree.kind == 0) {
-                visual(g, "sphere", 4.2f * s, 4.5f * s, 4.2f * s, CROWN[0], tree.x, 0.5f + trunkH - 0.5f * s + 2.25f * s, tree.z, null);
+                visual(g, "sphere", 4.2f * s, 4.5f * s, 4.2f * s, CROWN[0], tree.x, top - 0.5f * s + 2.25f * s, tree.z, null);
             } else {
-                visual(g, "cone", 3.8f * s, 8.4f * s, 3.8f * s, CROWN[1], tree.x, 0.5f + trunkH + 4.2f * s, tree.z, null);
+                visual(g, "cone", 3.8f * s, 8.4f * s, 3.8f * s, CROWN[1], tree.x, top + 4.2f * s, tree.z, null);
             }
         }
         g.cache = new ModelCache();
@@ -537,24 +627,25 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 continue;
             }
             GatherRef ref = new GatherRef(node, tile);
+            float y = groundAt(node.x, node.z);
             if ("herb".equals(kind.kind)) {
-                visual(g, "cone", 0.35f, 0.7f, 0.35f, HERB, node.x, 0.85f, node.z, null);
-                visual(g, "cone", 0.3f, 0.55f, 0.3f, HERB, node.x + 0.25f, 0.78f, node.z + 0.15f, null);
-                visual(g, "cone", 0.3f, 0.6f, 0.3f, HERB, node.x - 0.2f, 0.8f, node.z + 0.2f, null);
-                visual(g, "sphere", 0.14f, 0.14f, 0.14f, HERB_FLOWER, node.x, 1.25f, node.z, null);
+                visual(g, "cone", 0.35f, 0.7f, 0.35f, HERB, node.x, y + 0.85f, node.z, null);
+                visual(g, "cone", 0.3f, 0.55f, 0.3f, HERB, node.x + 0.25f, y + 0.78f, node.z + 0.15f, null);
+                visual(g, "cone", 0.3f, 0.6f, 0.3f, HERB, node.x - 0.2f, y + 0.8f, node.z + 0.2f, null);
+                visual(g, "sphere", 0.14f, 0.14f, 0.14f, HERB_FLOWER, node.x, y + 1.25f, node.z, null);
                 // un corps bas, qu'on vise sans s'y cogner vraiment
                 if (herbShape == null) {
                     herbShape = new btBoxShape(new Vector3(0.4f, 0.3f, 0.4f));
                 }
-                solid(g, herbShape, false, node.x, 0.8f, node.z, ref);
+                solid(g, herbShape, false, node.x, y + 0.8f, node.z, ref);
             } else {
                 if (rockShape == null) {
                     rockShape = new btBoxShape(new Vector3(0.5f, 0.3f, 0.4f));
                 }
-                visual(g, "box", 1.0f, 0.6f, 0.8f, ROCK, node.x, 0.8f, node.z, null);
-                solid(g, rockShape, false, node.x, 0.8f, node.z, ref);
-                visual(g, "box", 0.35f, 0.12f, 0.3f, ORE, node.x + 0.15f, 1.12f, node.z - 0.1f, null);
-                visual(g, "box", 0.25f, 0.1f, 0.2f, ORE, node.x - 0.25f, 1.1f, node.z + 0.15f, null);
+                visual(g, "box", 1.0f, 0.6f, 0.8f, ROCK, node.x, y + 0.8f, node.z, null);
+                solid(g, rockShape, false, node.x, y + 0.8f, node.z, ref);
+                visual(g, "box", 0.35f, 0.12f, 0.3f, ORE, node.x + 0.15f, y + 1.12f, node.z - 0.1f, null);
+                visual(g, "box", 0.25f, 0.1f, 0.2f, ORE, node.x - 0.25f, y + 1.1f, node.z + 0.15f, null);
             }
         }
     }
@@ -574,7 +665,28 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 shape = new btBoxShape(new Vector3(trunkW / 2f, trunkH / 2f, trunkW / 2f));
                 trunkShapes.put(key, shape);
             }
-            solid(tile.solid, shape, false, tree.x, 0.5f + trunkH / 2f, tree.z, null);
+            solid(tile.solid, shape, false, tree.x, 0.5f + groundAt(tree.x, tree.z) + trunkH / 2f, tree.z, null);
+        }
+        float[] h = heightsOf(tile);
+        if (tile.hilly) {
+            // les collines : une grille de hauteurs solide (le sol plat, lui, reste le plan commun à tout le monde)
+            java.nio.FloatBuffer heights = com.badlogic.gdx.utils.BufferUtils.newFloatBuffer(GRID * GRID);
+            float min = Float.MAX_VALUE;
+            float max = -Float.MAX_VALUE;
+            for (float v : h) {
+                heights.put(0.5f + v);
+                min = Math.min(min, 0.5f + v);
+                max = Math.max(max, 0.5f + v);
+            }
+            heights.flip();
+            tile.heightData = heights;
+            float step = data.tileSize / (GRID - 1);
+            com.badlogic.gdx.physics.bullet.collision.btHeightfieldTerrainShape shape =
+                    new com.badlogic.gdx.physics.bullet.collision.btHeightfieldTerrainShape(GRID, GRID, heights, 1f, min, max, 1, false);
+            shape.setLocalScaling(new Vector3(step, 1f, step));
+            // Bullet centre la grille sur son milieu, et sa hauteur entre min et max
+            solid(tile.solid, shape, true, tile.tx * data.tileSize + data.tileSize / 2f, (min + max) / 2f,
+                    tile.tz * data.tileSize + data.tileSize / 2f, null);
         }
     }
 

@@ -81,7 +81,23 @@ class CombatScene implements Disposable {
     }
 
     private static final float DYING_SECONDS = 1.6f;
-    private static final float FLOOR_TOP = 0.5f;      // le dessus du sol (boîte d'1 m centrée en 0)
+    private static final float FLOOR_TOP = 0.5f;      // le dessus du sol plat (boîte d'1 m centrée en 0)
+
+    /** La hauteur du sol en (x, z) au-dessus du sol plat (le relief du monde ouvert ; 0 ailleurs). */
+    interface Ground {
+        float at(float x, float z);
+    }
+
+    private Ground ground = (x, z) -> 0f;
+
+    void setGround(Ground ground) {
+        this.ground = ground;
+    }
+
+    /** Le dessus du sol sous (x, z). */
+    private float floorAt(float x, float z) {
+        return FLOOR_TOP + ground.at(x, z);
+    }
     private static final float DAMAGE_FLASH = 0.35f;  // durée du flash rouge quand le joueur est touché
     private static final float TARGET_RANGE = 12f;    // distance max à laquelle on affiche le monstre visé
     private static final float BOSS_BAR_RANGE = 40f;  // distance max à laquelle on affiche la vie d'un adversaire nommé
@@ -261,7 +277,7 @@ class CombatScene implements Disposable {
         for (java.util.Iterator<Dying> it = dying.iterator(); it.hasNext();) {
             Dying d = it.next();
             d.time += dt;
-            d.model.update(dt, 0f, feet.set(d.x, FLOOR_TOP, d.z), d.yaw);
+            d.model.update(dt, 0f, feet.set(d.x, floorAt(d.x, d.z), d.z), d.yaw);
             if (d.time > DYING_SECONDS) {
                 d.model.dispose();
                 it.remove();
@@ -329,7 +345,7 @@ class CombatScene implements Disposable {
             float[] bounds = reinforcementBounds.get(i);
             Monster added = spawn(reinforcementIds.get(i), reinforcements.get(i)[0], reinforcements.get(i)[1], bounds);
             clamp(entries.get(entries.size() - 1), added);
-            sparks.burst(added.x, FLOOR_TOP + added.data.h * 0.5f, added.z, 10, new Color(0.8f, 0.8f, 0.85f, 1f), 3f);
+            sparks.burst(added.x, floorAt(added.x, added.z) + added.data.h * 0.5f, added.z, 10, new Color(0.8f, 0.8f, 0.85f, 1f), 3f);
         }
     }
 
@@ -344,11 +360,11 @@ class CombatScene implements Disposable {
             e.lastZ = m.z;
             e.lastYaw = yaw;
             e.character.setFlash(m.getHurtTimer() > 0f);
-            e.character.update(dt, speed, feet.set(m.x, FLOOR_TOP + m.data.flyHeight, m.z), yaw);
+            e.character.update(dt, speed, feet.set(m.x, floorAt(m.x, m.z) + m.data.flyHeight, m.z), yaw);
             return;
         }
         float angle = (float) Math.toDegrees(Math.atan2(lookX - m.x, lookZ - m.z));
-        e.instance.transform.idt().translate(m.x, FLOOR_TOP + m.data.flyHeight + m.data.h / 2f, m.z).rotate(Vector3.Y, angle);
+        e.instance.transform.idt().translate(m.x, floorAt(m.x, m.z) + m.data.flyHeight + m.data.h / 2f, m.z).rotate(Vector3.Y, angle);
         ColorAttribute diffuse = (ColorAttribute) e.instance.materials.first().get(ColorAttribute.Diffuse);
         if (m.getHurtTimer() > 0f) {
             diffuse.color.set(1f, 0.25f, 0.25f, 1f);
@@ -376,10 +392,10 @@ class CombatScene implements Disposable {
             return null;   // il s'est rendu : on ne frappe plus
         }
         Combat.playerHit(player, hitMonster);
-        sparks.burst(hitMonster.x, FLOOR_TOP + hitMonster.data.flyHeight + hitMonster.data.h * 0.6f, hitMonster.z, 7, new Color(1f, 0.82f, 0.45f, 1f), 3.5f);
+        sparks.burst(hitMonster.x, floorAt(hitMonster.x, hitMonster.z) + hitMonster.data.flyHeight + hitMonster.data.h * 0.6f, hitMonster.z, 7, new Color(1f, 0.82f, 0.45f, 1f), 3.5f);
         if (target.monster.isDead()) {
             Monster m = target.monster;
-            sparks.burst(m.x, FLOOR_TOP + m.data.flyHeight + m.data.h * 0.5f, m.z, 14, target.baseColor, 4.5f);
+            sparks.burst(m.x, floorAt(m.x, m.z) + m.data.flyHeight + m.data.h * 0.5f, m.z, 14, target.baseColor, 4.5f);
             String loot = Combat.loot(player, m, random);
             if (listener != null) {
                 listener.killed(m);
@@ -416,7 +432,7 @@ class CombatScene implements Disposable {
         float bestDist = range;
         for (Entry e : entries) {
             Monster m = e.monster;
-            float base = FLOOR_TOP + m.data.flyHeight;
+            float base = floorAt(m.x, m.z) + m.data.flyHeight;
             box.set(new Vector3(m.x - m.data.w / 2f, base, m.z - m.data.d / 2f),
                     new Vector3(m.x + m.data.w / 2f, base + m.data.h, m.z + m.data.d / 2f));
             if (Intersector.intersectRayBounds(ray, box, hit)) {

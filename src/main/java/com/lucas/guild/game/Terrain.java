@@ -97,6 +97,65 @@ public final class Terrain {
         return nodes;
     }
 
+    // ------------------------------------------------------------------ le relief
+
+    /** Les collines : deux couches de bruit doux (taille d'une bosse en m, hauteur en m). */
+    private static final float BIG_CELL = 160f;
+    private static final float BIG_HEIGHT = 5f;
+    private static final float SMALL_CELL = 60f;
+    private static final float SMALL_HEIGHT = 2f;
+    /** Plat sur ce bord autour des routes et des lieux, puis montée douce sur {@link #RISE} m. */
+    private static final float FLAT_EDGE = 4f;
+    private static final float RISE = 40f;
+    /** La plus grande hauteur possible du relief, en m. */
+    public static final float MAX_HEIGHT = BIG_HEIGHT + SMALL_HEIGHT;
+
+    /**
+     * La hauteur du sol en (x, z), en m au-dessus du sol plat : des collines douces en pleine campagne (jamais de
+     * creux : le sol plat reste le plus bas), et rien du tout sur les routes, dans les lieux, les entrées et les sites,
+     * ni sur leurs bords : tout ce qui y est posé suppose un sol plat. Toujours la même au même endroit.
+     */
+    public static float height(WorldLayout layout, float x, float z) {
+        float near = layout.distanceToRoad(x, z) - layout.data().roadWidth / 2f;
+        for (String id : layout.footprints()) {
+            near = Math.min(near, layout.distanceToPlace(id, x, z));
+            if (near <= FLAT_EDGE) {
+                return 0f;
+            }
+        }
+        if (near <= FLAT_EDGE) {
+            return 0f;
+        }
+        float t = Math.min(1f, (near - FLAT_EDGE) / RISE);
+        float weight = t * t * (3f - 2f * t);
+        return weight * (BIG_HEIGHT * noise(x / BIG_CELL, z / BIG_CELL, 17) + SMALL_HEIGHT * noise(x / SMALL_CELL, z / SMALL_CELL, 91));
+    }
+
+    /** Un bruit doux entre 0 et 1 : des valeurs tirées aux coins d'une grille, lissées entre eux. */
+    private static float noise(float x, float z, int salt) {
+        int x0 = (int) Math.floor(x);
+        int z0 = (int) Math.floor(z);
+        float fx = smooth(x - x0);
+        float fz = smooth(z - z0);
+        float a = lattice(x0, z0, salt);
+        float b = lattice(x0 + 1, z0, salt);
+        float c = lattice(x0, z0 + 1, salt);
+        float d = lattice(x0 + 1, z0 + 1, salt);
+        return (a + (b - a) * fx) + ((c + (d - c) * fx) - (a + (b - a) * fx)) * fz;
+    }
+
+    private static float smooth(float t) {
+        return t * t * (3f - 2f * t);
+    }
+
+    /** Une valeur entre 0 et 1, toujours la même pour ce coin de grille. */
+    private static float lattice(int x, int z, int salt) {
+        long h = x * 374761393L + z * 668265263L + salt * 2147483647L;
+        h = (h ^ (h >>> 13)) * 1274126177L;
+        h ^= h >>> 16;
+        return (h & 0xFFFFFF) / (float) 0xFFFFFF;
+    }
+
     /** Peut-on semer un arbre ici ? Ni sur la route, ni dans un lieu (ou trop près de son bord). */
     public static boolean isFree(WorldLayout layout, float x, float z) {
         if (layout.distanceToRoad(x, z) < layout.data().roadWidth / 2f + ROAD_MARGIN) {
