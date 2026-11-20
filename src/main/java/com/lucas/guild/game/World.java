@@ -55,6 +55,40 @@ public final class World {
         return routes;
     }
 
+    /**
+     * Monde ouvert : le voyage rapide, vers les lieux déjà atteints (sauf celui où l'on est), depuis l'endroit où se
+     * trouve le joueur. La durée est celle de la marche en ligne droite, comme sur la carte.
+     */
+    public static List<Route> fastTravelRoutes(GameSession session, WorldLayout layout) {
+        WorldData world = GameContent.world();
+        Adventurer player = session.getPlayer();
+        float[] km = layout.toMap(session.getWorldX(), session.getWorldZ());
+        String here = layout.placeAt(session.getWorldX(), session.getWorldZ());
+        Story story = new Story(player, null);
+        List<Route> routes = new ArrayList<>();
+        for (WorldData.PlaceData place : world.places) {
+            if (place.hidden || place.id.equals(here) || !player.getVisitedPlaces().contains(place.id)) {
+                continue;
+            }
+            double distance = Math.hypot(place.x - km[0], place.z - km[1]);
+            routes.add(new Route(place, distance, travelMinutes(distance, world.walkingKmh, player.getSpeedFactor()), story.lockReason(place.id)));
+        }
+        return routes;
+    }
+
+    /** Le voyage rapide vers {@code placeId} : le temps passe, le joueur arrive. @return la phrase d'arrivée, ou null si ce voyage n'est pas proposé */
+    public static String fastTravel(GameSession session, WorldLayout layout, String placeId) {
+        for (Route route : fastTravelRoutes(session, layout)) {
+            if (route.place.id.equals(placeId) && route.lockedReason == null) {
+                session.getClock().advanceMinutes(route.minutes);
+                session.getPlayer().setTownId(placeId);
+                return "Vous arrivez à " + route.place.name + " après " + formatDuration(route.minutes)
+                        + " de marche. Il est " + session.getClock().formatTime() + ".";
+            }
+        }
+        return null;
+    }
+
     /** « 6 h 20 » ou « 45 min ». */
     public static String formatDuration(int minutes) {
         int h = minutes / 60;

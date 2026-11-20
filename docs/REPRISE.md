@@ -1,16 +1,15 @@
 # Reprise du travail
 
-Tenu à jour à chaque fin d'étape (voir `docs/PLAN-FABLE.md`, §9). Dernière mise à jour : 2026-11-19.
+Tenu à jour à chaque fin d'étape (voir `docs/PLAN-FABLE.md`, §9). Dernière mise à jour : 2026-11-20.
 
 ## Les branches
 
-Les chantiers A, D, B et C sont **fusionnés dans `general_develop`** (local, `54446f9`, en avance rapide, demande de
-Lucas du 2026-11-16). Rien n'est poussé : `origin/general_develop` est resté à la fin du chantier A (`2a8b366`).
+Tout jusqu'au prototype du monde ouvert est **fusionné dans `general_develop` et poussé** (`9e6b2a0`) ; Lucas a
+ouvert la PR vers `main` le 2026-11-19.
 
 ```text
-general_develop (54446f9)   A + D + B + C
- └─ feature/java21               chantier E : rapport docs/COMPATIBILITE-JAVA.md, section perf du banc
-     └─ feature/monde-ouvert     prototype du monde ouvert (Aethelgard -> Forêt des Loups à pied)
+general_develop (9e6b2a0)   A à E + prototype du monde ouvert + correctif d'encodage de compile_check.bat
+ └─ feature/monde-ouvert-complet   tout l'extérieur en monde ouvert (non fusionnée, non poussée)
 ```
 
 ## Où on en est
@@ -84,6 +83,47 @@ qui changent d'un parcours à l'autre (machine ou pilote ?) : à surveiller.
 Défauts vus sur les captures, pas corrigés : petits points sombres sur l'herbe (ombres) ; une marche visible là où
 la route du monde rejoint le chemin de la forêt.
 
+**Monde ouvert complet** : fait sur `feature/monde-ouvert-complet`. Le monde ouvert est maintenant **le jeu** :
+
+- une partie neuve commence dans le monde ouvert, devant la porte de la ville de départ ; « Continuer » et F9 y
+  reprennent (une ancienne sauvegarde dans une ville ou une zone est convertie en position du monde) ; le panneau
+  « Partir à pied » et l'action `walk` sont retirés ;
+- les 3 villes et les 2 zones sauvages sont posées dans le monde (villes resserrées à 70 m de demi-côté : rien
+  n'existe hors de leurs murs), avec leurs habitants qui parlent (code partagé avec `TownScreen` : `Villagers`),
+  leur tableau d'annonces, leurs panneaux, le marché du jour annoncé en entrant ; les monstres de chaque zone sont
+  retenus chez eux (bornes par monstre dans `CombatScene`) et retirés seuls quand leur zone est défaite ;
+- les lieux fermés de l'histoire (mine, fosse, château) sont des **entrées** (`portals` de `openworld.json` : un
+  petit décor et une porte, action `enter`) : on y entre comme dans une maison (lieu fermé : la raison s'affiche),
+  on en ressort devant la porte ; les étages cachés ressortent par l'entrée de leur lieu ; l'histoire, les arènes
+  et les portes de ces lieux sont inchangées (`ZoneScreen`) ;
+- les **routes sont tracées par le jeu** (`WorldLayout`), une par liaison de `world.json` : de la porte d'un lieu,
+  autour des murs par les coins, jusqu'à la porte de l'autre ; `roads` (points `via`) ne sert qu'à corriger un tracé
+  (aucun n'en a besoin aujourd'hui). À pied, les trajets durent 5 à 10 % de plus que sur la carte (le détour par
+  les portes). Les morceaux de route sont fusionnés avec leur carreau (sinon ~800 morceaux dessinés à chaque image :
+  les images/s tombaient de moitié) ;
+- la carte (M) : le joueur y est un point rouge ; **voyage rapide** vers les lieux déjà atteints seulement, durée
+  comptée depuis là où l'on est (`World.fastTravelRoutes`) ;
+- **embuscades sur la route** : en chemin, tous les 1500 m, une chance selon la difficulté (`ambushPercent`, et les
+  effets de l'histoire) ; 1 ou 2 monstres de `world.json` (« ambush ») surgissent devant ; pas de F5 tant qu'ils
+  sont là ; laissés à plus de 200 m, ils abandonnent. Le voyage rapide n'a pas d'embuscade ;
+- tests : `OpenWorldTest` (une route par liaison, aucune ne traverse un lieu, durées, voyage rapide, étages
+  cachés), `OpenWorldContentErrorsTest` ; section `mondeSection` du banc refaite (39 vérifications, 12 captures :
+  partie neuve, aller-retour à pied par la route tracée, Port-Brume et son tableau, la fosse aller-retour, la mine
+  fermée, voyage rapide, embuscade forcée, aucune fuite).
+
+**Ce qui reste de l'ancien chemin** : `TownScreen` et la carte « classique » (voyage d'un lieu voisin à l'autre,
+embuscade en scène à part `zone_route.json`) ne servent plus en jeu ; le banc s'en sert encore dans ses sections
+d'avant le monde ouvert (il construit `TownScreen` directement). Les retirer demande de passer ces sections au
+monde ouvert : un chantier de banc à part.
+
+État vérifié (2026-11-20) : **323 tests JUnit verts** ; parcours complet `FIN: AUCUNE ERREUR`, **269 captures**,
+247 vérifications. Comparées au parcours d'avant ce chantier : les différences sont les écrans qui ouvrent
+maintenant le monde ouvert (F9, Continuer, création), le panneau retiré, et le hasard des combats et des événements
+décalé (le monde ouvert tire aussi des nombres). Marche : environ 160 images/s, pire image de construction 15 à
+29 ms.
+
+Pas encore fait (décisions du cadrage) : le butin laissé au sol n'est pas sauvegardé (7 jours prévus) ; le relief.
+
 ## En attente de Lucas
 
 1. Ses tests à la main du chantier A (l'escalier de l'auberge), de l'histoire et du chantier C (parler aux
@@ -95,9 +135,9 @@ la route du monde rejoint le chemin de la forêt.
 
 ## Ensuite (ne pas commencer sans l'accord de Lucas)
 
-Tous les chantiers du plan (A à E) et le prototype du monde ouvert sont faits. Selon l'avis de Lucas après l'avoir
-essayé (`.\run.bat`, Nouvelle partie, panneau « Partir à pied » près de la porte) : étendre le monde ouvert aux
-autres villes et zones, ou le laisser en l'état.
+Selon l'avis de Lucas après avoir essayé le monde ouvert complet (`.\compile_check.bat` puis `.\run.bat`, Nouvelle
+partie) : le butin au sol sauvegardé, passer le banc au monde ouvert puis retirer `TownScreen` et la carte classique,
+des choses à croiser en chemin, le relief.
 
 ## Vérifier l'état
 

@@ -295,7 +295,7 @@ public class CharacterCreationScreen implements Screen {
 
     private void start() {
         game.startNewGame(difficulty, name, chosenClass.id, chosenBackground.id);
-        game.setScreen(new TownScreen(game, difficulty));
+        game.setScreen(game.resumeScreen());   // le monde ouvert, devant la porte de la ville de départ
     }
 
     // ------------------------------------------------------------------ Screen

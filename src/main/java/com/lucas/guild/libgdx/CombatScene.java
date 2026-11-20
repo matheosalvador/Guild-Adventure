@@ -50,6 +50,8 @@ class CombatScene implements Disposable {
         float lastYaw;
         /** La reddition de ce monstre a déjà été signalée à l'écran. */
         boolean yieldReported;
+        /** Où ce monstre peut aller (minX, maxX, minZ, maxZ), ou null : la zone de l'écran. */
+        float[] bounds;
 
         Entry(Monster monster, Model model, ModelInstance instance, Color baseColor, CharacterModel character) {
             this.monster = monster;
@@ -161,6 +163,11 @@ class CombatScene implements Disposable {
     }
 
     Monster spawn(String id, float x, float z) {
+        return spawn(id, x, z, null);
+    }
+
+    /** Un monstre retenu dans {@code bounds} (minX, maxX, minZ, maxZ) : son lieu, dans le monde ouvert. */
+    Monster spawn(String id, float x, float z, float[] bounds) {
         Monster monster = Monster.spawn(id, x, z);
         monster.setConditions(conditions -> listener == null || listener.holds(conditions));
         MonsterData data = monster.data;
@@ -177,6 +184,7 @@ class CombatScene implements Disposable {
             worldInstances.add(instance);
             entry = new Entry(monster, model, instance, color, null);
         }
+        entry.bounds = bounds;
         entries.add(entry);
         place(entry, x, z + 1f, 0f);
         return monster;
@@ -212,6 +220,26 @@ class CombatScene implements Disposable {
         return n;
     }
 
+    /** Retire ce monstre sans butin (son lieu est défait). */
+    void remove(Monster monster) {
+        for (java.util.Iterator<Entry> it = entries.iterator(); it.hasNext();) {
+            Entry e = it.next();
+            if (e.monster == monster) {
+                remove(e);
+                it.remove();
+                return;
+            }
+        }
+    }
+
+    private void clamp(Entry e, Monster m) {
+        if (e.bounds != null) {
+            m.clamp(e.bounds[0], e.bounds[1], e.bounds[2], e.bounds[3]);
+        } else {
+            m.clamp(minX, maxX, minZ, maxZ);
+        }
+    }
+
     private void remove(Entry e) {
         if (e.character != null) {
             e.character.dispose();
@@ -243,7 +271,7 @@ class CombatScene implements Disposable {
         for (Entry e : entries) {
             Monster m = e.monster;
             boolean attacks = m.update(dt, playerPos.x, playerPos.z);
-            m.clamp(minX, maxX, minZ, maxZ);
+            clamp(e, m);
             if (attacks && player.estVivant()) {
                 if (Combat.monsterHit(m, player) > 0) {
                     damageFlash = DAMAGE_FLASH;
@@ -265,6 +293,7 @@ class CombatScene implements Disposable {
     private void reportPhasesAndYields() {
         List<float[]> reinforcements = null;
         List<String> reinforcementIds = null;
+        List<float[]> reinforcementBounds = null;
         for (Entry e : entries) {
             Monster m = e.monster;
             MonsterData.Phase phase;
@@ -276,11 +305,13 @@ class CombatScene implements Disposable {
                     if (reinforcements == null) {
                         reinforcements = new ArrayList<>();
                         reinforcementIds = new ArrayList<>();
+                        reinforcementBounds = new ArrayList<>();
                     }
                     // de part et d'autre du monstre, à quelques pas
                     float side = (i % 2 == 0 ? 1f : -1f) * (2.5f + i / 2 * 1.5f);
                     reinforcements.add(new float[] {m.x + side, m.z + 1.5f});
                     reinforcementIds.add(phase.summon);
+                    reinforcementBounds.add(e.bounds);
                 }
             }
             if (m.hasYielded() && !e.yieldReported) {
@@ -295,8 +326,9 @@ class CombatScene implements Disposable {
         }
         // les renforts apparaissent après la boucle : on ne modifie pas la liste pendant qu'on la parcourt
         for (int i = 0; reinforcements != null && i < reinforcements.size(); i++) {
-            Monster added = spawn(reinforcementIds.get(i), reinforcements.get(i)[0], reinforcements.get(i)[1]);
-            added.clamp(minX, maxX, minZ, maxZ);
+            float[] bounds = reinforcementBounds.get(i);
+            Monster added = spawn(reinforcementIds.get(i), reinforcements.get(i)[0], reinforcements.get(i)[1], bounds);
+            clamp(entries.get(entries.size() - 1), added);
             sparks.burst(added.x, FLOOR_TOP + added.data.h * 0.5f, added.z, 10, new Color(0.8f, 0.8f, 0.85f, 1f), 3f);
         }
     }

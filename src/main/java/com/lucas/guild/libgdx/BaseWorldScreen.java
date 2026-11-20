@@ -194,12 +194,62 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
      * peuvent appeler {@code super.buildDialog(dialogType)} pour garder la lecture des textes.
      */
     protected void buildDialog(String dialogType) {
+        if (VILLAGER_DIALOG.equals(dialogType) && talkingTo != null) {
+            buildVillagerDialog(talkingTo);
+            return;
+        }
         LoreData.TextData text = Readable.textOfDialog(dialogType);
         if (text != null) {
             dialogTable.add(UiKit.label(skin, text.title)).pad(10).row();
             addWrappedText(text.text);
             addLeaveButton();
         }
+    }
+
+    // ------------------------------------------------------------------ habitants qui parlent
+
+    private static final String VILLAGER_DIALOG = "Villager";
+    /** L'habitant à qui l'on parle (dialogue ouvert), ou null. */
+    private Villagers.Villager talkingTo;
+
+    /** Ouvre la réplique d'un habitant. */
+    protected void talkTo(Villagers.Villager villager) {
+        talkingTo = villager;
+        toggleDialog(VILLAGER_DIALOG);
+    }
+
+    /** L'habitant à qui l'on parle, tant que son dialogue est ouvert (sinon null). */
+    protected Villagers.Villager talkingTo() {
+        if (!isOverlayOpen()) {
+            talkingTo = null;
+        }
+        return talkingTo;
+    }
+
+    /** La réplique d'un habitant : son nom, ce qu'il dit, et de quoi lui demander autre chose. */
+    private void buildVillagerDialog(final Villagers.Villager v) {
+        java.util.List<String> lines = Villagers.linesOf(v, player.getTownId(), story());
+        com.badlogic.gdx.scenes.scene2d.ui.Label name = UiKit.label(skin, v.talk.name);
+        name.setColor(Color.GOLD);
+        dialogTable.add(name).pad(10).row();
+        String line = com.lucas.guild.game.NpcTalk.line(lines, v.asked);
+        addWrappedText("\"" + (line != null ? line : "...") + "\"");
+        if (lines.size() > 1) {
+            addDialogButton("Autre chose ?", () -> {
+                v.asked++;
+                dialogTable.clear();
+                buildDialog(VILLAGER_DIALOG);
+            });
+        }
+        addDialogButton("Au revoir", () -> {
+            v.asked++;   // la prochaine fois, il dira autre chose
+            toggleDialog(null);
+        });
+    }
+
+    /** Ce qu'on lit en visant un habitant qui parle. */
+    protected static String villagerPrompt(Villagers.Villager v) {
+        return "Parler à " + v.talk.name + " (E)";
     }
 
     /** Cet écran est-il en plein air (ciel visible, ombres du soleil) ? */

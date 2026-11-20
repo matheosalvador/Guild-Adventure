@@ -9,9 +9,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector3;
 import com.lucas.guild.data.GameContent;
-import com.lucas.guild.data.NpcsData;
 import com.lucas.guild.data.TownData;
-import com.lucas.guild.game.NpcTalk;
 
 /**
  * La ville. Le sol est fixe ; les bâtiments (nom, position, couleur, intérieur à ouvrir)
@@ -39,15 +37,6 @@ public class TownScreen extends BaseWorldScreen {
     private static final String GATE = "Gate";
     /** Ce qu'on obtient en visant le tableau d'annonces de la ville (action « board »). */
     private static final String BOARD = "Board";
-
-    /** Le panneau « Partir à pied » (action « walk ») : entre dans le monde ouvert (prototype). */
-    static final class WalkSign {
-        final String to;
-
-        WalkSign(String to) {
-            this.to = to;
-        }
-    }
 
     private com.badlogic.gdx.scenes.scene2d.ui.Table boardTable;
     private QuestBoardPanel questBoard;
@@ -102,133 +91,19 @@ public class TownScreen extends BaseWorldScreen {
         return true;
     }
 
-    /** Un habitant qui se promène : son modèle, son parcours, et ce qu'il dit (npcs.json) s'il parle. */
-    private static final class Villager {
-        final CharacterModel model;
-        final com.lucas.guild.game.RouteWalker walker;
-        /** Ses répliques, ou null s'il ne fait que passer. */
-        final NpcsData.VillagerTalkData talk;
-        float yaw;
-        boolean stopped;
-        /** Combien de fois on lui a parlé pendant cette visite : il change de réplique à chaque fois. */
-        int asked;
-
-        Villager(CharacterModel model, com.lucas.guild.game.RouteWalker walker, NpcsData.VillagerTalkData talk) {
-            this.model = model;
-            this.walker = walker;
-            this.talk = talk;
-            this.yaw = walker.getYaw();
-        }
-    }
-
-    /** Un habitant qui parle s'arrête et se tourne vers le joueur à moins de cette distance. */
-    private static final float VILLAGER_STOP_RANGE = 3f;
-    private static final float VILLAGER_TURN_SPEED = 240f;
-    private static final String VILLAGER_DIALOG = "Villager";
-
-    private final java.util.List<Villager> villagers = new java.util.ArrayList<>();
-    private final Vector3 villagerFeet = new Vector3();
-    private final com.badlogic.gdx.math.collision.BoundingBox villagerBox = new com.badlogic.gdx.math.collision.BoundingBox();
-    private final Vector3 hit = new Vector3();
-    /** L'habitant à qui l'on parle (dialogue ouvert). */
-    private Villager talkingTo;
-
-    private void buildVillagers(TownData town) {
-        java.util.Random random = new java.util.Random(town.name.hashCode());
-        for (TownData.VillagerData data : town.villagers) {
-            java.util.List<float[]> route = new java.util.ArrayList<>();
-            for (TownData.RoutePoint point : data.route) {
-                route.add(new float[] {point.x, point.z});
-            }
-            com.lucas.guild.game.RouteWalker walker = new com.lucas.guild.game.RouteWalker(route, data.speed);
-            walker.advanceMeters(random.nextFloat() * 60f);   // ils ne partent pas tous du même point
-            CharacterModel model = new CharacterModel(instances, GameContent.models(), data.model);
-            model.setVisible(true);
-            disposables.add(model);
-            NpcsData.VillagerTalkData talk = data.talk != null ? GameContent.npcs().villager(data.talk) : null;
-            villagers.add(new Villager(model, walker, talk));
-        }
-    }
-
-    /** Ce qu'un habitant peut dire en ce moment, ici (vide s'il ne fait que passer). */
-    private java.util.List<String> linesOf(Villager v) {
-        return v.talk == null ? java.util.Collections.<String>emptyList() : NpcTalk.lines(v.talk, player.getTownId(), story());
-    }
+    /** Les habitants qui se promènent. */
+    private Villagers villagers;
 
     @Override
     protected void afterUpdate(float delta) {
-        boolean frozen = isOverlayOpen();
-        if (!frozen) {
-            talkingTo = null;   // le dialogue est fermé
-        }
         Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
-        for (Villager v : villagers) {
-            float dx = p.x - v.walker.getX();
-            float dz = p.z - v.walker.getZ();
-            // un habitant qui a quelque chose à dire attend le joueur qui s'approche, et le regarde
-            v.stopped = v.talk != null && Math.hypot(dx, dz) < VILLAGER_STOP_RANGE;
-            if (!frozen && !v.stopped) {
-                v.walker.update(delta);
-            }
-            float target = v.stopped || v == talkingTo ? (float) Math.toDegrees(Math.atan2(-dx, -dz)) : v.walker.getYaw();
-            float diff = ((target - v.yaw + 540f) % 360f) - 180f;
-            float step = VILLAGER_TURN_SPEED * delta;
-            v.yaw += Math.max(-step, Math.min(step, diff));
-            boolean walking = !frozen && !v.stopped;
-            v.model.update(frozen ? 0f : delta, walking ? v.walker.getSpeed() : 0f, villagerFeet.set(v.walker.getX(), 0.5f, v.walker.getZ()), v.yaw);
-        }
+        villagers.update(delta, p, isOverlayOpen(), talkingTo());
     }
 
     /** L'habitant qui parle visé par le rayon, le plus proche. */
     @Override
     protected Object aimedWalker(Vector3 eye, Vector3 direction, float maxDistance) {
-        com.badlogic.gdx.math.collision.Ray ray = new com.badlogic.gdx.math.collision.Ray(eye, direction);
-        Villager best = null;
-        float bestDistance = maxDistance;
-        for (Villager v : villagers) {
-            if (linesOf(v).isEmpty()) {
-                continue;
-            }
-            float x = v.walker.getX();
-            float z = v.walker.getZ();
-            villagerBox.set(new Vector3(x - 0.45f, 0.5f, z - 0.45f), new Vector3(x + 0.45f, 2.5f, z + 0.45f));
-            if (com.badlogic.gdx.math.Intersector.intersectRayBounds(ray, villagerBox, hit)) {
-                float distance = hit.dst(eye);
-                if (distance <= bestDistance) {
-                    bestDistance = distance;
-                    best = v;
-                }
-            }
-        }
-        return best;
-    }
-
-    /** La réplique d'un habitant : son nom, ce qu'il dit, et de quoi lui demander autre chose. */
-    @Override
-    protected void buildDialog(String dialogType) {
-        if (!VILLAGER_DIALOG.equals(dialogType) || talkingTo == null) {
-            talkingTo = null;
-            super.buildDialog(dialogType);
-            return;
-        }
-        final Villager v = talkingTo;
-        java.util.List<String> lines = linesOf(v);
-        com.badlogic.gdx.scenes.scene2d.ui.Label name = UiKit.label(skin, v.talk.name);
-        name.setColor(Color.GOLD);
-        dialogTable.add(name).pad(10).row();
-        String line = NpcTalk.line(lines, v.asked);
-        addWrappedText("\"" + (line != null ? line : "...") + "\"");
-        if (lines.size() > 1) {
-            addDialogButton("Autre chose ?", () -> {
-                v.asked++;
-                dialogTable.clear();
-                buildDialog(VILLAGER_DIALOG);
-            });
-        }
-        addDialogButton("Au revoir", () -> {
-            v.asked++;   // la prochaine fois, il dira autre chose
-            toggleDialog(null);
-        });
+        return villagers.aimed(eye, direction, maxDistance, player.getTownId(), story());
     }
 
     // ------------------------------------------------------------------ décor
@@ -242,10 +117,10 @@ public class TownScreen extends BaseWorldScreen {
         for (TownData.BuildingData data : town.buildings) {
             addBuilding(data);
         }
-        buildVillagers(town);
+        villagers = new Villagers(instances, town, 0f, 0f);
+        disposables.add(villagers);
         for (TownData.PartData part : town.decor) {
-            Object userData = "gate".equals(part.action) ? GATE : "board".equals(part.action) ? BOARD
-                    : "walk".equals(part.action) ? new WalkSign(part.text) : decorUserData(part);
+            Object userData = "gate".equals(part.action) ? GATE : "board".equals(part.action) ? BOARD : decorUserData(part);
             addPart(part, 0, 0, "decor", userData);
         }
     }
@@ -286,11 +161,8 @@ public class TownScreen extends BaseWorldScreen {
         if (BOARD.equals(userData)) {
             return "Lire le tableau d'annonces (E)";
         }
-        if (userData instanceof Villager) {
-            return "Parler à " + ((Villager) userData).talk.name + " (E)";
-        }
-        if (userData instanceof WalkSign) {
-            return "Partir à pied vers " + GameContent.world().place(((WalkSign) userData).to).name + " (E)";
+        if (userData instanceof Villagers.Villager) {
+            return villagerPrompt((Villagers.Villager) userData);
         }
         return null;
     }
@@ -305,16 +177,8 @@ public class TownScreen extends BaseWorldScreen {
             questBoard.toggle();
             return true;
         }
-        if (userData instanceof Villager) {
-            talkingTo = (Villager) userData;
-            toggleDialog(VILLAGER_DIALOG);
-            return true;
-        }
-        if (userData instanceof WalkSign) {
-            // le monde ouvert : on y reprend là où l'on est dans la ville
-            Vector3 p = playerController.getPlayerBody().getCenterOfMassPosition();
-            float[] w = com.lucas.guild.game.WorldLayout.standard().toWorld(player.getTownId(), p.x, p.z);
-            game.setScreen(new OpenWorldScreen(game, difficulty, new Vector3(w[0], p.y, w[1])));
+        if (userData instanceof Villagers.Villager) {
+            talkTo((Villagers.Villager) userData);
             return true;
         }
         if (!(userData instanceof TownBuilding)) {

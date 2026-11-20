@@ -61,8 +61,8 @@ public final class Terrain {
         if (layout.distanceToRoad(x, z) < layout.data().roadWidth / 2f + ROAD_MARGIN) {
             return false;
         }
-        for (OpenWorldData.PlaceData p : layout.data().places) {
-            if (layout.distanceToPlace(p.id, x, z) < PLACE_MARGIN) {
+        for (String id : layout.footprints()) {
+            if (layout.distanceToPlace(id, x, z) < PLACE_MARGIN) {
                 return false;
             }
         }

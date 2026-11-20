@@ -140,7 +140,7 @@ public class Smoke extends ApplicationAdapter {
         frames(5);
         key(Input.Keys.F9);
         frames(30);
-        check("F9 -> nouvelle ville", () -> cur() instanceof TownScreen);
+        check("F9 -> le monde ouvert, a Aethelgard", () -> cur() instanceof OpenWorldScreen && "aethelgard".equals(player().getTownId()));
         shot("50_after_f9");
 
         // ---- Menu "Continuer"
@@ -150,7 +150,7 @@ public class Smoke extends ApplicationAdapter {
         click("Start"); shot("61_menu_start_with_save");
         click("Continuer");
         frames(30);
-        check("Continuer -> ville", () -> cur() instanceof TownScreen);
+        check("Continuer -> le monde ouvert, a Aethelgard", () -> cur() instanceof OpenWorldScreen && "aethelgard".equals(player().getTownId()));
         shot("62_after_continue");
 
         // =================================================== TEMPS (section ajoutee avec le bloc temps)
@@ -328,35 +328,116 @@ public class Smoke extends ApplicationAdapter {
     long memoryWorld;
     int killsBefore;
     String savedJson;
+    float roadMinutes;
+    int minuteBefore;
 
-    /** L'aller-retour a pied Aethelgard -> Foret des Loups, avec les seuils du cadrage (docs/CADRAGE-MONDE-OUVERT.md). */
+    com.lucas.guild.game.WorldLayout layout() {
+        return com.lucas.guild.game.WorldLayout.standard();
+    }
+
+    /** Le trace de la route entre deux lieux, en points (x, z) du monde. */
+    float[][] roadPoints(String from, String to) {
+        java.util.List<com.lucas.guild.data.OpenWorldData.PointData> pts = layout().road(from, to).points;
+        float[][] out = new float[pts.size()][];
+        for (int i = 0; i < pts.size(); i++) {
+            out[i] = new float[] {pts.get(i).x, pts.get(i).z};
+        }
+        return out;
+    }
+
+    /** Appelle une methode sans parametre de l'ecran (meme privee ou protegee). */
+    Object callOnScreen(String name) {
+        try {
+            for (Class<?> c = cur().getClass(); c != null; c = c.getSuperclass()) {
+                for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
+                    if (m.getName().equals(name) && m.getParameterCount() == 0) {
+                        m.setAccessible(true);
+                        return m.invoke(cur());
+                    }
+                }
+            }
+        } catch (Exception e) { throw new RuntimeException(e); }
+        throw new RuntimeException("methode introuvable : " + name);
+    }
+
+    /** Le lieu du monde ouvert (objet prive Place), ou null. */
+    Object worldPlace(String id) {
+        for (Object place : (java.util.List<?>) fieldOf(cur(), "places")) {
+            if (id.equals(fieldOf(place, "id"))) {
+                return place;
+            }
+        }
+        return null;
+    }
+
+    /** Le texte du premier bouton visible qui commence par {@code prefix}, ou null. */
+    String buttonStartingWith(String prefix) {
+        List<TextButton> all = new java.util.ArrayList<>();
+        collectAllButtons(stageOf().getRoot(), all);
+        for (TextButton b : all) {
+            if (b.getText().toString().startsWith(prefix)) {
+                return b.getText().toString();
+            }
+        }
+        return null;
+    }
+
+    static void collectAllButtons(Group g, List<TextButton> out) {
+        for (Actor a : g.getChildren()) {
+            if (!a.isVisible()) continue;
+            if (a instanceof TextButton) out.add((TextButton) a);
+            if (a instanceof Group) collectAllButtons((Group) a, out);
+        }
+    }
+
+    /** Clique le premier bouton visible dont le texte commence par {@code prefix}. */
+    void clickStartingWith(String prefix) {
+        steps.add(this::render1);
+        steps.add(() -> {
+            String text = buttonStartingWith(prefix);
+            if (text == null) { log("CHECK ECHEC  bouton introuvable : " + prefix + "..."); failures++; return; }
+            Stage st = stageOf();
+            TextButton b = findButton(st.getRoot(), text);
+            Vector2 v = b.localToStageCoordinates(new Vector2(b.getWidth() / 2, b.getHeight() / 2));
+            Vector2 sc = st.stageToScreenCoordinates(v);
+            st.touchDown((int) sc.x, (int) sc.y, 0, Input.Buttons.LEFT);
+            st.touchUp((int) sc.x, (int) sc.y, 0, Input.Buttons.LEFT);
+            log("clic: " + text);
+            render1();
+        });
+        steps.add(this::render1);
+    }
+
+    /** Le monde ouvert : une partie neuve y commence ; aller-retour a pied vers la foret, villes, entrees, carte, embuscade. */
     void mondeSection() {
         step(() -> { game.startNewGame("facile"); com.lucas.guild.game.DebugMode.setEnabled(false); resetSettings(); setStoryTexts(false); });
         step(() -> game.setScreen(new TownScreen(game, "facile", new Vector3(-7, 2, 46))));
         frames(5);
         step(() -> bulletTown = bulletObjects());
-        step(() -> faceAt(-7f, 1.8f, 50f));
-        frames(2);
-        shot("w00_panneau_a_pied");
-        key(Input.Keys.E);
+        step(() -> game.setScreen(game.resumeScreen()));   // une partie neuve, sans sauvegarde : comme apres la creation du personnage
         frames(3);
-        check("le panneau ouvre le monde ouvert", () -> cur() instanceof OpenWorldScreen);
+        check("une partie neuve commence dans le monde ouvert, devant la porte d'Aethelgard",
+                () -> cur() instanceof OpenWorldScreen && "Aethelgard".equals(fieldOf(cur(), "townName")));
         settleWorld();
         step(() -> { bulletWorld = bulletObjects(); memoryWorld = usedMemory(); });
-        step(() -> { teleport(0f, 2f, 54f); face(0f, 2f, 70f); });
-        frames(5);
+        step(() -> face(0f, 2f, 70f));
+        frames(3);
         shot("w01_porte_ouverte");
-        check("on est a Aethelgard", () -> "aethelgard".equals(player().getTownId()) && "Aethelgard".equals(fieldOf(cur(), "townName")));
+        check("les habitants d'Aethelgard se promenent", () -> fieldOf(worldPlace("aethelgard"), "villagers") != null);
 
-        // ---------- l'aller, a pied, ombres allumees, invincible (les loups attaquent a l'arrivee)
+        // ---------- l'aller, a pied, par la route tracee, ombres allumees, invincible (les loups attaquent a l'arrivee)
         step(() -> com.lucas.guild.game.DebugMode.setInvincible(true));
-        startWalk(new float[][] {{0f, 62f}, {-68f, 70f}, {-900f, -1105f}, {-900f, -1130f}});
+        step(() -> roadMinutes = com.lucas.guild.game.WorldLayout.length(layout().road("aethelgard", "foret_loups")) / 8f);
+        startWalk(roadPoints("aethelgard", "foret_loups"));
         walkFrames(5000);
         shot("w02_en_chemin");
         check("en chemin, hors de tout lieu", () -> "En chemin".equals(fieldOf(cur(), "townName")));
-        walkFrames(8000);
+        walkFrames(9000);
         check("arrive dans la foret a pied", () -> !walking && "foret_loups".equals(player().getTownId()));
-        check("aller : 3 h de jeu a 15 minutes pres", () -> walkMinutes >= 165 && walkMinutes <= 195);
+        check("aller : le temps de jeu de la route (longueur / 8 m/s), a 10 minutes pres", () -> {
+            log("aller : " + walkMinutes + " minutes de jeu pour " + roadMinutes + " attendues");
+            return Math.abs(walkMinutes - roadMinutes) <= 10;
+        });
         check("aller : 60 images/s en moyenne, ombres allumees", () -> walkFps >= 60);
         check("aller : aucune image de plus de 50 ms quand un carreau ou un lieu se construit",
                 () -> buildFrames > 20 && worstBuildFrameNanos <= 50_000_000L);
@@ -422,8 +503,8 @@ public class Smoke extends ApplicationAdapter {
         // ---------- le retour, a pied
         step(() -> { teleport(-900f, 2f, -1128f); face(-900f, 2f, -1100f); });
         settleWorld();
-        startWalk(new float[][] {{-900f, -1105f}, {-68f, 70f}, {0f, 64f}, {0f, 54f}});
-        walkFrames(13000);
+        startWalk(roadPoints("foret_loups", "aethelgard"));
+        walkFrames(14000);
         check("retour a Aethelgard a pied", () -> !walking && "aethelgard".equals(player().getTownId()));
         check("retour : 60 images/s en moyenne", () -> walkFps >= 60);
         check("retour : aucune image de plus de 50 ms quand un carreau ou un lieu se construit",
@@ -437,18 +518,98 @@ public class Smoke extends ApplicationAdapter {
         key(Input.Keys.E);
         frames(3);
         check("on entre dans l'auberge depuis le monde ouvert", () -> cur() instanceof InnScreen);
-        step(() -> {
-            try {
-                java.lang.reflect.Method m = InteriorScreen.class.getDeclaredMethod("leave");
-                m.setAccessible(true);
-                m.invoke(cur());
-            } catch (Exception e) { throw new RuntimeException(e); }
-        });
+        step(() -> callOnScreen("leave"));
         frames(3);
         check("en sortant, on est de nouveau dans le monde ouvert", () -> cur() instanceof OpenWorldScreen);
 
+        // ---------- Port-Brume : ses habitants et son tableau d'annonces
+        step(() -> teleport(2993f, 2f, -1345.5f));
+        settleWorld();
+        step(() -> faceAt(2993f, 1.8f, -1350f));
+        frames(3);
+        check("a Port-Brume", () -> "portbrume".equals(player().getTownId()) && "Port-Brume".equals(fieldOf(cur(), "townName")));
+        check("les habitants de Port-Brume se promenent", () -> fieldOf(worldPlace("portbrume"), "villagers") != null);
+        key(Input.Keys.E);
+        frames(3);
+        check("E ouvre le tableau d'annonces de Port-Brume",
+                () -> (Boolean) callOnScreen("isExtraOverlayOpen") && "portbrume".equals(fieldOf(cur(), "boardTown")));
+        shot("w10_tableau_portbrume");
+        key(Input.Keys.ESCAPE);
+        frames(2);
+        check("Echap ferme le tableau", () -> !(Boolean) callOnScreen("isExtraOverlayOpen"));
+
+        // ---------- la Fosse des Debardeurs : une entree, on y entre et on en ressort devant sa porte
+        step(() -> { float[] door = layout().portalExit("fosse_debardeurs"); teleport(door[0], 2f, door[1] + 2.5f); });
+        settleWorld();
+        step(() -> { float[] door = layout().portalExit("fosse_debardeurs"); faceAt(door[0], 1.6f, door[1] - 4f); });
+        frames(3);
+        shot("w11_entree_fosse");
+        key(Input.Keys.E);
+        frames(5);
+        check("la porte de la fosse y mene", () -> cur() instanceof ZoneScreen && "fosse_debardeurs".equals(player().getTownId()));
+        check("dans la fosse, on reste dans le monde ouvert", () -> game.getSession().isInOpenWorld());
+        step(() -> callOnScreen("takeTheRoad"));
+        frames(5);
+        check("en sortant de la fosse : devant sa porte, dans le monde ouvert", () -> {
+            float[] door = layout().portalExit("fosse_debardeurs");
+            Vector3 p = pc().getPlayerBody().getCenterOfMassPosition();
+            return cur() instanceof OpenWorldScreen && Math.hypot(p.x - door[0], p.z - door[1]) < 1.5f;
+        });
+
+        // ---------- la mine de Hautevigne : fermee sans mandat
+        step(() -> { float[] door = layout().portalExit("mine_galeries"); teleport(door[0], 2f, door[1] + 2.5f); });
+        settleWorld();
+        step(() -> { float[] door = layout().portalExit("mine_galeries"); faceAt(door[0], 1.8f, door[1] - 4f); });
+        frames(3);
+        shot("w12_entree_mine");
+        check("on vise la porte de la mine", () -> aimed() != null && aimed().getClass().getSimpleName().equals("PortalRef"));
+        key(Input.Keys.E);
+        frames(3);
+        check("sans mandat, la mine reste fermee", () -> cur() instanceof OpenWorldScreen);
+
+        // ---------- le voyage rapide : seulement vers les lieux deja atteints
+        key(Input.Keys.M);
+        frames(2);
+        check("la carte propose Port-Brume (deja atteint)", () -> buttonStartingWith("Port-Brume") != null);
+        check("la carte ne propose pas les Ruines (jamais atteintes)", () -> buttonStartingWith("Ruines") == null);
+        shot("w13_carte_voyage_rapide");
+        step(() -> minuteBefore = gameMinute());
+        clickStartingWith("Port-Brume");
+        frames(3);
+        check("voyage rapide : a la porte de Port-Brume, le temps a passe", () -> cur() instanceof OpenWorldScreen
+                && "portbrume".equals(player().getTownId()) && gameMinute() > minuteBefore + 20);
+        settleWorld();
+        shot("w14_arrivee_rapide_portbrume");
+
+        // ---------- une embuscade sur la route (forcee), pas de sauvegarde tant qu'elle dure
+        step(() -> { com.lucas.guild.game.DebugMode.setEnabled(true); com.lucas.guild.game.DebugMode.setForceAmbush(true); com.lucas.guild.game.DebugMode.setInvincible(true); });
+        step(() -> teleport(2600f, 2f, -1000f));
+        frames(5);
+        step(() -> {
+            try {
+                Field f = OpenWorldScreen.class.getDeclaredField("roadMeters");
+                f.setAccessible(true);
+                Field stretch = OpenWorldScreen.class.getDeclaredField("AMBUSH_STRETCH");
+                stretch.setAccessible(true);
+                f.setFloat(cur(), stretch.getFloat(null) - 1f);
+            } catch (Exception e) { throw new RuntimeException(e); }
+            ((InputProcessor) cur()).keyDown(Input.Keys.W);
+        });
+        frames(30);
+        step(() -> ((InputProcessor) cur()).keyUp(Input.Keys.W));
+        frames(20);
+        check("une embuscade surgit sur la route", () -> (Integer) callOnScreen("ambusherCount") > 0);
+        shot("w15_embuscade");
+        step(() -> { try { Files.deleteIfExists(Paths.get("save.json")); } catch (Exception e) { throw new RuntimeException(e); } });
+        key(Input.Keys.F5);
+        check("pas de sauvegarde pendant l'embuscade", () -> !Files.exists(Paths.get("save.json")));
+        step(() -> teleport(2600f, 2f, -1500f));
+        frames(5);
+        check("laisses loin derriere, les agresseurs abandonnent", () -> (Integer) callOnScreen("ambusherCount") == 0);
+        step(() -> { com.lucas.guild.game.DebugMode.setForceAmbush(false); com.lucas.guild.game.DebugMode.setInvincible(false); com.lucas.guild.game.DebugMode.setEnabled(false); });
+
         // ---------- aucune fuite : corps Bullet et memoire
-        step(() -> game.setScreen(new OpenWorldScreen(game, "facile", new Vector3(-7f, 2f, 46f))));
+        step(() -> game.setScreen(game.arrivalIn("aethelgard", "facile")));
         settleWorld();
         check("monde rouvert au depart : autant de corps Bullet qu'au debut", () -> {
             log("corps Bullet : " + bulletWorld + " au debut, " + bulletObjects() + " au retour");
@@ -533,7 +694,7 @@ public class Smoke extends ApplicationAdapter {
 
     /** L'habitant n°index de la ville affichee (objet prive de TownScreen). */
     Object villager(int index) {
-        return ((java.util.List<?>) fieldOf(cur(), "villagers")).get(index);
+        return ((java.util.List<?>) fieldOf(fieldOf(cur(), "villagers"), "list")).get(index);
     }
 
     com.lucas.guild.game.RouteWalker walkerOf(Object villager) {
@@ -1364,7 +1525,7 @@ public class Smoke extends ApplicationAdapter {
         shot("c23_background_orphan_with_summary");
         click("Commencer l'aventure");
         frames(40);
-        check("la partie demarre dans la ville", () -> cur() instanceof TownScreen);
+        check("la partie demarre dans le monde ouvert, devant la porte d'Aethelgard", () -> cur() instanceof OpenWorldScreen && "aethelgard".equals(player().getTownId()));
         check("le personnage cree : Ayla, Eclaireur, Orphelin, 85 PV, 70 Po (facile 100 - 30)", () -> {
             Adventurer p = player();
             return p.getName().equals("Ayla") && "scout".equals(p.getClassId()) && "orphan".equals(p.getBackgroundId())
@@ -1796,8 +1957,9 @@ public class Smoke extends ApplicationAdapter {
         click("Start");
         click("Continuer");
         frames(40);
-        check("Continuer reprend dans la zone sauvage", () -> cur() instanceof ZoneScreen && "foret_loups".equals(player().getTownId()));
+        check("Continuer reprend dans la foret, dans le monde ouvert", () -> cur() instanceof OpenWorldScreen && "foret_loups".equals(player().getTownId()));
         shot("z33_continue_in_forest");
+        step(() -> game.getSession().setInOpenWorld(false));   // la suite de la section passe par la carte classique
 
         // ---------- les ruines gobelines (par la carte de debug)
         step(() -> { game.getSession().getPlayer().setTownId("ruines_gobelines"); game.getSession().getPlayer().markVisited("ruines_gobelines"); game.setScreen(game.screenAt("ruines_gobelines", "facile")); });
@@ -2451,8 +2613,9 @@ public class Smoke extends ApplicationAdapter {
         click("Start");
         click("Continuer");
         frames(30);
-        check("Continuer : on reprend a Hautevigne", () -> cur() instanceof TownScreen && "hautevigne".equals(player().getTownId()));
+        check("Continuer : on reprend a Hautevigne, dans le monde ouvert", () -> cur() instanceof OpenWorldScreen && "hautevigne".equals(player().getTownId()));
         shot("w50_continue_in_hautevigne");
+        step(() -> game.getSession().setInOpenWorld(false));   // la suite passe par la carte classique
 
         // ---------- debug : voyager sans duree
         step(() -> com.lucas.guild.game.DebugMode.setEnabled(true));

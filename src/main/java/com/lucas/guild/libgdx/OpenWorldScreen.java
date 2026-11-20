@@ -105,14 +105,37 @@ public class OpenWorldScreen extends BaseWorldScreen {
         }
     }
 
-    /** Un lieu posé dans le monde (la ville, la forêt), construit quand on en approche. */
+    /** Un lieu posé dans le monde (une ville, une zone, l'entrée d'un lieu fermé), construit quand on en approche. */
     private final class Place {
         final String id;
+        /** L'entrée d'un lieu fermé (mine, fosse, château) : un petit décor et sa porte. */
+        final boolean portal;
         Group group;
         final Map<Monster, String> monsters = new HashMap<>();
+        /** Les habitants d'une ville construite, ou null. */
+        Villagers villagers;
 
-        Place(String id) {
+        Place(String id, boolean portal) {
             this.id = id;
+            this.portal = portal;
+        }
+    }
+
+    /** Le tableau d'annonces d'une ville, visé. */
+    private static final class BoardRef {
+        final String townId;
+
+        BoardRef(String townId) {
+            this.townId = townId;
+        }
+    }
+
+    /** La porte d'un lieu fermé, visée. */
+    private static final class PortalRef {
+        final String placeId;
+
+        PortalRef(String placeId) {
+            this.placeId = placeId;
         }
     }
 
@@ -143,7 +166,6 @@ public class OpenWorldScreen extends BaseWorldScreen {
     private final List<Place> places = new ArrayList<>();
     private final Array<RenderableProvider> renderables = new Array<>();
     private final ArrayDeque<Runnable> work = new ArrayDeque<>();
-    private final Group roads = new Group();
     private final Map<String, btBoxShape> trunkShapes = new HashMap<>();
     private btStaticPlaneShape groundShape;
     private btRigidBody groundBody;
@@ -234,8 +256,11 @@ public class OpenWorldScreen extends BaseWorldScreen {
         buildRoads();
         GameContent.models();
         GameContent.monsters();
+        for (OpenWorldData.PortalData p : data.portals) {
+            places.add(new Place(p.id, true));
+        }
         for (OpenWorldData.PlaceData p : data.places) {
-            places.add(new Place(p.id));
+            places.add(new Place(p.id, false));
             // les fichiers des lieux sont lus maintenant (une fois pour toute la partie), pas en marchant
             if (GameContent.world().place(p.id).townFile != null) {
                 GameContent.town(p.id);
@@ -257,9 +282,16 @@ public class OpenWorldScreen extends BaseWorldScreen {
         updateCurrentPlace(spawn.x, spawn.z);
     }
 
+    /**
+     * Les morceaux de route, rangés par carreau (celui de leur milieu) : chacun est fusionné avec son carreau et
+     * dessiné seulement quand le carreau l'est. Un morceau : {longueur, x, z, angle}.
+     */
+    private final Map<Long, List<float[]>> roadPieces = new HashMap<>();
+    private Color roadColor;
+
     private void buildRoads() {
-        Color color = ColorNames.parse(data.road, "openworld.json", "la route");
-        for (OpenWorldData.RoadData road : data.roads) {
+        roadColor = ColorNames.parse(data.road, "openworld.json", "la route");
+        for (OpenWorldData.RoadData road : layout.roads()) {
             for (int i = 0; i + 1 < road.points.size(); i++) {
                 OpenWorldData.PointData a = road.points.get(i);
                 OpenWorldData.PointData b = road.points.get(i + 1);
@@ -273,8 +305,10 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 for (int k = 0; k < pieces; k++) {
                     float t = (k + 0.5f) / pieces;
                     // chaque morceau déborde un peu : pas de jour entre deux morceaux ni aux coudes
-                    visual(roads, "box", data.roadWidth, 0.1f, step + (k == pieces - 1 ? data.roadWidth : 0.2f), color,
-                            a.x + dx * t, 0.53f, a.z + dz * t, new float[] {0, yaw, 0});
+                    float x = a.x + dx * t;
+                    float z = a.z + dz * t;
+                    roadPieces.computeIfAbsent(tileKey(layout.tileOf(x), layout.tileOf(z)), key -> new ArrayList<>())
+                            .add(new float[] {step + (k == pieces - 1 ? data.roadWidth : 0.2f), x, z, yaw});
                 }
             }
         }
@@ -396,6 +430,12 @@ public class OpenWorldScreen extends BaseWorldScreen {
         float cz = (tile.tz + 0.5f) * size;
         // le sol dessiné est un peu plus bas que le sol solide (0,5) : sous une ville ou une forêt, le leur le recouvre
         groundPatch(g, size, ColorNames.parse(data.ground, "openworld.json", "le sol"), cx, cz, -0.05f);
+        List<float[]> pieces = roadPieces.get(tileKey(tile.tx, tile.tz));
+        if (pieces != null) {
+            for (float[] piece : pieces) {
+                visual(g, "box", data.roadWidth, 0.1f, piece[0], roadColor, piece[1], 0.53f, piece[2], new float[] {0, piece[3], 0});
+            }
+        }
         for (Terrain.Tree tree : tile.trees) {
             float s = TREE_SCALE[tree.size];
             float trunkH = (tree.kind == 0 ? 5.8f : 3.5f) * s;
@@ -453,13 +493,15 @@ public class OpenWorldScreen extends BaseWorldScreen {
         place.group = g;
         final float[] o = layout.origin(place.id);
         com.lucas.guild.data.WorldData.PlaceData info = GameContent.world().place(place.id);
-        if (info.townFile != null) {
+        if (place.portal) {
+            loadPortal(place, g, o);
+        } else if (info.townFile != null) {
             final TownData town = GameContent.town(place.id);
             final String file = info.townFile;
             work.add(() -> {
                 if (place.group == g) {
                     Color ground = town.ground != null ? ColorNames.parse(town.ground, file, "le sol") : Color.GRAY;
-                    groundPatch(g, 200f, ground, o[0], o[1], 0f);
+                    groundPatch(g, 2f * data.place(place.id).half, ground, o[0], o[1], 0f);
                 }
             });
             for (final TownData.BuildingData b : town.buildings) {
@@ -475,16 +517,21 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 });
             }
             for (final TownData.PartData part : town.decor) {
-                // la porte de la ville est ouverte (on passe à pied) ; le panneau « à pied » n'a plus de sens ici
-                if ("gate".equals(part.action) || "walk".equals(part.action)) {
+                // la porte de la ville est ouverte : on passe à pied
+                if ("gate".equals(part.action)) {
                     continue;
                 }
                 work.add(() -> {
                     if (place.group == g) {
-                        part(g, part, o[0], o[1], file, "board".equals(part.action) ? null : decorUserData(part));
+                        part(g, part, o[0], o[1], file, "board".equals(part.action) ? new BoardRef(place.id) : decorUserData(part));
                     }
                 });
             }
+            work.add(() -> {
+                if (place.group == g) {
+                    place.villagers = new Villagers(instances, town, o[0], o[1]);
+                }
+            });
         } else {
             loadZone(place, g, o);
         }
@@ -527,9 +574,9 @@ public class OpenWorldScreen extends BaseWorldScreen {
                     ref.lid = visual(g, "box", 1.4f, 0.3f, 0.9f, Color.GOLDENROD, ref.x, 1.45f, ref.z, null);
                 }
             }
-            // les monstres de la forêt y restent ; un monstre tué ne revient qu'après quelques jours
-            combat.setBounds(o[0] - half + 1.5f, o[0] + half - 1.5f, o[1] - half + 1.5f, o[1] + half - 1.5f);
         });
+        // les monstres d'une zone y restent ; un monstre tué ne revient qu'après quelques jours
+        final float[] bounds = {o[0] - half + 1.5f, o[0] + half - 1.5f, o[1] - half + 1.5f, o[1] + half - 1.5f};
         for (int i = 0; i < zone.monsters.size(); i++) {
             final int index = i;
             // un monstre par image : chacun construit son modèle
@@ -538,10 +585,24 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 String key = Respawns.key(place.id, index);
                 if (place.group == g && story().holds(m.requires)
                         && Respawns.isAlive(player, key, gameClock.getCurrentDay(), data.monsterRespawnDays)) {
-                    place.monsters.put(combat.spawn(m.id, o[0] + m.x, o[1] + m.z), key);
+                    place.monsters.put(combat.spawn(m.id, o[0] + m.x, o[1] + m.z, bounds), key);
                 }
             });
         }
+    }
+
+    /** L'entrée d'un lieu fermé : son décor, dont la porte (action « enter ») ouvre le lieu. */
+    private void loadPortal(final Place place, final Group g, final float[] o) {
+        final OpenWorldData.PortalData portal = data.portal(place.id);
+        work.add(() -> {
+            if (place.group != g) {
+                return;
+            }
+            for (TownData.PartData part : portal.decor) {
+                part(g, part, o[0], o[1], "openworld.json (entree " + place.id + ")",
+                        "enter".equals(part.action) ? new PortalRef(place.id) : decorUserData(part));
+            }
+        });
     }
 
     /**
@@ -579,9 +640,13 @@ public class OpenWorldScreen extends BaseWorldScreen {
     }
 
     private void unloadPlace(Place place) {
-        if (!place.monsters.isEmpty()) {
-            combat.clearAll();   // seuls les monstres de ce lieu sont dans le monde (prototype : un seul lieu sauvage)
-            place.monsters.clear();
+        for (Monster monster : place.monsters.keySet()) {
+            combat.remove(monster);
+        }
+        place.monsters.clear();
+        if (place.villagers != null) {
+            place.villagers.dispose();
+            place.villagers = null;
         }
         place.group.clear();
         place.group = null;
@@ -589,6 +654,7 @@ public class OpenWorldScreen extends BaseWorldScreen {
 
     @Override
     protected void onMonsterKilled(Monster monster) {
+        ambushers.remove(monster);
         for (Place place : places) {
             String key = place.monsters.remove(monster);
             if (key != null) {
@@ -604,6 +670,9 @@ public class OpenWorldScreen extends BaseWorldScreen {
         Vector3 p = playerPosition();
         game.getSession().setWorldPosition(p.x, p.z);
         updateCurrentPlace(p.x, p.z);
+        if (!isOverlayOpen()) {
+            watchTheRoad(p);
+        }
         long start = System.nanoTime();
         updateStreaming(p.x, p.z);
         long end = start + WORK_BUDGET;
@@ -611,6 +680,122 @@ public class OpenWorldScreen extends BaseWorldScreen {
             work.poll().run();
         }
         slowestWorkNanos = System.nanoTime() - start;   // le temps de cette image (lu par le banc de test)
+        boolean frozen = isOverlayOpen();
+        Villagers.Villager talking = talkingTo();
+        for (Place place : places) {
+            if (place.villagers != null) {
+                place.villagers.update(delta, p, frozen, talking);
+            }
+        }
+    }
+
+    /** L'habitant qui parle visé par le rayon, dans les villes construites. */
+    @Override
+    protected Object aimedWalker(Vector3 eye, Vector3 direction, float maxDistance) {
+        for (Place place : places) {
+            if (place.villagers != null) {
+                Villagers.Villager v = place.villagers.aimed(eye, direction, maxDistance, place.id, story());
+                if (v != null) {
+                    return v;
+                }
+            }
+        }
+        return null;
+    }
+
+    // ------------------------------------------------------------------ embuscades sur la route
+
+    /** Mètres marchés hors des lieux entre deux tirages d'embuscade : à peu près une étape de la carte (15 km). */
+    static final float AMBUSH_STRETCH = 1500f;
+    /** Des agresseurs laissés à plus de cette distance abandonnent (ils disparaissent). */
+    private static final float AMBUSH_GIVE_UP = 200f;
+    /** Ce qu'un pas ne peut dépasser : au-delà, c'est un saut (rechargement, voyage), pas de la marche. */
+    private static final float MAX_STEP = 5f;
+
+    /** Mètres marchés en chemin depuis le dernier tirage. */
+    float roadMeters;
+    private float lastWalkX;
+    private float lastWalkZ;
+    private boolean hasLastWalk;
+    /** Les agresseurs de l'embuscade en cours (vide s'il n'y en a pas). */
+    private final List<Monster> ambushers = new ArrayList<>();
+    private final java.util.Random ambushRandom = com.lucas.guild.game.GameRandom.create();
+
+    /**
+     * En chemin, hors des lieux : tous les {@link #AMBUSH_STRETCH} mètres, une embuscade peut surgir devant le
+     * joueur, avec la chance de la difficulté (difficulties.json, « ambushPercent »), comme un voyage par la carte.
+     */
+    private void watchTheRoad(Vector3 p) {
+        if (hasLastWalk && currentPlace == null) {
+            float step = (float) Math.hypot(p.x - lastWalkX, p.z - lastWalkZ);
+            if (step <= MAX_STEP) {
+                roadMeters += step;
+            }
+        }
+        lastWalkX = p.x;
+        lastWalkZ = p.z;
+        hasLastWalk = true;
+        if (!ambushers.isEmpty()) {
+            boolean allFar = true;
+            for (Monster m : ambushers) {
+                allFar &= m.distanceTo(p.x, p.z) > AMBUSH_GIVE_UP;
+            }
+            if (allFar) {
+                for (Monster m : ambushers) {
+                    combat.remove(m);
+                }
+                ambushers.clear();
+            }
+            return;
+        }
+        if (roadMeters >= AMBUSH_STRETCH) {
+            roadMeters -= AMBUSH_STRETCH;
+            if (rollAmbush()) {
+                startAmbush(p);
+            }
+        }
+    }
+
+    private boolean rollAmbush() {
+        if (GameContent.world().ambush == null) {
+            return false;
+        }
+        if (com.lucas.guild.game.DebugMode.isForceAmbush()) {
+            return true;
+        }
+        // une fin de l'histoire peut rendre les routes plus sûres
+        int percent = story().ambushPercent(GameContent.ambushPercent(difficulty));
+        return ambushRandom.nextInt(100) < percent;
+    }
+
+    /** Les agresseurs surgissent une vingtaine de mètres devant le joueur et restent dans les parages. */
+    private void startAmbush(Vector3 p) {
+        com.lucas.guild.data.WorldData.AmbushData config = GameContent.world().ambush;
+        float dx = camera.direction.x;
+        float dz = camera.direction.z;
+        float len = (float) Math.hypot(dx, dz);
+        if (len < 1e-3f) {
+            dx = 0f;
+            dz = -1f;
+            len = 1f;
+        }
+        dx /= len;
+        dz /= len;
+        int count = config.min + ambushRandom.nextInt(config.max - config.min + 1);
+        for (int i = 0; i < count; i++) {
+            String id = config.monsters.get(ambushRandom.nextInt(config.monsters.size()));
+            float side = (i - (count - 1) / 2f) * 3f;
+            float x = p.x + dx * 22f - dz * side;
+            float z = p.z + dz * 22f + dx * side;
+            float[] bounds = {x - 80f, x + 80f, z - 80f, z + 80f};
+            ambushers.add(combat.spawn(id, x, z, bounds));
+        }
+        gameClock.postMessage("Embuscade ! On vous attaque sur la route.");
+    }
+
+    /** Pour le banc de test : nombre d'agresseurs encore là. */
+    int ambusherCount() {
+        return ambushers.size();
     }
 
     /** Le lieu où l'on est : le HUD l'affiche, et les règles du jeu (boutiques, auberge, carte) en dépendent. */
@@ -626,6 +811,15 @@ public class OpenWorldScreen extends BaseWorldScreen {
             player.setTownId(here);
             player.markVisited(here);
             townName = GameContent.world().place(here).name;
+            // les avantages de l'histoire propres à ce lieu, et le marché du jour quand on entre dans une ville
+            int[] boons = story().boonsIn(here);
+            player.setStoryBoons(boons[0], boons[1]);
+            if (!com.lucas.guild.data.WorldData.isZone(GameContent.world().place(here))) {
+                String market = com.lucas.guild.game.WorldEvents.describeAt(player, here);
+                if (market != null) {
+                    gameClock.postMessage(market);
+                }
+            }
         }
     }
 
@@ -654,6 +848,16 @@ public class OpenWorldScreen extends BaseWorldScreen {
         if (userData instanceof ChestRef) {
             return ((ChestRef) userData).lid != null ? "Ouvrir le coffre (E)" : "Coffre vide";
         }
+        if (userData instanceof BoardRef) {
+            return "Lire le tableau d'annonces (E)";
+        }
+        if (userData instanceof Villagers.Villager) {
+            return villagerPrompt((Villagers.Villager) userData);
+        }
+        if (userData instanceof PortalRef) {
+            com.lucas.guild.data.WorldData.PlaceData place = GameContent.world().place(((PortalRef) userData).placeId);
+            return story().holds(place.requires) ? "Entrer : " + place.name + " (E)" : place.lockedText;
+        }
         return null;
     }
 
@@ -669,7 +873,76 @@ public class OpenWorldScreen extends BaseWorldScreen {
             openChest((ChestRef) userData);
             return true;
         }
+        if (userData instanceof BoardRef) {
+            openBoard(((BoardRef) userData).townId);
+            return true;
+        }
+        if (userData instanceof Villagers.Villager) {
+            talkTo((Villagers.Villager) userData);
+            return true;
+        }
+        if (userData instanceof PortalRef) {
+            enter(((PortalRef) userData).placeId);
+            return true;
+        }
         return false;
+    }
+
+    /** Entre dans un lieu fermé par sa porte (sauvegarde automatique à l'arrivée), s'il est ouvert. */
+    private void enter(String placeId) {
+        com.lucas.guild.data.WorldData.PlaceData place = GameContent.world().place(placeId);
+        if (!story().holds(place.requires)) {
+            gameClock.postMessage(place.lockedText);
+            return;
+        }
+        player.setTownId(placeId);
+        player.markVisited(placeId);
+        TownData.Point3 a = GameContent.arrival(placeId);
+        saveManager.saveGame(player, gameClock, difficulty, a.x, a.y, a.z, "Zone");
+        game.setScreen(new ZoneScreen(game, difficulty, new Vector3(a.x, a.y, a.z)));
+    }
+
+    // ------------------------------------------------------------------ tableau d'annonces
+
+    private com.badlogic.gdx.scenes.scene2d.ui.Table boardTable;
+    private QuestBoardPanel questBoard;
+    private String boardTown;
+
+    @Override
+    protected void setupExtraUI() {
+        boardTable = new com.badlogic.gdx.scenes.scene2d.ui.Table(skin);
+        boardTable.setFillParent(true);
+        boardTable.setVisible(false);
+        stage.addActor(boardTable);
+    }
+
+    /** Le tableau d'annonces de la ville {@code townId} (un par ville : on le refait si l'on a changé de ville). */
+    private void openBoard(String townId) {
+        if (questBoard == null || !townId.equals(boardTown)) {
+            boardTown = townId;
+            questBoard = new QuestBoardPanel(boardTable, skin, player, townId, "Tableau d'annonces", dialogTable.getBackground(),
+                    () -> questBoard.toggle());
+        }
+        questBoard.toggle();
+    }
+
+    @Override
+    protected boolean isExtraOverlayOpen() {
+        return questBoard != null && questBoard.isOpen();
+    }
+
+    @Override
+    protected boolean closeExtraOverlay() {
+        if (isExtraOverlayOpen()) {
+            questBoard.toggle();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    protected boolean onOverlayKeyDown(int keycode) {
+        return questBoard != null && questBoard.isOpen() && questBoard.handleKey(keycode);
     }
 
     private void openChest(ChestRef ref) {
@@ -697,6 +970,10 @@ public class OpenWorldScreen extends BaseWorldScreen {
     @Override
     protected boolean onGlobalKeyDown(int keycode) {
         if (keycode == Input.Keys.F5) {
+            if (!ambushers.isEmpty()) {
+                gameClock.postMessage("Impossible de sauvegarder pendant une embuscade.");
+                return true;
+            }
             Vector3 p = playerPosition();
             if (!saveManager.saveGame(player, gameClock, difficulty, p.x, p.y, p.z, SAVE_SCREEN)) {
                 Gdx.app.error("SAVE", "ÉCHEC de la sauvegarde (voir la console)");
@@ -731,8 +1008,11 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 place.group.clear();
                 place.group = null;
             }
+            if (place.villagers != null) {
+                place.villagers.dispose();
+                place.villagers = null;
+            }
         }
-        roads.clear();
         if (groundBody != null) {
             physics().removeRigidBody(groundBody);
             groundBody.dispose();

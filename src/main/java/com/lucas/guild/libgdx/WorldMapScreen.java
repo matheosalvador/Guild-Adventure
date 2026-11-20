@@ -86,9 +86,13 @@ public class WorldMapScreen implements Screen {
                 && com.lucas.guild.game.WorldLayout.standard().placeAt(session.getWorldX(), session.getWorldZ()) == null;
         side.add(UiKit.label(skin, onTheWay ? "Vous êtes en chemin (point rouge)" : "Vous êtes à " + world.place(here).name)).pad(3).row();
         side.add(UiKit.label(skin, session.getClock().getDate() + " - " + session.getClock().formatTime())).pad(3).row();
-        side.add(UiKit.label(skin, "-- Routes --")).pad(10).row();
+        boolean fast = session.isInOpenWorld();
+        side.add(UiKit.label(skin, fast ? "-- Voyage rapide (lieux déjà atteints) --" : "-- Routes --")).pad(10).row();
 
-        List<World.Route> routes = World.routesFrom(player);
+        List<World.Route> routes = fast ? World.fastTravelRoutes(session, com.lucas.guild.game.WorldLayout.standard()) : World.routesFrom(player);
+        if (routes.isEmpty()) {
+            side.add(UiKit.message(skin, "Aucun autre lieu atteint à pied pour l'instant.")).pad(5).row();
+        }
         for (final World.Route route : routes) {
             String text = String.format(Locale.FRANCE, "%s - %.0f km - %s", route.place.name, route.km, World.formatDuration(route.minutes));
             int arrival = (session.getClock().getCurrentHour() * 60 + session.getClock().getCurrentMinute() + route.minutes) / 60 % 24;
@@ -149,6 +153,19 @@ public class WorldMapScreen implements Screen {
 
     private void travel(String placeId) {
         GameSession session = game.getSession();
+        if (session.isInOpenWorld()) {
+            // le voyage rapide : le temps passe, on arrive à la porte du lieu (les embuscades se font sur la route, à pied)
+            String message = World.fastTravel(session, com.lucas.guild.game.WorldLayout.standard(), placeId);
+            if (message == null) {
+                return;
+            }
+            session.getClock().postMessage(message);
+            float[] w = MainGame.arrivalPoint(placeId);
+            session.setWorldPosition(w[0], w[1]);
+            new SaveManager().saveGame(player, session.getClock(), difficulty, w[0], 2f, w[1], OpenWorldScreen.SAVE_SCREEN);
+            game.setScreen(game.arrivalIn(placeId, difficulty));
+            return;
+        }
         if (World.shouldAmbush(session, placeId, com.lucas.guild.game.GameRandom.create())) {
             String warning = World.startAmbushedTravel(session, placeId);
             if (warning != null) {

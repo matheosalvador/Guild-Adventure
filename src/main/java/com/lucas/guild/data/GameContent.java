@@ -827,9 +827,6 @@ public final class GameContent {
             if ("story".equals(p.action) && !storyPoints().contains(p.text)) {
                 throw new IllegalStateException(file + " : point d'histoire inconnu \"" + p.text + "\" (voir \"points\" dans story.json)");
             }
-            if ("walk".equals(p.action) && openWorld().place(p.text) == null) {
-                throw new IllegalStateException(file + " : depart a pied vers un lieu absent du monde ouvert \"" + p.text + "\" (voir openworld.json)");
-            }
         }
     }
 

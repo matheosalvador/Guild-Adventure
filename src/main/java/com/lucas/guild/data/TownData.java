@@ -60,7 +60,6 @@ public class TownData {
         /**
          * Pour l'action « read » : l'identifiant du texte à lire dans lore.json (panneau, stèle, livre...).
          * Pour l'action « story » : le point d'histoire de story.json (« cairn »...) dont les dialogues se tiennent ici.
-         * Pour l'action « walk » (monde ouvert, prototype) : le lieu où l'on part à pied (un lieu de openworld.json).
          */
         public String text;
     }
@@ -110,10 +109,9 @@ public class TownData {
             String at = where + " n°" + (i + 1);
             if (p == null) throw new IllegalStateException(at + " : vide");
             if (p.color == null) throw new IllegalStateException(at + " : \"color\" manquant");
-            if (p.action != null && !java.util.Arrays.asList("gate", "read", "board", "story", "walk").contains(p.action)) {
-                throw new IllegalStateException(at + " : \"action\" inconnue \"" + p.action + "\" (attendu : gate, read, board, story ou walk)");
+            if (p.action != null && !java.util.Arrays.asList("gate", "read", "board", "story", "enter").contains(p.action)) {
+                throw new IllegalStateException(at + " : \"action\" inconnue \"" + p.action + "\" (attendu : gate, read, board, story ou enter)");
             }
-            if ("walk".equals(p.action) && (p.text == null || p.text.isEmpty())) throw new IllegalStateException(at + " : l'action \"walk\" demande un \"text\" (le lieu ou l'on part a pied, voir openworld.json)");
             if ("read".equals(p.action) && (p.text == null || p.text.isEmpty())) throw new IllegalStateException(at + " : l'action \"read\" demande un \"text\" (un identifiant de lore.json)");
             if ("story".equals(p.action) && (p.text == null || p.text.isEmpty())) throw new IllegalStateException(at + " : l'action \"story\" demande un \"text\" (un point de story.json)");
             if (p.w <= 0 || p.h <= 0 || p.d <= 0) throw new IllegalStateException(at + " : \"w\", \"h\" et \"d\" doivent etre > 0");

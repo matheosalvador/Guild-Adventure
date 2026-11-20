@@ -123,6 +123,15 @@ public class ZoneScreen extends BaseWorldScreen {
         return 8f;
     }
 
+    /**
+     * Un lieu fermé du monde ouvert (mine, fosse, château, et leurs étages) : on y entre par sa porte et on en
+     * ressort devant elle, sans quitter le monde ouvert.
+     */
+    @Override
+    protected boolean keepsWorldMode() {
+        return !ambush && com.lucas.guild.game.WorldLayout.standard().portalFor(game.getSession().getPlayer().getTownId()) != null;
+    }
+
     @Override
     protected String sceneKey() {
         return ambush ? "ambush@" + player.getTownId() : super.sceneKey();
@@ -266,7 +275,10 @@ public class ZoneScreen extends BaseWorldScreen {
             if (ambush) {
                 return combat.count() > 0 ? "Des ennemis vous barrent la route !" : "Reprendre la route (E)";
             }
-            return arena != null && arena.isRunning() ? "Quitter l'arène : l'épreuve sera perdue (E)" : "Prendre la route (E)";
+            if (arena != null && arena.isRunning()) {
+                return "Quitter l'arène : l'épreuve sera perdue (E)";
+            }
+            return game.getSession().isInOpenWorld() ? "Sortir (E)" : "Prendre la route (E)";
         }
         if (userData instanceof ChestRef) {
             return chestLids.containsKey(((ChestRef) userData).index) ? "Ouvrir le coffre (E)" : "Coffre vide";
@@ -299,6 +311,15 @@ public class ZoneScreen extends BaseWorldScreen {
         GameSession session = game.getSession();
         if (!ambush) {
             failArena();
+            com.lucas.guild.game.WorldLayout layout = com.lucas.guild.game.WorldLayout.standard();
+            String portal = layout.portalFor(zoneId);
+            if (session.isInOpenWorld() && portal != null) {
+                // on ressort devant la porte du lieu, dans le monde ouvert
+                float[] w = layout.portalExit(portal);
+                saveManager.saveGame(player, gameClock, difficulty, w[0], 2f, w[1], OpenWorldScreen.SAVE_SCREEN);
+                game.setScreen(new OpenWorldScreen(game, difficulty, new Vector3(w[0], 2f, w[1])));
+                return;
+            }
             game.setScreen(new WorldMapScreen(game, difficulty));
             return;
         }

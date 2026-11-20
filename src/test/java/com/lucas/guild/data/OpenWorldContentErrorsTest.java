@@ -12,7 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** openworld.json cassé (et le panneau « walk » d'une ville) : le message nomme le fichier et le problème. Un test par cas. */
+/** openworld.json cassé : le message nomme le fichier et le problème. Un test par cas. */
 class OpenWorldContentErrorsTest {
 
     @TempDir
@@ -94,19 +94,19 @@ class OpenWorldContentErrorsTest {
 
     @Test
     void unknownPlace() throws IOException {
-        expectWorldError("{ \"id\": \"aethelgard\", \"half\": 100 }", "{ \"id\": \"atlantide\", \"half\": 100 }",
+        expectWorldError("{ \"id\": \"aethelgard\", \"half\": 70 }", "{ \"id\": \"atlantide\", \"half\": 70 }",
                 "openworld.json", "atlantide", "world.json");
     }
 
     @Test
     void placeTwice() throws IOException {
-        expectWorldError("{ \"id\": \"aethelgard\", \"half\": 100 }", "{ \"id\": \"aethelgard\", \"half\": 100 },\n    { \"id\": \"aethelgard\", \"half\": 100 }",
+        expectWorldError("{ \"id\": \"aethelgard\", \"half\": 70 }", "{ \"id\": \"aethelgard\", \"half\": 70 },\n    { \"id\": \"aethelgard\", \"half\": 70 }",
                 "openworld.json", "aethelgard", "en double");
     }
 
     @Test
     void placeWithoutSize() throws IOException {
-        expectWorldError("\"half\": 100", "\"half\": 0", "openworld.json", "aethelgard", "half");
+        expectWorldError("{ \"id\": \"aethelgard\", \"half\": 70 }", "{ \"id\": \"aethelgard\", \"half\": 0 }", "openworld.json", "aethelgard", "half");
     }
 
     @Test
@@ -115,19 +115,40 @@ class OpenWorldContentErrorsTest {
     }
 
     @Test
-    void roadFromAPlaceNotInTheWorld() throws IOException {
-        expectWorldError("\"from\": \"aethelgard\"", "\"from\": \"portbrume\"", "openworld.json", "route n°1", "from", "portbrume");
+    void zoneWithoutEntrance() throws IOException {
+        expectWorldError("{ \"id\": \"ruines_gobelines\", \"half\": 72, \"entrance\": { \"x\": 0, \"z\": 71, \"width\": 10 } }",
+                "{ \"id\": \"ruines_gobelines\", \"half\": 72 }", "openworld.json", "ruines_gobelines", "entrance");
     }
 
     @Test
-    void roadWithOnePoint() throws IOException {
-        expectWorldError("{ \"x\": 0, \"z\": 62 },\n        { \"x\": -68, \"z\": 70 },\n        { \"x\": -900, \"z\": -1105 },\n        { \"x\": -900, \"z\": -1130 }",
-                "{ \"x\": 0, \"z\": 62 }", "openworld.json", "route n°1", "points");
+    void placeOfTheMapMissingFromTheWorld() throws IOException {
+        expectWorldError("    { \"id\": \"hautevigne\", \"half\": 70 },\n", "", "openworld.json", "hautevigne", "ni dans");
     }
 
     @Test
-    void walkSignToAPlaceOutsideTheWorld() throws IOException {
-        expectError("town.json", "\"action\": \"walk\", \"text\": \"foret_loups\"}\n", "\"action\": \"walk\", \"text\": \"portbrume\"}\n",
-                "town.json", "portbrume", "openworld.json");
+    void portalWithoutDoor() throws IOException {
+        expectWorldError("\"color\": \"#0B0B0D\", \"action\": \"enter\"", "\"color\": \"#0B0B0D\"", "openworld.json", "mine_galeries", "enter");
+    }
+
+    @Test
+    void portalOnATown() throws IOException {
+        expectWorldError("\"id\": \"fosse_debardeurs\", \"half\": 12", "\"id\": \"portbrume\", \"half\": 12", "openworld.json", "portbrume", "places");
+    }
+
+    @Test
+    void portalWithAnUnknownAction() throws IOException {
+        expectWorldError("\"color\": \"#0B0B0D\", \"action\": \"enter\"", "\"color\": \"#0B0B0D\", \"action\": \"entrer\"", "openworld.json", "mine_galeries", "entrer");
+    }
+
+    @Test
+    void roadBetweenPlacesThatAreNotLinked() throws IOException {
+        expectWorldError("\"roads\": []", "\"roads\": [ { \"from\": \"foret_loups\", \"to\": \"portbrume\", \"via\": [] } ]",
+                "openworld.json", "route n°1", "pas relies");
+    }
+
+    @Test
+    void roadFromAnUnknownPlace() throws IOException {
+        expectWorldError("\"roads\": []", "\"roads\": [ { \"from\": \"atlantide\", \"to\": \"portbrume\" } ]",
+                "openworld.json", "route n°1", "from", "atlantide");
     }
 }
