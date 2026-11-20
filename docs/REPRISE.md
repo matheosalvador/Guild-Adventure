@@ -168,7 +168,7 @@ Les décisions du cadrage du monde ouvert sont toutes réalisées.
 ## Ensuite (ne pas commencer sans l'accord de Lucas)
 
 Les six points du 2026-11-20 sont faits. Selon l'avis de Lucas après avoir joué (`.\compile_check.bat` puis
-`.un.bat`, Nouvelle partie) : valider les combats (`docs/REGLAGE-COMBATS.md`), puis les fusions et une PR vers
+`.\run.bat`, Nouvelle partie) : valider les combats (`docs/REGLAGE-COMBATS.md`), puis les fusions et une PR vers
 `main` (brouillon à lui montrer). Idées notées, pas commencées : plus de sites et de voyageurs, des collines plus
 hautes (constantes de `Terrain`), utiliser l'herbe de soin (fabriquer des potions ?).
 
