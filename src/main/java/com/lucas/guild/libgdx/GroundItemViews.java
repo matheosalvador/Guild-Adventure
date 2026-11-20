@@ -30,7 +30,7 @@ final class GroundItemViews {
     private final String scene;
     private final Array<ModelInstance> instances;
     private final BoxFactory boxes;
-    private final Map<GroundItems.Drop, ModelInstance> views = new HashMap<>();
+    private final Map<com.lucas.guild.model.GroundDrop, ModelInstance> views = new HashMap<>();
 
     /**
      * @param scene le lieu (voir {@code BaseWorldScreen.sceneKey()}) : les objets jetés ici sont retrouvés ici
@@ -44,7 +44,7 @@ final class GroundItemViews {
 
     /** Montre les objets déjà au sol dans ce lieu (on y revient). */
     void showExisting() {
-        for (GroundItems.Drop drop : ground.in(scene)) {
+        for (com.lucas.guild.model.GroundDrop drop : ground.in(scene)) {
             show(drop);
         }
     }
@@ -58,7 +58,7 @@ final class GroundItemViews {
         return Color.ORANGE;
     }
 
-    private void show(GroundItems.Drop drop) {
+    private void show(com.lucas.guild.model.GroundDrop drop) {
         views.put(drop, boxes.box(0.5f, 0.3f, 0.5f, colorOf(drop.item), drop.x, 0.65f, drop.z));
     }
 
@@ -68,7 +68,7 @@ final class GroundItemViews {
     }
 
     /** L'objet au sol le plus proche du point, à portée de main, ou null. */
-    GroundItems.Drop nearest(float x, float z) {
+    com.lucas.guild.model.GroundDrop nearest(float x, float z) {
         return ground.nearest(scene, x, z);
     }
 
@@ -78,7 +78,7 @@ final class GroundItemViews {
      * @return la phrase à afficher, ou null s'il n'y a rien à portée
      */
     String pickUpNearest(Adventurer player, float x, float z) {
-        GroundItems.Drop drop = nearest(x, z);
+        com.lucas.guild.model.GroundDrop drop = nearest(x, z);
         if (drop == null) {
             return null;
         }

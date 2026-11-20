@@ -78,7 +78,7 @@ class WildernessTest {
     void groundItemsDropPickupAndRange() {
         GroundItems ground = new GroundItems();
         Item potion = GameContent.newItem("healing_potion");
-        GroundItems.Drop drop = ground.drop("zone", potion, 10f, 10f);
+        com.lucas.guild.model.GroundDrop drop = ground.drop("zone", potion, 10f, 10f);
 
         assertEquals(1, ground.in("zone").size());
         assertEquals(0, ground.in("autre lieu").size(), "chaque lieu a ses objets");
@@ -92,7 +92,7 @@ class WildernessTest {
     void nearestGroundItemWins() {
         GroundItems ground = new GroundItems();
         ground.drop("z", GameContent.newItem("dagger"), 2f, 0f);
-        GroundItems.Drop closer = ground.drop("z", GameContent.newItem("pouch"), 1f, 0f);
+        com.lucas.guild.model.GroundDrop closer = ground.drop("z", GameContent.newItem("pouch"), 1f, 0f);
         assertEquals(closer, ground.nearest("z", 0f, 0f));
     }
 

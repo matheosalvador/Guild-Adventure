@@ -50,8 +50,8 @@ public class GameSession {
     private float worldX;
     private float worldZ;
 
-    /** Les objets au sol (en mémoire, pas sauvegardés). */
-    private final GroundItems ground = new GroundItems();
+    /** Les objets au sol (rangés dans le personnage : sauvegardés avec lui). */
+    private final GroundItems ground;
     /** Voyage coupé par une embuscade : le lieu où l'on va et les minutes qu'il reste (pas sauvegardé). */
     private String pendingDestination;
     private int pendingMinutes;
@@ -60,6 +60,7 @@ public class GameSession {
                         boolean hasSavedPosition, float x, float y, float z) {
         this.player = player;
         this.clock = clock;
+        this.ground = new GroundItems(player::getGroundItems, clock::getCurrentDay);
         this.difficulty = difficulty;
         this.hasSavedPosition = hasSavedPosition;
         this.savedX = x;

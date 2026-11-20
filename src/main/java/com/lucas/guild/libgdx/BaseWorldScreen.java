@@ -782,7 +782,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         dropOnGround(item, spot.x, spot.z);
     }
 
-    private GroundItems.Drop nearestGroundItem() {
+    private com.lucas.guild.model.GroundDrop nearestGroundItem() {
         Vector3 p = playerPosition();
         return groundItems.nearest(p.x, p.z);
     }
@@ -861,7 +861,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             }
         }
         if (text == null) {
-            GroundItems.Drop drop = nearestGroundItem();
+            com.lucas.guild.model.GroundDrop drop = nearestGroundItem();
             if (drop != null) {
                 text = "Ramasser : " + drop.item.getName() + " (E)";
             }

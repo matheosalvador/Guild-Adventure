@@ -324,7 +324,7 @@ public class Smoke extends ApplicationAdapter {
         frames(2);
     }
 
-    int bulletTown, bulletWorld, wolvesBefore;
+    int bulletTown, bulletWorld, wolvesBefore, groundBefore;
     long memoryWorld;
     int killsBefore;
     String savedJson;
@@ -499,7 +499,7 @@ public class Smoke extends ApplicationAdapter {
         check("retour sur le chemin, au meme endroit", () -> cur() instanceof OpenWorldScreen
                 && Math.abs(pc().getPlayerBody().getCenterOfMassPosition().x + 480f) < 1f);
         settleWorld();
-        step(() -> { hourBefore = game.getSession().getClock().getCurrentHour() * 60 + game.getSession().getClock().getCurrentMinute(); });
+        step(() -> { hourBefore = game.getSession().getClock().getCurrentHour() * 60 + game.getSession().getClock().getCurrentMinute(); groundBefore = groundCount("OpenWorld"); });
         key(Input.Keys.F5);
         check("F5 note le monde ouvert dans save.json", () -> {
             savedJson = new String(Files.readAllBytes(Paths.get("save.json")), "UTF-8");
@@ -513,6 +513,10 @@ public class Smoke extends ApplicationAdapter {
                 && Math.abs(pc().getPlayerBody().getCenterOfMassPosition().x + 480f) < 0.5f
                 && Math.abs(pc().getPlayerBody().getCenterOfMassPosition().z + 540f) < 0.5f);
         check("F9 : meme heure", () -> game.getSession().getClock().getCurrentHour() * 60 + game.getSession().getClock().getCurrentMinute() == hourBefore);
+        check("F9 : le butin des loups est toujours au sol (sauvegarde)", () -> {
+            log("butin au sol dans le monde ouvert : " + groundBefore + " avant F5, " + groundCount("OpenWorld") + " apres F9");
+            return groundBefore > 0 && groundCount("OpenWorld") == groundBefore;
+        });
         settleWorld();
         shot("w05_campagne_apres_f9");
 
@@ -1924,7 +1928,7 @@ public class Smoke extends ApplicationAdapter {
 
         // ---------- ramasser (E) : on se met sur le butin
         step(() -> {
-            com.lucas.guild.game.GroundItems.Drop d = game.getSession().getGround().in("ZoneScreen@foret_loups").get(0);
+            com.lucas.guild.model.GroundDrop d = game.getSession().getGround().in("ZoneScreen@foret_loups").get(0);
             game.setScreen(new ZoneScreen(game, "facile", new Vector3(d.x, 2, d.z + 1.5f)));
         });
         frames(40);

@@ -46,6 +46,8 @@ public class Adventurer extends Entite {
     private Map<String, Integer> storyFlags = new HashMap<>();
     /** Monde ouvert : les monstres tués (lieu#rang -> jour de leur mort), voir game/Respawns. Absent des anciennes sauvegardes. */
     private Map<String, Integer> monsterKills = new HashMap<>();
+    /** Les objets laissés au sol (butin, objets jetés), voir game/GroundItems. Absent des anciennes sauvegardes. */
+    private java.util.List<GroundDrop> groundItems = new java.util.ArrayList<>();
     /** Le jour où le personnage a cessé de vieillir (une fin de l'histoire), ou null s'il vieillit normalement. */
     private Integer ageFrozenDay;
 
@@ -183,6 +185,14 @@ public class Adventurer extends Entite {
             storyFlags = new HashMap<>();
         }
         return storyFlags;
+    }
+
+    /** Les objets laissés au sol, par lieu. Jamais null, même pour une ancienne sauvegarde. */
+    public java.util.List<GroundDrop> getGroundItems() {
+        if (groundItems == null) {
+            groundItems = new java.util.ArrayList<>();
+        }
+        return groundItems;
     }
 
     /** Monde ouvert : les monstres tués et le jour de leur mort. Jamais null, même pour une ancienne sauvegarde. */

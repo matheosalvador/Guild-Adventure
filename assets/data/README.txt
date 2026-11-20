@@ -94,7 +94,7 @@ zone_foret.json, zone_ruines.json, zone_route.json (une zone sauvage par fichier
     route : la viser ouvre la carte du monde), "decor" (boites, comme pour une ville : arbres, murs...),
     "monsters" (id de monsters.json + x/z ; ils reapparaissent a chaque visite) et "chests" (x/z, gold, items =
     identifiants de items.json, respawnDays = jours avant qu'un coffre ouvert se remplisse de nouveau).
-    Les objets jetes ou lacher par les monstres restent au sol tant que la partie tourne (non sauvegardes).
+    Les objets jetes ou laches par les monstres restent au sol 7 jours de jeu (sauvegardes avec le personnage).
     Les zones de l'histoire (zone_mine_*, zone_fosse, zone_corvenne_*) sont fabriquees par
     docs/outils-test/gen_story_zones.py : modifier le script puis le relancer plutot que les fichiers a la main.
     Facultatif :
