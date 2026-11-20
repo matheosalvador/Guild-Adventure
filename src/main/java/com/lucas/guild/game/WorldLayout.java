@@ -8,7 +8,6 @@ import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.OpenWorldData;
 import com.lucas.guild.data.TownData;
 import com.lucas.guild.data.WorldData;
-import com.lucas.guild.data.ZoneData;
 
 /**
  * Où sont les choses dans le monde ouvert, en mètres, sans affichage : la position des lieux (celle de la carte,
@@ -203,12 +202,12 @@ public final class WorldLayout {
         float iz;
         OpenWorldData.PlaceData place = data.place(id);
         if (place != null && place.entrance != null) {
-            // une zone : on entre par l'ouverture de la haie, on arrive à l'arrivée de la zone
-            ZoneData zone = GameContent.zone(id);
+            // une zone : la route s'arrête juste derrière l'ouverture de la haie, où commence le chemin de la zone
             gx = place.entrance.x;
             gz = place.entrance.z;
-            ix = zone.arrival.x;
-            iz = zone.arrival.z;
+            float[] dir = outward(gx, gz);
+            ix = gx - dir[0];
+            iz = gz - dir[1];
         } else {
             TownData.PartData gate = place != null ? gateOf(GameContent.town(id), id) : OpenWorldData.doorOf(data.portal(id));
             gx = gate.x;

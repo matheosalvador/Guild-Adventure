@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 
 import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.OpenWorldData;
-import com.lucas.guild.data.ZoneData;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.Respawns;
 import com.lucas.guild.game.SaveManager;
@@ -90,10 +89,10 @@ class OpenWorldTest {
         OpenWorldData.PointData last = road.points.get(road.points.size() - 1);
         assertEquals("aethelgard", layout.placeAt(first.x, first.z));
         assertTrue(Math.abs(first.x) < 4f && first.z > 60f, "la route part de la porte sud (x 0, z 60)");
-        ZoneData forest = GameContent.zone("foret_loups");
-        float[] arrival = layout.toWorld("foret_loups", forest.arrival.x, forest.arrival.z);
-        assertEquals(arrival[0], last.x, 0.5f);
-        assertEquals(arrival[1], last.z, 0.5f);
+        // elle s'arrete juste derriere l'ouverture de la haie (z 81), la ou commence le chemin de la foret (z 80)
+        float[] pathStart = layout.toWorld("foret_loups", 0f, 80f);
+        assertEquals(pathStart[0], last.x, 0.5f);
+        assertEquals(pathStart[1], last.z, 0.5f);
         // dans l'autre sens, le meme trace a l'envers
         OpenWorldData.RoadData back = layout.road("foret_loups", "aethelgard");
         assertEquals(last.x, back.points.get(0).x, 1e-3);

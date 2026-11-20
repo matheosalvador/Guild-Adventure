@@ -33,6 +33,14 @@ final class Shapes {
                 return builder.createCapsule(Math.min(w, d) / 2f, h, 14, material, ATTRIBUTES);
             case "gable":
                 return gable(w, h, d, material);
+            case "rect": {
+                // une surface plate, tournée vers le haut, à la place du dessus d'une boîte (y = h / 2) : sans côtés,
+                // deux dalles voisines ne se disputent pas leurs bords (les dents de scie au loin)
+                float hw = w / 2f;
+                float hh = h / 2f;
+                float hd = d / 2f;
+                return builder.createRect(-hw, hh, hd, hw, hh, hd, hw, hh, -hd, -hw, hh, -hd, 0f, 1f, 0f, material, ATTRIBUTES);
+            }
             default:
                 return builder.createBox(w, h, d, material, ATTRIBUTES);
         }

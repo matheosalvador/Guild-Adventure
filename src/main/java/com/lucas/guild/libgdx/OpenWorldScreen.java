@@ -307,8 +307,17 @@ public class OpenWorldScreen extends BaseWorldScreen {
                     // chaque morceau déborde un peu : pas de jour entre deux morceaux ni aux coudes
                     float x = a.x + dx * t;
                     float z = a.z + dz * t;
+                    // le dernier morceau de chaque bout déborde de la largeur de la route (les coudes sont couverts),
+                    // sauf au bout de la route : elle s'arrête net devant la porte, où commence le chemin du lieu
+                    boolean end = i + 2 == road.points.size() && k == pieces - 1;
+                    float extra = end ? 0f : k == pieces - 1 ? data.roadWidth : 0.2f;
+                    if (i == 0 && k == 0) {
+                        // le tout premier morceau ne déborde que vers l'avant : rien ne dépasse derrière la porte
+                        x += dx / length * extra / 2f;
+                        z += dz / length * extra / 2f;
+                    }
                     roadPieces.computeIfAbsent(tileKey(layout.tileOf(x), layout.tileOf(z)), key -> new ArrayList<>())
-                            .add(new float[] {step + (k == pieces - 1 ? data.roadWidth : 0.2f), x, z, yaw});
+                            .add(new float[] {step + extra, x, z, yaw});
                 }
             }
         }
@@ -334,7 +343,9 @@ public class OpenWorldScreen extends BaseWorldScreen {
         float s = size / n;
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                visual(g, "box", s, 1f, s, color, cx - size / 2f + (i + 0.5f) * s, y, cz - size / 2f + (j + 0.5f) * s, null);
+                // des surfaces plates (pas des boîtes : leurs côtés se disputaient le dessus de la voisine, des pointillés
+                // dans l'herbe), qui se chevauchent un peu pour ne laisser aucune fente
+                visual(g, "rect", s + 0.1f, 1f, s + 0.1f, color, cx - size / 2f + (i + 0.5f) * s, y, cz - size / 2f + (j + 0.5f) * s, null);
             }
         }
     }
@@ -433,7 +444,8 @@ public class OpenWorldScreen extends BaseWorldScreen {
         List<float[]> pieces = roadPieces.get(tileKey(tile.tx, tile.tz));
         if (pieces != null) {
             for (float[] piece : pieces) {
-                visual(g, "box", data.roadWidth, 0.1f, piece[0], roadColor, piece[1], 0.53f, piece[2], new float[] {0, piece[3], 0});
+                // le dessus à 0,55 m, comme les chemins des villes et des zones : pas de marche où ils se rejoignent
+                visual(g, "box", data.roadWidth, 0.06f, piece[0], roadColor, piece[1], 0.52f, piece[2], new float[] {0, piece[3], 0});
             }
         }
         for (Terrain.Tree tree : tile.trees) {
