@@ -246,6 +246,17 @@ openworld.json (le monde ouvert, voir docs/CADRAGE-MONDE-OUVERT.md)
     partie a l'action "enter" : c'est la porte (E y entre ; les "requires" du lieu dans world.json la tiennent
     fermee). Un etage cache (mine_chambre...) ressort par l'entree posee a la meme position. Tout lieu non cache
     de world.json doit etre dans "places" ou dans "portals".
+    "sites" : ce qu'on croise en chemin, hors des lieux de la carte (camp, ruine, ferme, stele...) : id (unique,
+    pas un lieu de world.json), name (affiche par le HUD quand on y est), x/z (le centre, en m dans le monde),
+    half (demi-cote du carre occupe : ni arbre, ni route), decor (comme une ville ; actions "read" et "story"
+    seulement), monsters (id + x/z, dans le site ; ils poursuivent jusqu'a 30 m autour et reviennent apres
+    monsterRespawnDays jours), chests (comme une zone) et villagers (comme une ville : model, talk, speed, route).
+    Un test verifie qu'un site touche presque une route (moins de 80 m) sans etre dessus.
+    "gathering" : ce qu'on ramasse dans la campagne : item (items.json), kind = "herb" (une touffe) ou "rock" (un
+    caillou), verb (le mot du message : "Cueillir"), perTile (combien par carreau en moyenne, toujours aux memes
+    endroits), respawnDays (jours avant que la chose repousse ; le jour ou on l'a prise est sauvegarde).
+    "travelers" : ceux qui font la route, aller et retour : model, talk (un habitant de npcs.json), from et to (deux
+    lieux relies dans world.json), speed (m/s). Ou ils en sont depend de l'heure du jeu.
     Les routes sont tracees par le jeu, une par liaison de world.json ("links") : de la porte d'un lieu (porte de
     la ville, ouverture de la haie, porte de l'entree : le cote ou elle se trouve), droit devant, puis autour des
     murs par les coins si besoin, jusqu'a la porte de l'autre lieu. "roads" ne sert qu'a corriger un trace qui

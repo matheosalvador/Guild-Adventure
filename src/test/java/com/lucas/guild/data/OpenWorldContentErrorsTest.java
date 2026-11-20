@@ -147,6 +147,44 @@ class OpenWorldContentErrorsTest {
     }
 
     @Test
+    void siteWithAnUnknownMonster() throws IOException {
+        expectWorldError("{ \"id\": \"bandit\", \"x\": -3, \"z\": 0 }", "{ \"id\": \"brigand\", \"x\": -3, \"z\": 0 }",
+                "openworld.json", "camp_bandits", "brigand", "monsters.json");
+    }
+
+    @Test
+    void siteNamedLikeAPlaceOfTheMap() throws IOException {
+        expectWorldError("\"id\": \"tour_guet\"", "\"id\": \"aethelgard\"", "openworld.json", "aethelgard", "en double");
+    }
+
+    @Test
+    void siteMonsterOutsideTheSite() throws IOException {
+        expectWorldError("{ \"id\": \"wolf\", \"x\": -6, \"z\": -5 }", "{ \"id\": \"wolf\", \"x\": -60, \"z\": -5 }",
+                "openworld.json", "tour_guet", "hors du site");
+    }
+
+    @Test
+    void gatheringOfAnUnknownKind() throws IOException {
+        expectWorldError("\"kind\": \"herb\"", "\"kind\": \"fleur\"", "openworld.json", "gathering", "fleur");
+    }
+
+    @Test
+    void gatheringAnUnknownItem() throws IOException {
+        expectWorldError("\"item\": \"healing_herb\"", "\"item\": \"herbe_magique\"", "openworld.json", "gathering", "herbe_magique", "items.json");
+    }
+
+    @Test
+    void travelerOnARoadThatDoesNotExist() throws IOException {
+        expectWorldError("\"from\": \"portbrume\", \"to\": \"hautevigne\", \"speed\": 1.1", "\"from\": \"foret_loups\", \"to\": \"portbrume\", \"speed\": 1.1",
+                "openworld.json", "voyageur", "foret_loups");
+    }
+
+    @Test
+    void travelerWithoutLines() throws IOException {
+        expectWorldError("\"talk\": \"colporteur\"", "\"talk\": \"bavard\"", "openworld.json", "voyageur", "bavard", "npcs.json");
+    }
+
+    @Test
     void roadFromAnUnknownPlace() throws IOException {
         expectWorldError("\"roads\": []", "\"roads\": [ { \"from\": \"atlantide\", \"to\": \"portbrume\" } ]",
                 "openworld.json", "route n°1", "from", "atlantide");

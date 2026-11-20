@@ -308,7 +308,7 @@ class WorldContentErrorsTest {
 
     @Test
     void modelGearForUnknownItem() throws IOException {
-        expectError("models.json", "\"dagger\": {", "\"poignard_fantome\": {", "models.json", "poignard_fantome", "items.json");
+        expectError("models.json", "\"battle_axe\": {", "\"poignard_fantome\": {", "models.json", "poignard_fantome", "items.json");
     }
 
     @Test

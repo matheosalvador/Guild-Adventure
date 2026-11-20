@@ -48,8 +48,12 @@ public final class WorldLayout {
         return data.place(placeId) != null;
     }
 
-    /** Le centre du lieu (ou de l'entrée) dans le monde, en m. */
+    /** Le centre du lieu (de l'entrée, du site) dans le monde, en m. */
     public float[] origin(String placeId) {
+        OpenWorldData.SiteData site = data.site(placeId);
+        if (site != null) {
+            return new float[] {site.x, site.z};
+        }
         WorldData.PlaceData place = world.place(placeId);
         return new float[] {place.x * data.scale, place.z * data.scale};
     }
@@ -86,7 +90,7 @@ public final class WorldLayout {
         return (float) Math.hypot(dx, dz);
     }
 
-    /** Tous les identifiants posés dans le monde : lieux puis entrées. */
+    /** Tous les identifiants posés dans le monde : lieux, entrées, puis sites. */
     public List<String> footprints() {
         List<String> ids = new ArrayList<>();
         for (OpenWorldData.PlaceData p : data.places) {
@@ -95,7 +99,20 @@ public final class WorldLayout {
         for (OpenWorldData.PortalData p : data.portals) {
             ids.add(p.id);
         }
+        for (OpenWorldData.SiteData s : data.sites) {
+            ids.add(s.id);
+        }
         return ids;
+    }
+
+    /** Le site dont le carré contient ce point du monde, ou null. */
+    public OpenWorldData.SiteData siteAt(float x, float z) {
+        for (OpenWorldData.SiteData s : data.sites) {
+            if (Math.abs(x - s.x) <= s.half && Math.abs(z - s.z) <= s.half) {
+                return s;
+            }
+        }
+        return null;
     }
 
     /** Ce point du monde sur la carte, en km. */

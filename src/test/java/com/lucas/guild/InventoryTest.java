@@ -31,7 +31,7 @@ class InventoryTest {
     void run() throws Exception {
         fails = 0; total = 0; failed.clear();
         System.out.println("--- 1. catalogue");
-        check("22 objets au catalogue", GameContent.items().size() == 22);
+        check("24 objets au catalogue", GameContent.items().size() == 24);
         Item bp = GameContent.newItem("backpack");
         check("sac a dos : Sac, +15 kg, 1.5 kg, 60 Po", bp instanceof Sac && ((Sac) bp).getCapacityBonus() == 15 && bp.getPoids() == 1.5 && bp.getPrix() == 60);
         Item dg = GameContent.newItem("dagger");

@@ -95,13 +95,17 @@ public class OpenWorldScreen extends BaseWorldScreen {
         final int tx;
         final int tz;
         final List<Terrain.Tree> trees;
+        final List<Terrain.Node> nodes;
         Group visual;
         Group solid;
+        /** Ce qu'on peut ramasser sur le carreau (pas fusionné : une chose ramassée disparaît seule). */
+        Group gather;
 
         Tile(int tx, int tz) {
             this.tx = tx;
             this.tz = tz;
             this.trees = Terrain.trees(layout, tx, tz);
+            this.nodes = Terrain.gatherables(layout, tx, tz);
         }
     }
 
@@ -110,6 +114,8 @@ public class OpenWorldScreen extends BaseWorldScreen {
         final String id;
         /** L'entrée d'un lieu fermé (mine, fosse, château) : un petit décor et sa porte. */
         final boolean portal;
+        /** Un site d'openworld.json (camp, ruine, ferme...), pas un lieu de la carte. */
+        boolean site;
         Group group;
         final Map<Monster, String> monsters = new HashMap<>();
         /** Les habitants d'une ville construite, ou null. */
@@ -127,6 +133,17 @@ public class OpenWorldScreen extends BaseWorldScreen {
 
         BoardRef(String townId) {
             this.townId = townId;
+        }
+    }
+
+    /** Une chose à ramasser, visée. */
+    private static final class GatherRef {
+        final Terrain.Node node;
+        final Tile tile;
+
+        GatherRef(Terrain.Node node, Tile tile) {
+            this.node = node;
+            this.tile = tile;
         }
     }
 
@@ -254,18 +271,31 @@ public class OpenWorldScreen extends BaseWorldScreen {
         for (OpenWorldData.PortalData p : data.portals) {
             places.add(new Place(p.id, true));
         }
+        for (OpenWorldData.SiteData s : data.sites) {
+            Place site = new Place(s.id, false);
+            site.site = true;
+            places.add(site);
+            for (ZoneData.SpawnData m : s.monsters) {
+                prepareModel(m.id);
+            }
+            for (TownData.VillagerData v : s.villagers) {
+                prepareCharacter(v.model);
+            }
+        }
+        // les voyageurs : toujours là, sur leur route ; où ils en sont dépend de l'heure
+        long minutes = gameClock.getCurrentDay() * 1440L + gameClock.getCurrentHour() * 60L + gameClock.getCurrentMinute();
+        travelers = Villagers.travelers(instances, data.travelers, layout, minutes);
         for (OpenWorldData.PlaceData p : data.places) {
             places.add(new Place(p.id, false));
             // les fichiers des lieux sont lus maintenant (une fois pour toute la partie), pas en marchant
             if (GameContent.world().place(p.id).townFile != null) {
-                GameContent.town(p.id);
+                for (TownData.VillagerData v : GameContent.town(p.id).villagers) {
+                    prepareCharacter(v.model);
+                }
             } else {
                 // les formes des monstres aussi : le premier loup qui apparaît en marchant ne construit plus rien
                 for (ZoneData.SpawnData m : GameContent.zone(p.id).monsters) {
-                    String model = GameContent.monster(m.id).model;
-                    if (model != null) {
-                        new CharacterModel(new Array<ModelInstance>(), GameContent.models(), model).dispose();
-                    }
+                    prepareModel(m.id);
                 }
             }
         }
@@ -275,6 +305,21 @@ public class OpenWorldScreen extends BaseWorldScreen {
             work.poll().run();
         }
         updateCurrentPlace(spawn.x, spawn.z);
+    }
+
+    /** Les voyageurs sur les routes. */
+    private Villagers travelers;
+
+    /** Construit une fois les formes du modèle de ce monstre (elles sont ensuite partagées). */
+    private static void prepareModel(String monsterId) {
+        prepareCharacter(GameContent.monster(monsterId).model);
+    }
+
+    /** Construit une fois les formes de ce modèle (habitant, voyageur, monstre), s'il y en a un. */
+    private static void prepareCharacter(String modelId) {
+        if (modelId != null) {
+            new CharacterModel(new Array<ModelInstance>(), GameContent.models(), modelId).dispose();
+        }
     }
 
     /**
@@ -460,7 +505,58 @@ public class OpenWorldScreen extends BaseWorldScreen {
         g.cache.end();
         renderables.add(g.cache);
         tile.visual = g;
+        // ce qu'on ramasse : un travail à part (des corps solides à créer), à l'image suivante
+        work.add(() -> {
+            if (tile.visual != null && tiles.get(tileKey(tile.tx, tile.tz)) == tile) {
+                buildGatherables(tile);
+            }
+        });
         tilesBuilt++;
+    }
+
+    /** Les formes solides de ce qu'on ramasse, partagées par toutes les touffes et tous les cailloux. */
+    private btBoxShape herbShape;
+    private btBoxShape rockShape;
+
+    private static final Color HERB = Color.valueOf("6FBF4A");
+    private static final Color HERB_FLOWER = Color.valueOf("E8E070");
+    private static final Color ROCK = Color.valueOf("7A746C");
+    private static final Color ORE = Color.valueOf("A0522D");
+
+    /** Ce qu'on peut ramasser sur le carreau, s'il a repoussé : une touffe d'herbe ou un caillou veiné de rouille. */
+    private void buildGatherables(Tile tile) {
+        if (tile.gather != null) {
+            tile.gather.clear();
+        }
+        Group g = new Group();
+        tile.gather = g;
+        int today = gameClock.getCurrentDay();
+        for (Terrain.Node node : tile.nodes) {
+            OpenWorldData.GatherData kind = data.gathering.get(node.kind);
+            if (!com.lucas.guild.game.Gathering.isThere(player, node.key, today, kind.respawnDays)) {
+                continue;
+            }
+            GatherRef ref = new GatherRef(node, tile);
+            if ("herb".equals(kind.kind)) {
+                visual(g, "cone", 0.35f, 0.7f, 0.35f, HERB, node.x, 0.85f, node.z, null);
+                visual(g, "cone", 0.3f, 0.55f, 0.3f, HERB, node.x + 0.25f, 0.78f, node.z + 0.15f, null);
+                visual(g, "cone", 0.3f, 0.6f, 0.3f, HERB, node.x - 0.2f, 0.8f, node.z + 0.2f, null);
+                visual(g, "sphere", 0.14f, 0.14f, 0.14f, HERB_FLOWER, node.x, 1.25f, node.z, null);
+                // un corps bas, qu'on vise sans s'y cogner vraiment
+                if (herbShape == null) {
+                    herbShape = new btBoxShape(new Vector3(0.4f, 0.3f, 0.4f));
+                }
+                solid(g, herbShape, false, node.x, 0.8f, node.z, ref);
+            } else {
+                if (rockShape == null) {
+                    rockShape = new btBoxShape(new Vector3(0.5f, 0.3f, 0.4f));
+                }
+                visual(g, "box", 1.0f, 0.6f, 0.8f, ROCK, node.x, 0.8f, node.z, null);
+                solid(g, rockShape, false, node.x, 0.8f, node.z, ref);
+                visual(g, "box", 0.35f, 0.12f, 0.3f, ORE, node.x + 0.15f, 1.12f, node.z - 0.1f, null);
+                visual(g, "box", 0.25f, 0.1f, 0.2f, ORE, node.x - 0.25f, 1.1f, node.z + 0.15f, null);
+            }
+        }
     }
 
     /** Les troncs du carreau deviennent solides (les formes sont partagées par taille d'arbre). */
@@ -487,6 +583,10 @@ public class OpenWorldScreen extends BaseWorldScreen {
             tile.visual.clear();
             tile.visual = null;
         }
+        if (tile.gather != null) {
+            tile.gather.clear();
+            tile.gather = null;
+        }
         if (tile.solid != null) {
             tile.solid.clear();
             tile.solid = null;
@@ -499,8 +599,10 @@ public class OpenWorldScreen extends BaseWorldScreen {
         final Group g = new Group();
         place.group = g;
         final float[] o = layout.origin(place.id);
-        com.lucas.guild.data.WorldData.PlaceData info = GameContent.world().place(place.id);
-        if (place.portal) {
+        com.lucas.guild.data.WorldData.PlaceData info = place.site ? null : GameContent.world().place(place.id);
+        if (place.site) {
+            loadSite(place, g, o);
+        } else if (place.portal) {
             loadPortal(place, g, o);
         } else if (info.townFile != null) {
             final TownData town = GameContent.town(place.id);
@@ -512,16 +614,20 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 }
             });
             for (final TownData.BuildingData b : town.buildings) {
+                // le bâtiment, puis chacune de ses parties : un travail chacun (une partie peut être une forme neuve)
+                final TownBuilding building = new TownBuilding(b.name, b.interior, b.shop);
                 work.add(() -> {
-                    if (place.group != g) {
-                        return;
-                    }
-                    TownBuilding building = new TownBuilding(b.name, b.interior, b.shop);
-                    box(g, 10f, 10f, 10f, ColorNames.parse(b.color, file, "batiment \"" + b.name + "\""), o[0] + b.x, 5.5f, o[1] + b.z, building);
-                    for (TownData.PartData part : b.parts) {
-                        part(g, part, o[0] + b.x, o[1] + b.z, file, building);
+                    if (place.group == g) {
+                        box(g, 10f, 10f, 10f, ColorNames.parse(b.color, file, "batiment \"" + b.name + "\""), o[0] + b.x, 5.5f, o[1] + b.z, building);
                     }
                 });
+                for (final TownData.PartData part : b.parts) {
+                    work.add(() -> {
+                        if (place.group == g) {
+                            part(g, part, o[0] + b.x, o[1] + b.z, file, building);
+                        }
+                    });
+                }
             }
             for (final TownData.PartData part : town.decor) {
                 // la porte de la ville est ouverte : on passe à pied
@@ -534,11 +640,7 @@ public class OpenWorldScreen extends BaseWorldScreen {
                     }
                 });
             }
-            work.add(() -> {
-                if (place.group == g) {
-                    place.villagers = new Villagers(instances, town, o[0], o[1]);
-                }
-            });
+            addVillagers(place, g, o, town.name, town.villagers);
         } else {
             loadZone(place, g, o);
         }
@@ -567,13 +669,20 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 }
             });
         }
+        addChests(place, g, o, zone.chests);
+        // les monstres d'une zone y restent ; un monstre tué ne revient qu'après quelques jours
+        addMonsters(place, g, o, zone.monsters, half);
+    }
+
+    /** Les coffres d'une zone ou d'un site, posés au point (o) du monde. */
+    private void addChests(final Place place, final Group g, final float[] o, final List<ZoneData.ChestData> chests) {
         work.add(() -> {
             if (place.group != g) {
                 return;
             }
             int today = gameClock.getCurrentDay();
-            for (int i = 0; i < zone.chests.size(); i++) {
-                ZoneData.ChestData chest = zone.chests.get(i);
+            for (int i = 0; i < chests.size(); i++) {
+                ZoneData.ChestData chest = chests.get(i);
                 ChestRef ref = new ChestRef(place.id, i, chest, o[0] + chest.x, o[1] + chest.z);
                 ref.group = g;
                 box(g, 1.4f, 0.8f, 0.9f, new Color(0.45f, 0.28f, 0.12f, 1f), ref.x, 0.9f, ref.z, ref);
@@ -582,17 +691,59 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 }
             }
         });
-        // les monstres d'une zone y restent ; un monstre tué ne revient qu'après quelques jours
+    }
+
+    /** Les monstres d'une zone ou d'un site, retenus dans son carré ; un tué ne revient qu'après quelques jours. */
+    private void addMonsters(final Place place, final Group g, final float[] o, final List<ZoneData.SpawnData> monsters, float half) {
         final float[] bounds = {o[0] - half + 1.5f, o[0] + half - 1.5f, o[1] - half + 1.5f, o[1] + half - 1.5f};
-        for (int i = 0; i < zone.monsters.size(); i++) {
+        for (int i = 0; i < monsters.size(); i++) {
             final int index = i;
             // un monstre par image : chacun construit son modèle
             work.add(() -> {
-                ZoneData.SpawnData m = zone.monsters.get(index);
+                ZoneData.SpawnData m = monsters.get(index);
                 String key = Respawns.key(place.id, index);
                 if (place.group == g && story().holds(m.requires)
                         && Respawns.isAlive(player, key, gameClock.getCurrentDay(), data.monsterRespawnDays)) {
                     place.monsters.put(combat.spawn(m.id, o[0] + m.x, o[1] + m.z, bounds), key);
+                }
+            });
+        }
+    }
+
+    /**
+     * Un site (camp, ruine, ferme, stèle...) : son décor, ses coffres, ses monstres (un peu plus libres que dans une
+     * zone : ils poursuivent le joueur jusqu'à 30 m du site) et ses habitants.
+     */
+    private void loadSite(final Place place, final Group g, final float[] o) {
+        final OpenWorldData.SiteData site = data.site(place.id);
+        final String file = "openworld.json (site " + site.id + ")";
+        for (final TownData.PartData part : site.decor) {
+            work.add(() -> {
+                if (place.group == g) {
+                    part(g, part, o[0], o[1], file, decorUserData(part));
+                }
+            });
+        }
+        addChests(place, g, o, site.chests);
+        addMonsters(place, g, o, site.monsters, site.half + 30f);
+        addVillagers(place, g, o, site.id, site.villagers);
+    }
+
+    /** Les habitants d'une ville ou d'un site, un par travail (chacun construit son modèle). */
+    private void addVillagers(final Place place, final Group g, final float[] o, String seed, List<TownData.VillagerData> villagers) {
+        if (villagers.isEmpty()) {
+            return;
+        }
+        final java.util.Random random = new java.util.Random(seed.hashCode());
+        work.add(() -> {
+            if (place.group == g) {
+                place.villagers = new Villagers(o[0], o[1]);
+            }
+        });
+        for (final TownData.VillagerData v : villagers) {
+            work.add(() -> {
+                if (place.group == g && place.villagers != null) {
+                    place.villagers.add(instances, v, random);
                 }
             });
         }
@@ -694,11 +845,16 @@ public class OpenWorldScreen extends BaseWorldScreen {
                 place.villagers.update(delta, p, frozen, talking);
             }
         }
+        travelers.update(delta, p, frozen, talking);
     }
 
     /** L'habitant qui parle visé par le rayon, dans les villes construites. */
     @Override
     protected Object aimedWalker(Vector3 eye, Vector3 direction, float maxDistance) {
+        Villagers.Villager traveler = travelers.aimed(eye, direction, maxDistance, player.getTownId(), story());
+        if (traveler != null) {
+            return traveler;
+        }
         for (Place place : places) {
             if (place.villagers != null) {
                 Villagers.Villager v = place.villagers.aimed(eye, direction, maxDistance, place.id, story());
@@ -797,7 +953,8 @@ public class OpenWorldScreen extends BaseWorldScreen {
     private void updateCurrentPlace(float x, float z) {
         String here = layout.placeAt(x, z);
         if (here == null) {
-            townName = "En chemin";
+            OpenWorldData.SiteData site = layout.siteAt(x, z);
+            townName = site != null ? site.name : "En chemin";
             currentPlace = null;
             return;
         }
@@ -846,6 +1003,10 @@ public class OpenWorldScreen extends BaseWorldScreen {
         if (userData instanceof BoardRef) {
             return "Lire le tableau d'annonces (E)";
         }
+        if (userData instanceof GatherRef) {
+            OpenWorldData.GatherData kind = data.gathering.get(((GatherRef) userData).node.kind);
+            return kind.verb + " : " + GameContent.newItem(kind.item).getName() + " (E)";
+        }
         if (userData instanceof Villagers.Villager) {
             return villagerPrompt((Villagers.Villager) userData);
         }
@@ -870,6 +1031,15 @@ public class OpenWorldScreen extends BaseWorldScreen {
         }
         if (userData instanceof BoardRef) {
             openBoard(((BoardRef) userData).townId);
+            return true;
+        }
+        if (userData instanceof GatherRef) {
+            GatherRef ref = (GatherRef) userData;
+            OpenWorldData.GatherData kind = data.gathering.get(ref.node.kind);
+            gameClock.postMessage(com.lucas.guild.game.Gathering.take(player, ref.node.key, kind, gameClock.getCurrentDay()));
+            if (ref.tile.visual != null) {
+                buildGatherables(ref.tile);   // la chose prise disparaît
+            }
             return true;
         }
         if (userData instanceof Villagers.Villager) {
@@ -998,6 +1168,9 @@ public class OpenWorldScreen extends BaseWorldScreen {
             unloadTile(tile);
         }
         tiles.clear();
+        if (travelers != null) {
+            travelers.dispose();
+        }
         for (Place place : places) {
             if (place.group != null) {
                 place.group.clear();
@@ -1019,6 +1192,12 @@ public class OpenWorldScreen extends BaseWorldScreen {
             shape.dispose();
         }
         trunkShapes.clear();
+        if (herbShape != null) {
+            herbShape.dispose();
+        }
+        if (rockShape != null) {
+            rockShape.dispose();
+        }
         super.dispose();
     }
 }

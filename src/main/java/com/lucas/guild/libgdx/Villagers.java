@@ -14,15 +14,17 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.NpcsData;
+import com.lucas.guild.data.OpenWorldData;
 import com.lucas.guild.data.TownData;
 import com.lucas.guild.game.NpcTalk;
 import com.lucas.guild.game.RouteWalker;
 import com.lucas.guild.game.Story;
+import com.lucas.guild.game.WorldLayout;
 
 /**
- * Les habitants d'une ville qui se promènent (town*.json, « villagers ») : leur parcours, leur modèle, et ceux qui
- * parlent s'arrêtent et se tournent vers le joueur qui s'approche. Sert à la ville et au monde ouvert, où la ville est
- * posée à {@code (ox, oz)}.
+ * Ceux qui se promènent et à qui l'on parle : les habitants d'une ville ou d'un site (« villagers »), posés à
+ * {@code (ox, oz)} dans le monde, et les voyageurs qui font la route d'un lieu à l'autre. Ceux qui parlent s'arrêtent
+ * et se tournent vers le joueur qui s'approche.
  */
 final class Villagers implements Disposable {
 
@@ -57,21 +59,74 @@ final class Villagers implements Disposable {
     private final Vector3 hit = new Vector3();
 
     Villagers(Array<ModelInstance> sink, TownData town, float ox, float oz) {
+        this(sink, town.name, town.villagers, ox, oz);
+    }
+
+    /** Les habitants {@code villagers} d'un lieu nommé {@code seed} (qui fixe où chacun en est de son parcours). */
+    Villagers(Array<ModelInstance> sink, String seed, List<TownData.VillagerData> villagers, float ox, float oz) {
         this.ox = ox;
         this.oz = oz;
-        Random random = new Random(town.name.hashCode());
-        for (TownData.VillagerData data : town.villagers) {
-            List<float[]> route = new ArrayList<>();
-            for (TownData.RoutePoint point : data.route) {
-                route.add(new float[] {point.x, point.z});
-            }
-            RouteWalker walker = new RouteWalker(route, data.speed);
-            walker.advanceMeters(random.nextFloat() * 60f);   // ils ne partent pas tous du même point
-            CharacterModel model = new CharacterModel(sink, GameContent.models(), data.model);
-            model.setVisible(true);
-            NpcsData.VillagerTalkData talk = data.talk != null ? GameContent.npcs().villager(data.talk) : null;
-            list.add(new Villager(model, walker, talk));
+        Random random = new Random(seed.hashCode());
+        for (TownData.VillagerData data : villagers) {
+            add(sink, data, random);
         }
+    }
+
+    /** Personne pour l'instant : on les ajoute un par un avec {@link #add(Array, TownData.VillagerData, Random)}. */
+    Villagers(float ox, float oz) {
+        this.ox = ox;
+        this.oz = oz;
+    }
+
+    private Villagers() {
+        this(0f, 0f);
+    }
+
+    /** Ajoute un habitant ; {@code random} (le même pour tout le lieu) fixe où il en est de son parcours. */
+    void add(Array<ModelInstance> sink, TownData.VillagerData data, Random random) {
+        List<float[]> route = new ArrayList<>();
+        for (TownData.RoutePoint point : data.route) {
+            route.add(new float[] {point.x, point.z});
+        }
+        RouteWalker walker = new RouteWalker(route, data.speed);
+        walker.advanceMeters(random.nextFloat() * 60f);   // ils ne partent pas tous du même point
+        add(sink, data.model, data.talk, walker);
+    }
+
+    private void add(Array<ModelInstance> sink, String modelId, String talkId, RouteWalker walker) {
+        CharacterModel model = new CharacterModel(sink, GameContent.models(), modelId);
+        model.setVisible(true);
+        NpcsData.VillagerTalkData talk = talkId != null ? GameContent.npcs().villager(talkId) : null;
+        list.add(new Villager(model, walker, talk));
+    }
+
+    /**
+     * Les voyageurs d'openworld.json : chacun fait l'aller-retour sur la route entre ses deux lieux. Où il en est
+     * dépend seulement de l'heure de jeu ({@code gameMinutes}) : on le retrouve au même endroit après un chargement.
+     */
+    static Villagers travelers(Array<ModelInstance> sink, List<OpenWorldData.TravelerData> travelers, WorldLayout layout, long gameMinutes) {
+        Villagers v = new Villagers();
+        for (OpenWorldData.TravelerData t : travelers) {
+            List<OpenWorldData.PointData> road = layout.road(t.from, t.to).points;
+            List<float[]> route = new ArrayList<>();
+            for (OpenWorldData.PointData p : road) {
+                route.add(new float[] {p.x, p.z});
+            }
+            for (int i = road.size() - 2; i >= 1; i--) {
+                route.add(new float[] {road.get(i).x, road.get(i).z});   // le retour, par la même route
+            }
+            float loop = 0f;
+            for (int i = 0; i < route.size(); i++) {
+                float[] a = route.get(i);
+                float[] b = route.get((i + 1) % route.size());
+                loop += (float) Math.hypot(b[0] - a[0], b[1] - a[1]);
+            }
+            RouteWalker walker = new RouteWalker(route, t.speed);
+            // une seconde réelle = une minute de jeu : il a marché « speed » mètres par minute de jeu
+            walker.advanceMeters((float) ((gameMinutes * (double) t.speed) % loop));
+            v.add(sink, t.model, t.talk, walker);
+        }
+        return v;
     }
 
     private float x(Villager v) {

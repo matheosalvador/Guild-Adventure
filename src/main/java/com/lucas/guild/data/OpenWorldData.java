@@ -36,7 +36,61 @@ public class OpenWorldData {
     public int monsterRespawnDays = 3;
     public List<PlaceData> places = new ArrayList<>();
     public List<PortalData> portals = new ArrayList<>();
+    public List<SiteData> sites = new ArrayList<>();
+    public List<GatherData> gathering = new ArrayList<>();
+    public List<TravelerData> travelers = new ArrayList<>();
     public List<RoadData> roads = new ArrayList<>();
+
+    /**
+     * Ce qu'on croise en chemin, hors des lieux de la carte : un camp, une ruine, une ferme, une stèle... posé en
+     * (x, z) dans le monde (m). Son décor, ses monstres (qui reviennent après quelques jours), ses coffres et ses
+     * habitants sont en coordonnées du site, comme ceux d'une zone ou d'une ville.
+     */
+    public static class SiteData {
+        public String id;
+        /** Le nom affiché quand on y est. */
+        public String name;
+        public float x;
+        public float z;
+        /** Demi-côté du carré occupé (rien n'y est semé, aucune route n'y passe). */
+        public float half;
+        public List<TownData.PartData> decor = new ArrayList<>();
+        public List<ZoneData.SpawnData> monsters = new ArrayList<>();
+        public List<ZoneData.ChestData> chests = new ArrayList<>();
+        public List<TownData.VillagerData> villagers = new ArrayList<>();
+    }
+
+    /** Ce qu'on ramasse dans la campagne (une herbe, un caillou), semé par carreau, qui repousse après quelques jours. */
+    public static class GatherData {
+        /** L'objet obtenu (items.json). */
+        public String item;
+        /** L'allure : « herb » (une touffe) ou « rock » (un caillou). */
+        public String kind;
+        /** Le mot du message (« Cueillir », « Extraire »). */
+        public String verb;
+        /** Combien par carreau, en moyenne (0,6 : un carreau sur deux et demi n'en a pas). */
+        public float perTile;
+        public int respawnDays = 3;
+    }
+
+    /** Un voyageur qui fait la route entre deux lieux reliés, aller et retour, et qui parle (npcs.json, « villagers »). */
+    public static class TravelerData {
+        public String model;
+        public String talk;
+        public String from;
+        public String to;
+        public float speed = 1.2f;
+    }
+
+    /** Le site {@code id}, ou null. */
+    public SiteData site(String id) {
+        for (SiteData s : sites) {
+            if (s.id.equals(id)) {
+                return s;
+            }
+        }
+        return null;
+    }
 
     /** Un lieu de world.json posé dans le monde, à la position de la carte multipliée par l'échelle. */
     public static class PlaceData {
@@ -116,10 +170,14 @@ public class OpenWorldData {
         return place(id) != null || portal(id) != null;
     }
 
-    /** Le demi-côté occupé par un lieu ou une entrée. */
+    /** Le demi-côté occupé par un lieu, une entrée ou un site. */
     public float halfOf(String id) {
         PlaceData p = place(id);
-        return p != null ? p.half : portal(id).half;
+        if (p != null) {
+            return p.half;
+        }
+        PortalData portal = portal(id);
+        return portal != null ? portal.half : site(id).half;
     }
 
     /** Vérifie le fichier ; {@code world} sert à vérifier les lieux. */
@@ -170,6 +228,62 @@ public class OpenWorldData {
             if (!q.hidden && !seen.contains(q.id)) {
                 throw new IllegalStateException(file + " : le lieu \"" + q.id + "\" de world.json n'est ni dans \"places\" ni dans \"portals\"");
             }
+        }
+        if (sites == null) sites = new ArrayList<>();
+        for (int i = 0; i < sites.size(); i++) {
+            SiteData site = sites.get(i);
+            String where = file + " : site n°" + (i + 1);
+            if (site == null || site.id == null || site.id.isEmpty()) throw new IllegalStateException(where + " : \"id\" manquant");
+            where = file + " : site \"" + site.id + "\"";
+            if (world.place(site.id) != null || !seen.add(site.id)) throw new IllegalStateException(where + " : en double (deja un lieu, une entree ou un site)");
+            if (site.name == null || site.name.isEmpty()) throw new IllegalStateException(where + " : \"name\" manquant");
+            if (site.half <= 0) throw new IllegalStateException(where + " : \"half\" doit etre > 0");
+            if (site.decor == null) site.decor = new ArrayList<>();
+            if (site.monsters == null) site.monsters = new ArrayList<>();
+            if (site.chests == null) site.chests = new ArrayList<>();
+            if (site.villagers == null) site.villagers = new ArrayList<>();
+            TownData.validateParts(site.decor, where + " : \"decor\"");
+            for (TownData.PartData part : site.decor) {
+                if ("enter".equals(part.action) || "gate".equals(part.action) || "board".equals(part.action)) {
+                    throw new IllegalStateException(where + " : l'action \"" + part.action + "\" n'a pas de sens dans un site");
+                }
+            }
+            for (ZoneData.SpawnData m : site.monsters) {
+                if (m == null || m.id == null) throw new IllegalStateException(where + " : un monstre sans \"id\"");
+                if (m.requires == null) m.requires = new ArrayList<>();
+                if (Math.abs(m.x) > site.half || Math.abs(m.z) > site.half) throw new IllegalStateException(where + " : le monstre \"" + m.id + "\" est hors du site");
+            }
+            for (ZoneData.ChestData c : site.chests) {
+                if (c == null) throw new IllegalStateException(where + " : un coffre vide");
+                if (c.items == null) c.items = new ArrayList<>();
+                if (c.respawnDays < 1) throw new IllegalStateException(where + " : un coffre doit se remplir apres au moins 1 jour (\"respawnDays\")");
+            }
+            for (TownData.VillagerData v : site.villagers) {
+                if (v == null || v.model == null) throw new IllegalStateException(where + " : un habitant sans \"model\"");
+                if (v.route == null || v.route.size() < 2) throw new IllegalStateException(where + " : un habitant demande une \"route\" d'au moins 2 points");
+                if (v.speed <= 0) throw new IllegalStateException(where + " : la \"speed\" d'un habitant doit etre > 0");
+            }
+        }
+        if (gathering == null) gathering = new ArrayList<>();
+        for (int i = 0; i < gathering.size(); i++) {
+            GatherData g = gathering.get(i);
+            String where = file + " : \"gathering\" n°" + (i + 1);
+            if (g == null || g.item == null) throw new IllegalStateException(where + " : \"item\" manquant");
+            if (!"herb".equals(g.kind) && !"rock".equals(g.kind)) throw new IllegalStateException(where + " : \"kind\" inconnu \"" + g.kind + "\" (attendu : herb ou rock)");
+            if (g.verb == null || g.verb.isEmpty()) throw new IllegalStateException(where + " : \"verb\" manquant");
+            if (g.perTile < 0 || g.perTile > 6) throw new IllegalStateException(where + " : \"perTile\" doit etre entre 0 et 6");
+            if (g.respawnDays < 1) throw new IllegalStateException(where + " : \"respawnDays\" doit etre >= 1");
+        }
+        if (travelers == null) travelers = new ArrayList<>();
+        for (int i = 0; i < travelers.size(); i++) {
+            TravelerData t = travelers.get(i);
+            String where = file + " : voyageur n°" + (i + 1);
+            if (t == null || t.model == null) throw new IllegalStateException(where + " : \"model\" manquant");
+            if (t.talk == null) throw new IllegalStateException(where + " : \"talk\" manquant (ses repliques dans npcs.json)");
+            if (t.from == null || t.to == null || !isLink(world, t.from, t.to)) {
+                throw new IllegalStateException(where + " : \"from\" et \"to\" doivent etre relies dans world.json (" + t.from + ", " + t.to + ")");
+            }
+            if (t.speed <= 0) throw new IllegalStateException(where + " : \"speed\" doit etre > 0");
         }
         for (int i = 0; i < roads.size(); i++) {
             RoadData r = roads.get(i);

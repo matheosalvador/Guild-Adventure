@@ -893,6 +893,41 @@ public final class GameContent {
         story();
         npcs();
         openWorld();
+        checkOpenWorldContent();
+    }
+
+    /**
+     * Ce que openworld.json emprunte aux autres fichiers : monstres, objets et habitants des sites, objets à
+     * ramasser, voyageurs. Vérifié ici et pas à la lecture de openworld.json (ces fichiers le lisent eux-mêmes).
+     */
+    private static void checkOpenWorldContent() {
+        OpenWorldData data = openWorld();
+        String file = "openworld.json";
+        for (OpenWorldData.SiteData site : data.sites) {
+            String where = file + " : site \"" + site.id + "\"";
+            checkReadable(where, site.decor);
+            for (ZoneData.SpawnData m : site.monsters) {
+                if (monsters().get(m.id) == null) throw new IllegalStateException(where + " : monstre inconnu \"" + m.id + "\" (voir monsters.json)");
+            }
+            for (ZoneData.ChestData c : site.chests) {
+                for (String id : c.items) {
+                    if (newItem(id) == null) throw new IllegalStateException(where + " : coffre : objet inconnu \"" + id + "\" (voir items.json)");
+                }
+            }
+            for (TownData.VillagerData v : site.villagers) {
+                if (!models().models.containsKey(v.model)) throw new IllegalStateException(where + " : habitant : modele inconnu \"" + v.model + "\" (voir models.json)");
+                if (v.talk != null && !villagerTalkIds().contains(v.talk)) {
+                    throw new IllegalStateException(where + " : habitant : \"talk\" inconnu \"" + v.talk + "\" (voir \"villagers\" dans npcs.json)");
+                }
+            }
+        }
+        for (OpenWorldData.GatherData g : data.gathering) {
+            if (newItem(g.item) == null) throw new IllegalStateException(file + " : \"gathering\" : objet inconnu \"" + g.item + "\" (voir items.json)");
+        }
+        for (OpenWorldData.TravelerData t : data.travelers) {
+            if (!models().models.containsKey(t.model)) throw new IllegalStateException(file + " : voyageur : modele inconnu \"" + t.model + "\" (voir models.json)");
+            if (!villagerTalkIds().contains(t.talk)) throw new IllegalStateException(file + " : voyageur : \"talk\" inconnu \"" + t.talk + "\" (voir \"villagers\" dans npcs.json)");
+        }
     }
 
     // ------------------------------------------------------------------ lecture

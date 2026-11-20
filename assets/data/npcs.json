@@ -140,6 +140,57 @@
         { "text": "Du poisson frais ! Enfin... frais de ce matin. Ou d'hier." },
         { "text": "Le Comptoir du Port achète tout ce que les marins rapportent. Il revend le double, évidemment." }
       ]
+    },
+    {
+      "id": "fermier",
+      "name": "Mathurin, fermier",
+      "lines": [
+        { "text": "Les bandits du camp, entre ici et Port-Brume, me prennent une poule par semaine. La Guilde devrait s'en occuper." },
+        { "text": "Si vous cueillez de l'herbe de soin, vendez-la au marchand. Moi, j'en fais des tisanes." },
+        { "text": "Depuis que vous êtes revenu de Corvenne, le blé pousse comme jamais.", "requires": ["flag:ending_break"] }
+      ]
+    },
+    {
+      "id": "fermiere",
+      "name": "Rosalie, fermière",
+      "lines": [
+        { "text": "Le puits est profond, mais l'eau est bonne. Servez-vous." },
+        { "text": "Mon fils voulait entrer à la Guilde. Je l'ai envoyé garder les vaches." }
+      ]
+    },
+    {
+      "id": "bucheron",
+      "name": "Gaspard, bûcheron",
+      "lines": [
+        { "text": "Les loups ne s'approchent pas de la cabane tant que le feu brûle." },
+        { "text": "Le minerai de fer affleure par endroits dans la campagne : des cailloux veinés de rouille. Le forgeron le paie bien." },
+        { "text": "La vieille tour de guet, au nord d'Aethelgard ? Plus personne n'y monte la garde. Des loups y dorment." }
+      ]
+    },
+    {
+      "id": "colporteur",
+      "name": "Firmin, colporteur",
+      "lines": [
+        { "text": "Je fais la route d'Aethelgard à Port-Brume depuis vingt ans. Les bandits me connaissent, ils me laissent tranquille... la plupart du temps." },
+        { "text": "Méfiez-vous du camp, à l'écart de la route. Ils sont trois, et ils ne partagent pas." },
+        { "text": "Les routes sont plus sûres, depuis Corvenne. Je ne sais pas ce que vous avez fait, mais merci.", "requires": ["flag:ending_break"] }
+      ]
+    },
+    {
+      "id": "pelerine",
+      "name": "Soeur Agathe, pèlerine",
+      "lines": [
+        { "text": "Je vais prier à la stèle des voyageurs, au milieu de la grande route." },
+        { "text": "Hautevigne ? On y boit le meilleur vin et la pire eau du pays." }
+      ]
+    },
+    {
+      "id": "messager",
+      "name": "Odon, messager",
+      "lines": [
+        { "text": "Un pli pour Hautevigne. Ne me retenez pas, je suis payé à la journée, pas au mot." },
+        { "text": "La Guilde, la mine, les sceaux... tout le monde ne parle que de vous, à Hautevigne.", "requires": ["flag:mandat"] }
+      ]
     }
   ]
 }

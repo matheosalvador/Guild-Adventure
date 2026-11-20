@@ -119,6 +119,65 @@ class OpenWorldTest {
     }
 
     @Test
+    void sitesSitBesideTheRoadsNotOnThem() {
+        OpenWorldData data = GameContent.openWorld();
+        assertTrue(data.sites.size() >= 6, "des choses a croiser en chemin : " + data.sites.size());
+        for (OpenWorldData.SiteData site : data.sites) {
+            float clear = layout.distanceToRoad(site.x, site.z) - site.half;
+            assertTrue(clear >= data.roadWidth / 2f, site.id + " : a " + clear + " m du bord de la route seulement");
+            assertTrue(clear <= 80f, site.id + " : trop loin de toute route pour qu'on le croise (" + clear + " m)");
+            assertNull(layout.placeAt(site.x, site.z), site.id + " : dans un lieu");
+            assertEquals(site, layout.siteAt(site.x + site.half - 0.5f, site.z), site.id + " : le HUD le nomme quand on y est");
+        }
+    }
+
+    @Test
+    void thingsToGatherAreAlwaysAtTheSamePlaceAndOffTheRoad() {
+        int found = 0;
+        for (int tx = -9; tx <= 1; tx++) {
+            for (int tz = -11; tz <= 1; tz++) {
+                List<Terrain.Node> a = Terrain.gatherables(layout, tx, tz);
+                List<Terrain.Node> b = Terrain.gatherables(layout, tx, tz);
+                assertEquals(a.size(), b.size());
+                for (int i = 0; i < a.size(); i++) {
+                    assertEquals(a.get(i).key, b.get(i).key);
+                    assertEquals(a.get(i).x, b.get(i).x, 0f);
+                    assertTrue(Terrain.isFree(layout, a.get(i).x, a.get(i).z), "sur une route ou dans un lieu : " + a.get(i).key);
+                }
+                found += a.size();
+            }
+        }
+        // 0,6 herbe et 0,25 caillou par carreau en moyenne, sur 132 carreaux (moins les routes et les lieux)
+        assertTrue(found > 60 && found < 160, "choses a ramasser : " + found);
+    }
+
+    @Test
+    void aGatheredThingGrowsBack() {
+        GameSession s = GameSession.newGame("normale");
+        Adventurer p = s.getPlayer();
+        OpenWorldData.GatherData herb = GameContent.openWorld().gathering.get(0);
+        assertTrue(com.lucas.guild.game.Gathering.isThere(p, "g:1:2:0:0", 10, herb.respawnDays));
+        int before = p.getInventoryItems().size();
+        String message = com.lucas.guild.game.Gathering.take(p, "g:1:2:0:0", herb, 10);
+        assertEquals(before + 1, p.getInventoryItems().size(), message);
+        assertTrue(message.contains("Herbe de soin"), message);
+        assertFalse(com.lucas.guild.game.Gathering.isThere(p, "g:1:2:0:0", 10 + herb.respawnDays - 1, herb.respawnDays));
+        assertTrue(com.lucas.guild.game.Gathering.isThere(p, "g:1:2:0:0", 10 + herb.respawnDays, herb.respawnDays), "repousse");
+        assertTrue(com.lucas.guild.game.Gathering.isThere(p, "g:1:2:0:1", 10, herb.respawnDays), "les autres ne sont pas touchees");
+    }
+
+    @Test
+    void tooHeavyToGatherLeavesTheThingThere() {
+        GameSession s = GameSession.newGame("normale");
+        Adventurer p = s.getPlayer();
+        while (p.addItem(GameContent.newItem("iron_ore"))) { /* plein */ }
+        OpenWorldData.GatherData ore = GameContent.openWorld().gathering.get(1);
+        String message = com.lucas.guild.game.Gathering.take(p, "g:0:0:1:0", ore, 3);
+        assertTrue(message.startsWith("Trop charg"), message);
+        assertTrue(com.lucas.guild.game.Gathering.isThere(p, "g:0:0:1:0", 3, ore.respawnDays), "le caillou est toujours la");
+    }
+
+    @Test
     void fastTravelGoesOnlyToPlacesAlreadyReached() {
         GameSession s = GameSession.newGame("normale");
         s.setWorldPosition(-450f, -560f);   // en chemin, entre Aethelgard et la foret

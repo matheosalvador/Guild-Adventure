@@ -218,6 +218,15 @@
         { "shape": "sphere", "w": 0.25, "h": 0.34, "d": 0.2, "x": 0, "y": 1.55, "z": 0.07, "color": "#2B2B2B", "joint": "head" }
       ]
     },
+    "bandit": {
+      "base": "human",
+      "roles": {"skin": "#C99A70", "hair": "#2A1E14", "tunic": "#4A3E2E", "cloak": "#2E2A24", "pants": "#2F2A22", "belt": "#1E1610"},
+      "gear": ["dagger"],
+      "extra": [
+        {"shape": "sphere", "w": 0.3, "h": 0.28, "d": 0.31, "x": 0, "y": 1.76, "z": 0.01, "color": "#2E2A24", "joint": "head"},
+        {"shape": "box", "w": 0.22, "h": 0.09, "d": 0.05, "x": 0, "y": 1.66, "z": -0.13, "color": "#2E2A24", "joint": "head"}
+      ]
+    },
     "guard": {
       "base": "human",
       "roles": { "skin": "#D9A87C", "tunic": "#2F3E5C", "cloak": "#8A2A2A", "pants": "#3A3A44", "belt": "#2A2018" },

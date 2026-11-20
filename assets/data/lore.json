@@ -26,6 +26,8 @@
   ],
 
   "texts": {
+    "stele_voyageurs": {"title": "Stèle des voyageurs", "text": "ICI SE REPOSENT CEUX QUI MARCHENT. Laisse une pierre pour ceux qui viendront après toi, et prends l'eau du ruisseau sans la troubler. Gravé par les moines de la route, l'an 312."},
+    "tour_guet": {"title": "Plaque de la tour de guet", "text": "Tour de guet de la Garnison du Nord. Relève à l'aube et au crépuscule. Tout manquement sera puni de trois jours de cachot. Par ordre du seigneur de Corvenne. (Personne n'a relevé la garde depuis longtemps : la porte pend à un seul gond.)"},
     "panneau_aethelgard": {
       "title": "Panneau d'Aethelgard",
       "text": "AETHELGARD, cité des aventuriers. La Guilde est à l'ouest, l'auberge à l'est, la forge au nord. Les rats de la cave de l'auberge ne sont pas sous la protection de la cité."

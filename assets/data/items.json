@@ -17,6 +17,8 @@
   { "itemType": "Sac", "id": "backpack", "name": "Sac à dos", "capacityBonus": 15.0, "poids": 1.5, "prix": 60 },
   { "itemType": "Sac", "id": "travel_bag", "name": "Sac de voyage", "capacityBonus": 30.0, "poids": 3.0, "prix": 150 },
 
+  { "itemType": "Butin", "id": "healing_herb", "name": "Herbe de soin", "description": "Une herbe amère qui calme les plaies. Les aubergistes en font des tisanes.", "poids": 0.1, "prix": 4 },
+  { "itemType": "Butin", "id": "iron_ore", "name": "Minerai de fer", "description": "Un caillou lourd, veiné de rouille. Le forgeron le paie bien.", "poids": 2.0, "prix": 9 },
   { "itemType": "Butin", "id": "wolf_pelt", "name": "Peau de loup", "description": "Une peau épaisse, à revendre.", "poids": 1.2, "prix": 12 },
   { "itemType": "Butin", "id": "wolf_fang", "name": "Croc de loup", "description": "Un croc acéré, à revendre.", "poids": 0.2, "prix": 6 },
   { "itemType": "Butin", "id": "goblin_ear", "name": "Oreille de gobelin", "description": "Une preuve de victoire, à revendre.", "poids": 0.2, "prix": 4 },

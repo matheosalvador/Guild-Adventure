@@ -42,6 +42,32 @@
     "d": 1.4,
     "model": "wolf"
   },
+  "bandit": {
+    "name": "Bandit",
+    "health": 40,
+    "damage": 9,
+    "speed": 3.6,
+    "aggroRange": 13,
+    "attackRange": 1.7,
+    "attackCooldown": 1.2,
+    "goldMin": 5,
+    "goldMax": 14,
+    "drops": [
+      {
+        "item": "rusty_blade",
+        "chance": 35
+      },
+      {
+        "item": "healing_potion",
+        "chance": 15
+      }
+    ],
+    "color": "#5A4632",
+    "w": 0.7,
+    "h": 1.8,
+    "d": 0.7,
+    "model": "bandit"
+  },
   "goblin": {
     "name": "Gobelin",
     "health": 35,
