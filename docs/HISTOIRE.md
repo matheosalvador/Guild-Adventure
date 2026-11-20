@@ -236,7 +236,7 @@ Quelques quêtes annexes par rang supérieur, pour que l'or suive le prix de l'�
 110 Po, une armure de plaques 220) : rang D autour de 120 à 150 Po, rang C autour de 200 à 250, rang B autour de 400.
 Leur liste sera proposée au moment de la réalisation.
 
-## 9. Les combats (chiffres à valider)
+## 9. Les combats (chiffres réglés par simulation le 2026-11-20 : voir `docs/REGLAGE-COMBATS.md`)
 
 Pour situer : le joueur a 100 PV (120 pour un guerrier), frappe toutes les 0,6 s à 16 de dégâts avec une épée courte
 et 22 avec une épée longue ; une armure de plaques retire 9 à chaque coup reçu. Un gobelin a 35 PV et frappe à 7.
@@ -247,9 +247,9 @@ et 22 avec une épée longue ; une armure de plaques retire 9 à chaque coup re�
 | Squelette de mineur | 45 | 10 | 1,3 s | 3,0 m/s | lent, solide |
 | Chef gobelin | 90 | 11 | 1,1 s | 3,8 m/s | entouré de deux gobelins |
 | Soldat de la garnison | 60 | 13 | 1,2 s | 4,0 m/s | |
-| **Sergent Holt** (mine) | 220 | 16 | 1,4 s | 3,2 m/s | à la moitié de sa vie, deux squelettes se lèvent |
-| **Capitaine Varn** | 320 | 20 | 1,1 s | 4,6 m/s | une seule phase, rapide |
-| **Aldric**, phase 1 | 600 au total | 22 | 1,2 s | 4,0 m/s | de 100 % à 60 % de sa vie |
+| **Sergent Holt** (mine) | 300 | 16 | 1,4 s | 3,2 m/s | à la moitié de sa vie, deux squelettes se lèvent |
+| **Capitaine Varn** | 460 | 25 | 1,1 s | 4,6 m/s | une seule phase, rapide |
+| **Aldric**, phase 1 | 760 au total | 22 | 1,2 s | 4,0 m/s | de 100 % à 60 % de sa vie |
 | Aldric, phase 2 | | 22 | 1,2 s | 4,0 m/s | de 60 % à 25 % : il retourne le Sablier, reprend 40 PV toutes les 12 s, deux soldats sans âge se lèvent |
 | Aldric, phase 3 | | 30 | 1,6 s | 3,0 m/s | sous 25 % : l'âge le rattrape, plus lent, plus lourd. À 5 %, il tombe à genoux : le choix |
 

@@ -146,7 +146,7 @@
   },
   "sergeant_holt": {
     "name": "Sergent Holt",
-    "health": 220, "damage": 16, "speed": 3.2,
+    "health": 300, "damage": 16, "speed": 3.2,
     "aggroRange": 22, "attackRange": 2.0, "attackCooldown": 1.4,
     "goldMin": 30, "goldMax": 40,
     "color": "#6E737A", "w": 0.8, "h": 2.0, "d": 0.8,
@@ -159,7 +159,7 @@
   },
   "captain_varn": {
     "name": "Capitaine Varn",
-    "health": 320, "damage": 20, "speed": 4.6,
+    "health": 460, "damage": 25, "speed": 4.6,
     "aggroRange": 26, "attackRange": 2.0, "attackCooldown": 1.1,
     "goldMin": 40, "goldMax": 60,
     "color": "#8E949B", "w": 0.75, "h": 1.9, "d": 0.75,
@@ -169,7 +169,7 @@
   },
   "lord_aldric": {
     "name": "Aldric de Corvenne",
-    "health": 600, "damage": 22, "speed": 4.0,
+    "health": 760, "damage": 22, "speed": 4.0,
     "aggroRange": 30, "attackRange": 2.1, "attackCooldown": 1.2,
     "goldMin": 0, "goldMax": 0,
     "color": "#5A1420", "w": 0.75, "h": 1.9, "d": 0.75,

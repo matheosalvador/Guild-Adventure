@@ -1185,7 +1185,7 @@ public class Smoke extends ApplicationAdapter {
         step(() -> { teleport(0f, 1.6f, 8f); faceAt(0f, 1.6f, -9f); });
         frames(20);
         shot("s25_chambre_holt");
-        step(() -> monsterNear(0f, -9f).takeDamage(120));
+        step(() -> monsterNear(0f, -9f).takeDamage(160));   // 300 PV : sous la moitie
         frames(45);
         check("a la moitie de sa vie, Holt appelle deux renforts", () -> monsterCount() == 3);
         shot("s26_holt_renforts");
