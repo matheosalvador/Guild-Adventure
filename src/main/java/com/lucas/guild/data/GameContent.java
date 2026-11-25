@@ -181,6 +181,11 @@ public final class GameContent {
             if (m.aggroRange <= 0 || m.attackRange <= 0) throw new IllegalStateException(where + " : \"aggroRange\" et \"attackRange\" doivent etre > 0");
             if (m.attackRange > m.aggroRange) throw new IllegalStateException(where + " : \"attackRange\" ne peut pas depasser \"aggroRange\"");
             if (m.attackCooldown <= 0) throw new IllegalStateException(where + " : \"attackCooldown\" doit etre > 0");
+            if (m.windUp < 0) throw new IllegalStateException(where + " : \"windUp\" doit etre >= 0 (absent = 0,5 s)");
+            float windUp = com.lucas.guild.game.Monster.windUpOf(m);
+            if (windUp >= m.attackCooldown) {
+                throw new IllegalStateException(where + " : la preparation d'un coup (\"windUp\", " + windUp + " s) doit etre plus courte que \"attackCooldown\"");
+            }
             if (m.goldMin < 0 || m.goldMax < m.goldMin) throw new IllegalStateException(where + " : \"goldMin\" >= 0 et \"goldMax\" >= \"goldMin\" attendus");
             if (m.color == null) throw new IllegalStateException(where + " : \"color\" manquant");
             if (m.w <= 0 || m.h <= 0 || m.d <= 0) throw new IllegalStateException(where + " : \"w\", \"h\" et \"d\" doivent etre > 0");
@@ -203,6 +208,9 @@ public final class GameContent {
                 }
                 previousBelow = phase.below;
                 if (phase.damage < 0 || phase.speed < 0 || phase.attackCooldown < 0) throw new IllegalStateException(at + " : \"damage\", \"speed\" et \"attackCooldown\" doivent etre >= 0");
+                if (phase.attackCooldown > 0 && windUp >= phase.attackCooldown) {
+                    throw new IllegalStateException(at + " : \"attackCooldown\" doit rester plus long que la preparation d'un coup (" + windUp + " s)");
+                }
                 if ((phase.healEvery > 0) != (phase.healAmount > 0)) throw new IllegalStateException(at + " : \"healEvery\" et \"healAmount\" vont ensemble");
                 if (phase.healRequires == null) phase.healRequires = new ArrayList<>();
                 StoryData.validateConditions(phase.healRequires, at + " : \"healRequires\"");

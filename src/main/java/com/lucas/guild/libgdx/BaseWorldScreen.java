@@ -54,6 +54,7 @@ import com.lucas.guild.game.DebugMode;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.GroundItems;
 import com.lucas.guild.game.Monster;
+import com.lucas.guild.game.PlayerFight;
 import com.lucas.guild.game.SaveManager;
 import com.lucas.guild.game.Shop;
 import com.lucas.guild.game.Story;
@@ -131,6 +132,8 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
     private final Toasts toasts = new Toasts();
     /** Les monstres de l'écran (aucun dans la plupart des lieux). */
     protected CombatScene combat;
+    /** Endurance, garde, esquive et coups du joueur. */
+    protected final PlayerFight fight = new PlayerFight();
 
     // HUD
     private SpriteBatch spriteBatch;
@@ -371,6 +374,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         setupInput();
 
         combat = new CombatScene(instances);
+        fight.refill(player);
         combat.setDropSink(this::dropOnGround);
         disposables.add(combat);
         npcs = new NpcGroup(instances);
@@ -653,6 +657,9 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     private void update(float delta) {
         if (!isOverlayOpen()) {
+            fight.update(delta, player);
+            playerController.setDashing(fight.isDodging());
+            playerController.setCombatSpeedFactor(fight.isBlocking() ? PlayerFight.BLOCK_SPEED_FACTOR : 1f);
             playerController.update();
             dynamicsWorld.stepSimulation(delta, 5, 1 / 60f);
             playerController.updateCamera();
@@ -660,7 +667,7 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             gameClock.update(delta);
             advanceWorldEvents();
             trainWalking();
-            if (combat.update(delta, player, playerPosition())) {
+            if (combat.update(delta, player, playerPosition(), fight)) {
                 onPlayerDeath();
             }
             advanceStory();
@@ -831,8 +838,12 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
         font.draw(spriteBatch, hudText, 10, h - 10);
 
         font.draw(spriteBatch, "I : inventaire   K : personnage   J : journal   Q : potion   V : vue   Échap : pause", 10, 24);
+        // les gestes du combat, à droite des barres de vie et d'endurance
+        font.draw(spriteBatch, "Clic : frapper (garder : coup chargé)   Clic droit : garde   Maj : esquive", LIFE_BAR_WIDTH + 26f, 54);
         lifeBarClock += delta;
         drawLifeBar();
+        drawStaminaBar();
+        drawGuardAndCharge(w, h);
 
         combat.drawHud(spriteBatch, font, w, h, camera.position, camera.direction);
         toasts.draw(delta, gameClock, spriteBatch, font, w, h);
@@ -918,6 +929,50 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     private float lifeBarClock;
 
+    /** L'endurance, sous la barre de vie : jaune vert, pâle quand elle ne suffit plus pour un coup. */
+    private void drawStaminaBar() {
+        float x = 10f;
+        float y = 36f + LIFE_BAR_HEIGHT + 6f;
+        float max = PlayerFight.maxStamina(player);
+        float share = Math.max(0f, Math.min(1f, fight.getStamina() / max));
+        boolean enough = fight.getStamina() >= PlayerFight.swingCost(PlayerFight.weaponKg(player), false);
+        spriteBatch.setColor(0f, 0f, 0f, 0.6f);
+        spriteBatch.draw(pixel, x - 2, y - 2, LIFE_BAR_WIDTH + 4, STAMINA_BAR_HEIGHT + 4);
+        spriteBatch.setColor(0.12f, 0.16f, 0.05f, 0.9f);
+        spriteBatch.draw(pixel, x, y, LIFE_BAR_WIDTH, STAMINA_BAR_HEIGHT);
+        if (enough) {
+            spriteBatch.setColor(0.72f, 0.82f, 0.2f, 1f);
+        } else {
+            spriteBatch.setColor(0.45f, 0.5f, 0.25f, 1f);
+        }
+        spriteBatch.draw(pixel, x, y, LIFE_BAR_WIDTH * share, STAMINA_BAR_HEIGHT);
+        spriteBatch.setColor(Color.WHITE);
+    }
+
+    private static final float STAMINA_BAR_HEIGHT = 8f;
+
+    /** Sous la mire : la garde levée (ou brisée), et la charge d'un coup qu'on garde enfoncé. */
+    private void drawGuardAndCharge(float w, float h) {
+        String guard = fight.isBlocking() ? "[ Garde ]" : fight.isGuardBroken() ? "Garde brisée" : null;
+        if (guard != null) {
+            layout.setText(font, guard);
+            font.draw(spriteBatch, layout, w / 2f - layout.width / 2f, h / 2f - 55);
+        }
+        float charge = fight.chargeShare();
+        if (charge > 0.15f) {
+            float barWidth = 60f;
+            spriteBatch.setColor(0f, 0f, 0f, 0.6f);
+            spriteBatch.draw(pixel, w / 2f - barWidth / 2f - 1, h / 2f - 22, barWidth + 2, 6);
+            if (fight.isCharged()) {
+                spriteBatch.setColor(1f, 0.85f, 0.3f, 1f);
+            } else {
+                spriteBatch.setColor(0.85f, 0.85f, 0.85f, 1f);
+            }
+            spriteBatch.draw(pixel, w / 2f - barWidth / 2f, h / 2f - 21, barWidth * charge, 4);
+            spriteBatch.setColor(Color.WHITE);
+        }
+    }
+
     // ================================================================== entrées clavier / souris
 
     @Override
@@ -987,6 +1042,13 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
             return true;
         }
 
+        if (keycode == Input.Keys.SHIFT_LEFT || keycode == Input.Keys.SHIFT_RIGHT) {
+            if (fight.dodge()) {
+                playerController.startDash(PlayerFight.DODGE_SPEED);
+            }
+            return true;
+        }
+
         if (keycode == Input.Keys.E) {
             Object aimed = aimedUserData();
             if (aimed instanceof Readable) {
@@ -1021,19 +1083,49 @@ public abstract class BaseWorldScreen extends InputAdapter implements Screen {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        if (button == Input.Buttons.LEFT && !isOverlayOpen()) {
-            // clic gauche : un coup (sans effet s'il n'y a pas de monstre à portée)
-            boolean swing = combat.ready();
-            String loot = combat.attack(player, camera.position, camera.direction);
-            if (swing) {
-                playerModel.startAttack();
-            }
-            if (loot != null) {
-                gameClock.postMessage(loot);
-            }
+        if (isOverlayOpen()) {
+            return false;
+        }
+        if (button == Input.Buttons.LEFT) {
+            // clic gauche : le coup se prépare ; il part au relâchement (chargé si on l'a gardé)
+            fight.startCharge();
+            return true;
+        }
+        if (button == Input.Buttons.RIGHT) {
+            fight.raiseGuard();
             return true;
         }
         return false;
+    }
+
+    @Override
+    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+        if (button == Input.Buttons.RIGHT) {
+            fight.lowerGuard();
+            return true;
+        }
+        if (button != Input.Buttons.LEFT || !fight.isCharging()) {
+            return false;
+        }
+        if (isOverlayOpen()) {
+            fight.cancelCharge();   // un menu s'est ouvert pendant la charge : le coup est perdu
+            return false;
+        }
+        swing();
+        return true;
+    }
+
+    /** Le clic gauche est relâché : le coup part s'il le peut (sans effet s'il n'y a pas de monstre à portée). */
+    private void swing() {
+        float factor = fight.release(PlayerFight.weaponKg(player));
+        if (factor <= 0f) {
+            return;
+        }
+        playerModel.startAttack();
+        String loot = combat.attack(player, camera.position, camera.direction, factor);
+        if (loot != null) {
+            gameClock.postMessage(loot);
+        }
     }
 
     // ================================================================== menus

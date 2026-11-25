@@ -27,12 +27,14 @@ import com.lucas.guild.data.GameContent;
 import com.lucas.guild.data.MonsterData;
 import com.lucas.guild.game.Combat;
 import com.lucas.guild.game.Monster;
+import com.lucas.guild.game.PlayerFight;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.Item;
 
 /**
  * Les monstres d'un écran : leur dessin (une boîte colorée chacun), leur déplacement, les coups du
  * joueur (clic gauche) et ce qu'on voit à l'écran (cible visée, flash rouge quand on est touché).
+ * Un monstre qui prépare un coup vire à l'orange ; un monstre qui chancelle, au gris bleu.
  * Les règles sont dans {@link Combat} et {@link Monster} ; ici on relie ça au monde 3D.
  */
 class CombatScene implements Disposable {
@@ -52,6 +54,8 @@ class CombatScene implements Disposable {
         boolean yieldReported;
         /** Où ce monstre peut aller (minX, maxX, minZ, maxZ), ou null : la zone de l'écran. */
         float[] bounds;
+        /** Il préparait un coup à l'image précédente (pour lancer le geste quand le coup part). */
+        boolean wasWinding;
 
         Entry(Monster monster, Model model, ModelInstance instance, Color baseColor, CharacterModel character) {
             this.monster = monster;
@@ -99,6 +103,13 @@ class CombatScene implements Disposable {
         return FLOOR_TOP + ground.at(x, z);
     }
     private static final float DAMAGE_FLASH = 0.35f;  // durée du flash rouge quand le joueur est touché
+    /** La couleur d'un monstre qui prépare un coup (elle monte pendant la préparation), et celle d'un monstre qui chancelle. */
+    private static final Color WIND_UP_COLOR = new Color(1f, 0.62f, 0.1f, 1f);
+    private static final Color STAGGER_COLOR = new Color(0.55f, 0.62f, 0.8f, 1f);
+    private static final float WIND_UP_TINT = 0.75f;
+    private static final float STAGGER_TINT = 0.6f;
+    /** Combien de temps reste affiché le mot qui dit comment un coup a été reçu (Esquivé, Paré...). */
+    private static final float OUTCOME_TIME = 0.8f;
     private static final float TARGET_RANGE = 12f;    // distance max à laquelle on affiche le monstre visé
     private static final float BOSS_BAR_RANGE = 40f;  // distance max à laquelle on affiche la vie d'un adversaire nommé
 
@@ -148,8 +159,10 @@ class CombatScene implements Disposable {
     private float minX = -1000, maxX = 1000, minZ = -1000, maxZ = 1000;
     /** Distance en plus pour les coups et la cible affichée : la caméra à la 3e personne est derrière les yeux du joueur. */
     private float rangeBonus;
-    private float playerCooldown;
     private float damageFlash;
+    private String outcomeText;
+    private final Color outcomeColor = new Color();
+    private float outcomeTimer;
 
     CombatScene(Array<ModelInstance> worldInstances) {
         this.worldInstances = worldInstances;
@@ -159,11 +172,6 @@ class CombatScene implements Disposable {
         p.fill();
         pixel = new Texture(p);
         p.dispose();
-    }
-
-    /** Le joueur peut-il porter un coup tout de suite (le délai entre deux coups est écoulé) ? */
-    boolean ready() {
-        return playerCooldown <= 0f;
     }
 
     void setRangeBonus(float rangeBonus) {
@@ -270,9 +278,9 @@ class CombatScene implements Disposable {
      *
      * @return true si le joueur vient de tomber à 0 PV
      */
-    boolean update(float dt, Adventurer player, Vector3 playerPos) {
-        playerCooldown = Math.max(0f, playerCooldown - dt);
+    boolean update(float dt, Adventurer player, Vector3 playerPos, PlayerFight fight) {
         damageFlash = Math.max(0f, damageFlash - dt);
+        outcomeTimer = Math.max(0f, outcomeTimer - dt);
         sparks.update(dt);
         for (java.util.Iterator<Dying> it = dying.iterator(); it.hasNext();) {
             Dying d = it.next();
@@ -289,20 +297,58 @@ class CombatScene implements Disposable {
             boolean attacks = m.update(dt, playerPos.x, playerPos.z);
             clamp(e, m);
             if (attacks && player.estVivant()) {
-                if (Combat.monsterHit(m, player) > 0) {
+                Combat.Received received = Combat.monsterHit(m, player, fight);
+                if (received.damage > 0) {
                     damageFlash = DAMAGE_FLASH;
                 }
+                showOutcome(received.outcome);
                 if (!player.estVivant()) {
                     dead = true;
                 }
             }
-            if (attacks && e.character != null) {
+            if (m.pollWhiff()) {
+                showOutcome(PlayerFight.Outcome.DODGED);   // on s'était écarté : le coup frappe dans le vide
+            }
+            // le coup part (qu'il touche ou qu'il frappe dans le vide) : le geste
+            boolean winding = m.isWindingUp();
+            if (e.wasWinding && !winding && !m.isStaggered() && e.character != null) {
                 e.character.startAttack();
             }
+            e.wasWinding = winding;
             place(e, playerPos.x, playerPos.z, dt);
         }
         reportPhasesAndYields();
         return dead;
+    }
+
+    /** Le mot affiché un instant au centre de l'écran : comment le coup a été reçu. */
+    private void showOutcome(PlayerFight.Outcome outcome) {
+        switch (outcome) {
+            case DODGED:
+                outcomeText = "Esquivé";
+                outcomeColor.set(0.7f, 0.9f, 1f, 1f);
+                break;
+            case PARRIED:
+                outcomeText = "Paré !";
+                outcomeColor.set(1f, 0.9f, 0.4f, 1f);
+                break;
+            case BLOCKED:
+                outcomeText = "Bloqué";
+                outcomeColor.set(0.85f, 0.85f, 0.85f, 1f);
+                break;
+            case GUARD_BROKEN:
+                outcomeText = "Garde brisée";
+                outcomeColor.set(1f, 0.4f, 0.3f, 1f);
+                break;
+            default:
+                return;
+        }
+        outcomeTimer = OUTCOME_TIME;
+    }
+
+    /** Le mot affiché en ce moment (Esquivé, Paré !...), ou null : pour le banc. */
+    String outcomeShown() {
+        return outcomeTimer > 0f ? outcomeText : null;
     }
 
     /** Les phases qui viennent de commencer (renforts, phrase) et les monstres qui viennent de se rendre. */
@@ -359,7 +405,15 @@ class CombatScene implements Disposable {
             e.lastX = m.x;
             e.lastZ = m.z;
             e.lastYaw = yaw;
-            e.character.setFlash(m.getHurtTimer() > 0f);
+            if (m.getHurtTimer() > 0f) {
+                e.character.setFlash(true);
+            } else if (m.isStaggered()) {
+                e.character.setTint(STAGGER_COLOR, STAGGER_TINT);
+            } else if (m.isWindingUp()) {
+                e.character.setTint(WIND_UP_COLOR, WIND_UP_TINT * (0.35f + 0.65f * m.windUpShare()));
+            } else {
+                e.character.setFlash(false);
+            }
             e.character.update(dt, speed, feet.set(m.x, floorAt(m.x, m.z) + m.data.flyHeight, m.z), yaw);
             return;
         }
@@ -368,21 +422,22 @@ class CombatScene implements Disposable {
         ColorAttribute diffuse = (ColorAttribute) e.instance.materials.first().get(ColorAttribute.Diffuse);
         if (m.getHurtTimer() > 0f) {
             diffuse.color.set(1f, 0.25f, 0.25f, 1f);
+        } else if (m.isStaggered()) {
+            diffuse.color.set(e.baseColor).lerp(STAGGER_COLOR, STAGGER_TINT);
+        } else if (m.isWindingUp()) {
+            diffuse.color.set(e.baseColor).lerp(WIND_UP_COLOR, WIND_UP_TINT * (0.35f + 0.65f * m.windUpShare()));
         } else {
             diffuse.color.set(e.baseColor);
         }
     }
 
     /**
-     * Un coup du joueur (clic gauche) : touche le monstre visé s'il est à portée.
+     * Un coup du joueur (clic gauche relâché ; {@link PlayerFight} a déjà dit qu'il partait) : touche le monstre visé
+     * s'il est à portée. {@code factor} multiplie les dégâts (un coup chargé).
      *
      * @return le message de butin si le coup a tué un monstre, sinon null
      */
-    String attack(Adventurer player, Vector3 eye, Vector3 direction) {
-        if (playerCooldown > 0f) {
-            return null;
-        }
-        playerCooldown = Combat.PLAYER_COOLDOWN;
+    String attack(Adventurer player, Vector3 eye, Vector3 direction, float factor) {
         Entry target = targetOf(eye, direction, Combat.PLAYER_RANGE + rangeBonus);
         if (target == null) {
             return null;
@@ -391,7 +446,7 @@ class CombatScene implements Disposable {
         if (hitMonster.hasYielded()) {
             return null;   // il s'est rendu : on ne frappe plus
         }
-        Combat.playerHit(player, hitMonster);
+        Combat.playerHit(player, hitMonster, factor);
         sparks.burst(hitMonster.x, floorAt(hitMonster.x, hitMonster.z) + hitMonster.data.flyHeight + hitMonster.data.h * 0.6f, hitMonster.z, 7, new Color(1f, 0.82f, 0.45f, 1f), 3.5f);
         if (target.monster.isDead()) {
             Monster m = target.monster;
@@ -471,6 +526,12 @@ class CombatScene implements Disposable {
             batch.setColor(0.75f, 0.12f, 0.12f, 1f);
             batch.draw(pixel, w / 2f - barWidth / 2f, h - 158, barWidth * m.getHealth() / m.getMaxHealth(), 10);
             batch.setColor(Color.WHITE);
+        }
+        if (outcomeTimer > 0f && outcomeText != null) {
+            font.setColor(outcomeColor.r, outcomeColor.g, outcomeColor.b, Math.min(1f, outcomeTimer / 0.3f));
+            layout.setText(font, outcomeText);
+            font.draw(batch, layout, w / 2f - layout.width / 2f, h / 2f + 100);
+            font.setColor(Color.WHITE);
         }
         Entry target = targetOf(eye, direction, TARGET_RANGE + rangeBonus);
         if (target != null && target != boss) {

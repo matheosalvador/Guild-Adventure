@@ -13,8 +13,6 @@ import com.lucas.guild.model.Quest;
  */
 public final class Combat {
 
-    /** Temps minimum entre deux coups du joueur, en secondes. */
-    public static final float PLAYER_COOLDOWN = 0.6f;
     /** Portée d'un coup du joueur, en m (mesurée depuis ses yeux jusqu'au monstre visé). */
     public static final float PLAYER_RANGE = 3.5f;
 
@@ -28,10 +26,55 @@ public final class Combat {
      * @return les dégâts infligés
      */
     public static int playerHit(Adventurer player, Monster monster) {
-        int damage = player.getAttackDamage();
+        return playerHit(player, monster, 1f);
+    }
+
+    /**
+     * Un coup du joueur, multiplié par {@code factor} (un coup chargé : voir {@link PlayerFight#chargeFactor}).
+     * Un coup chargé fait chanceler un monstre ordinaire.
+     *
+     * @return les dégâts infligés
+     */
+    public static int playerHit(Adventurer player, Monster monster, float factor) {
+        int damage = Math.round(player.getAttackDamage() * factor);
         monster.takeDamage(damage);
         player.train("melee", 1);
+        if (factor > 1f && !monster.data.boss) {
+            monster.stagger(PlayerFight.CHARGE_STAGGER);
+        }
         return damage;
+    }
+
+    /** Ce qu'a donné un coup de monstre : comment il a été reçu et les PV perdus. */
+    public static final class Received {
+        public final PlayerFight.Outcome outcome;
+        public final int damage;
+
+        Received(PlayerFight.Outcome outcome, int damage) {
+            this.outcome = outcome;
+            this.damage = damage;
+        }
+    }
+
+    /**
+     * Un monstre frappe un joueur qui peut esquiver, bloquer ou parer ({@code fight}).
+     * Esquivé ou paré : rien (paré, le monstre chancelle). Bloqué : le quart des dégâts. Garde brisée ou en plein :
+     * les dégâts entiers. Dans tous les cas, la défense s'applique comme dans {@link #monsterHit(Monster, Adventurer)}.
+     */
+    public static Received monsterHit(Monster monster, Adventurer player, PlayerFight fight) {
+        PlayerFight.Outcome outcome = fight.receive(monster.getDamage());
+        switch (outcome) {
+            case DODGED:
+                return new Received(outcome, 0);
+            case PARRIED:
+                monster.stagger(monster.data.boss ? PlayerFight.PARRY_STAGGER_BOSS : PlayerFight.PARRY_STAGGER);
+                player.train("melee", 1);
+                return new Received(outcome, 0);
+            case BLOCKED:
+                return new Received(outcome, hurt(player, Math.round(monster.getDamage() * PlayerFight.BLOCK_KEEP)));
+            default:
+                return new Received(outcome, hurt(player, monster.getDamage()));
+        }
     }
 
     /**
@@ -41,10 +84,15 @@ public final class Combat {
      * @return les dégâts subis
      */
     public static int monsterHit(Monster monster, Adventurer player) {
-        if (DebugMode.isInvincible()) {
+        return hurt(player, monster.getDamage());
+    }
+
+    /** Le joueur encaisse {@code raw} dégâts, moins sa défense (au moins 1, sauf un coup réduit à rien). */
+    private static int hurt(Adventurer player, int raw) {
+        if (DebugMode.isInvincible() || raw <= 0) {
             return 0;
         }
-        int damage = Math.max(1, monster.getDamage() - player.getDefense());
+        int damage = Math.max(1, raw - player.getDefense());
         player.perdreVie(damage);
         player.train("robustness", 1);
         return damage;

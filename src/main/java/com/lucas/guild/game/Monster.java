@@ -15,11 +15,17 @@ import com.lucas.guild.data.MonsterData;
  *
  * <p>Un adversaire d'histoire peut avoir des <b>phases</b> (monsters.json) : quand sa vie passe sous un seuil, il
  * frappe ou court autrement, se soigne, appelle des renforts. Il peut aussi <b>se rendre</b> au lieu de mourir.</p>
+ *
+ * <p>Un coup s'<b>annonce</b> : le monstre s'arrête et se prépare un instant ({@code windUp}), puis frappe. Le coup ne
+ * touche que si le joueur est encore à portée : on peut reculer ou esquiver. Paré, le monstre <b>chancelle</b> : il ne
+ * bouge ni ne frappe un moment.</p>
  */
 public class Monster {
 
-    /** Délai avant le premier coup, pour laisser au joueur le temps de réagir. */
-    private static final float FIRST_ATTACK_DELAY = 0.5f;
+    /** Temps de préparation d'un coup quand monsters.json n'en donne pas, en secondes. */
+    public static final float DEFAULT_WIND_UP = 0.5f;
+    /** Le coup touche si le joueur est encore à moins de tant de fois la portée quand il part. */
+    public static final float REACH_MARGIN = 1.25f;
     /** Durée pendant laquelle le monstre « clignote » après un coup reçu. */
     public static final float HURT_FLASH = 0.2f;
 
@@ -28,8 +34,13 @@ public class Monster {
     public float z;
 
     private int health;
-    private float cooldown = FIRST_ATTACK_DELAY;
+    private float cooldown;
     private float hurtTimer;
+    /** Temps restant avant que le coup préparé parte (0 = il ne prépare rien). */
+    private float windUpLeft;
+    private float staggerLeft;
+    /** Son dernier coup est parti dans le vide (le joueur s'était écarté), en attente d'être lu par l'écran. */
+    private boolean whiffed;
 
     // Les valeurs de combat courantes : celles des données, puis celles de la phase en cours
     private int damage;
@@ -105,6 +116,46 @@ public class Monster {
         return hurtTimer;
     }
 
+    /** Temps de préparation de ses coups, en secondes. */
+    public float windUp() {
+        return windUpOf(data);
+    }
+
+    public static float windUpOf(MonsterData data) {
+        return data.windUp > 0f ? data.windUp : DEFAULT_WIND_UP;
+    }
+
+    /** Prépare-t-il un coup en ce moment ? */
+    public boolean isWindingUp() {
+        return windUpLeft > 0f;
+    }
+
+    /** La part déjà faite de la préparation du coup (0 à 1), 0 s'il n'en prépare pas. */
+    public float windUpShare() {
+        return windUpLeft > 0f ? 1f - windUpLeft / windUp() : 0f;
+    }
+
+    /** Chancelle-t-il (paré, ou frappé d'un coup chargé) ? */
+    public boolean isStaggered() {
+        return staggerLeft > 0f;
+    }
+
+    /** Son dernier coup vient-il de partir dans le vide ? (vrai une seule fois par coup raté) */
+    public boolean pollWhiff() {
+        boolean w = whiffed;
+        whiffed = false;
+        return w;
+    }
+
+    /** Le fait chanceler {@code seconds} secondes : le coup qu'il préparait est perdu. */
+    public void stagger(float seconds) {
+        if (isDead() || yielded) {
+            return;
+        }
+        staggerLeft = Math.max(staggerLeft, seconds);
+        windUpLeft = 0f;
+    }
+
     /** Distance au sol jusqu'à un point. */
     public float distanceTo(float px, float pz) {
         return (float) Math.hypot(px - x, pz - z);
@@ -148,7 +199,7 @@ public class Monster {
     /**
      * Fait avancer le monstre de {@code dt} secondes.
      *
-     * @return true si le monstre frappe le joueur à cet instant
+     * @return true si le coup qu'il préparait part à cet instant et touche le joueur (encore à portée)
      */
     public boolean update(float dt, float playerX, float playerZ) {
         hurtTimer = Math.max(0f, hurtTimer - dt);   // le clignotement s'éteint même s'il ne se bat plus
@@ -157,8 +208,15 @@ public class Monster {
         }
         cooldown = Math.max(0f, cooldown - dt);
         heal(dt);
+        if (staggerLeft > 0f) {
+            staggerLeft = Math.max(0f, staggerLeft - dt);
+            return false;   // il chancelle : ni pas, ni coup
+        }
 
         float dist = distanceTo(playerX, playerZ);
+        if (windUpLeft > 0f) {
+            return strike(dt, dist);   // il est planté, le coup part à la fin de la préparation
+        }
         if (dist > data.aggroRange) {
             return false;   // trop loin : il ne bouge pas
         }
@@ -171,10 +229,24 @@ public class Monster {
             dist = distanceTo(playerX, playerZ);
         }
         if (dist <= data.attackRange && cooldown <= 0f) {
+            // le temps entre deux coups compte depuis le début de la préparation : le rythme reste celui des données
             cooldown = attackCooldown;
-            return true;
+            windUpLeft = windUp();
+            return strike(dt, dist);
         }
         return false;
+    }
+
+    /** La préparation avance ; à sa fin, le coup part : il touche si le joueur est encore à portée. */
+    private boolean strike(float dt, float dist) {
+        windUpLeft -= dt;
+        if (windUpLeft > 0f) {
+            return false;
+        }
+        windUpLeft = 0f;
+        boolean reaches = dist <= data.attackRange * REACH_MARGIN;
+        whiffed = !reaches;
+        return reaches;
     }
 
     /** Le soin de la phase en cours, s'il y en a un et si l'histoire le permet. */

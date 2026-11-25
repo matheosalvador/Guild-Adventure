@@ -6,7 +6,7 @@
     "trainedBy": "Marcher",
     "unit": "m",
     "thresholds": [500, 2000, 6000, 15000, 40000],
-    "effects": { "speedPercent": 2 }
+    "effects": { "speedPercent": 2, "staminaBonus": 5 }
   },
   {
     "id": "carrying",

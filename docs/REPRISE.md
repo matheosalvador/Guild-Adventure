@@ -1,25 +1,20 @@
 # Reprise du travail
 
-Tenu à jour à chaque fin d'étape (voir `docs/PLAN-FABLE.md`, §9). Dernière mise à jour : 2026-11-20.
+Tenu à jour à chaque fin d'étape (voir `docs/PLAN-FABLE.md`, §9). Dernière mise à jour : 2026-11-25.
 
 ## Les branches
 
-Tout jusqu'au prototype du monde ouvert est **fusionné dans `general_develop` et poussé** (`9e6b2a0`) ; Lucas a
-ouvert la PR vers `main` le 2026-11-19.
+Le 2026-11-25, à la demande de Lucas (« fusionne les branches »), les six chantiers du 2026-11-20 ont été
+fusionnés (avance rapide) dans `general_develop`, poussé (`f560e2a`) :
 
 ```text
-general_develop (9e6b2a0)   A à E + prototype du monde ouvert + correctif d'encodage de compile_check.bat
- └─ feature/monde-ouvert-complet   tout l'extérieur en monde ouvert, carte sans position
-     └─ feature/butin-sol              le butin au sol sauvegardé (7 jours)
-         └─ feature/finitions-visuelles    sol sans dents de scie, jonction route / chemin des zones
-             └─ feature/menage-ancien-chemin   TownScreen, carte classique et scène d'embuscade retirés
-                 └─ feature/monde-rempli          sites, choses à ramasser, voyageurs, bandit
-                     └─ feature/reglage-combats       simulation des combats, chefs renforcés (à valider)
-                         └─ feature/relief                collines en pleine campagne
+general_develop (f560e2a)   A à E + monde ouvert complet + butin au sol + finitions + ménage + monde rempli
+                            + réglage des combats + relief
+ └─ feature/combat-vivant      coups annoncés, endurance, esquive, garde et parade, poids de l'arme, coup chargé
 ```
 
-Aucune de ces branches n'est fusionnée ni poussée (demandes de Lucas du 2026-11-20 : « 1 remplir le monde, 2
-sauvegarder le butin au sol, 3 oui, 4 oui, 5 ok et 6 oui »).
+`feature/combat-vivant` n'est ni fusionnée ni poussée. Les anciennes branches (`feature/monde-ouvert-complet` à
+`feature/relief`) sont gardées en local.
 
 ## Où on en est
 
@@ -157,19 +152,38 @@ décalé (le monde ouvert tire aussi des nombres). Marche : environ 160 images/s
 
 Les décisions du cadrage du monde ouvert sont toutes réalisées.
 
+**Le combat vivant** (`feature/combat-vivant`, demande de Lucas du 2026-11-25 : « on va développer le combat » ; il a
+choisi les quatre propositions et de garder les chefs tels quels) :
+
+- `game/PlayerFight` : l'endurance (100, + 5 par niveau d'Endurance : effet `staminaBonus`), le rythme et le coût
+  des coups selon le poids de l'arme, le coup chargé (garder le clic 0,6 s), la garde (clic droit : le quart des
+  dégâts contre de l'endurance), la parade (garde levée moins de 0,2 s avant le coup : le monstre chancelle),
+  l'esquive (Maj : un bond, intouchable 0,3 s). Les réglages sont en tête de la classe.
+- `Monster` : chaque coup s'annonce (`windUp` dans monsters.json, 0,5 s par défaut, plus court que `attackCooldown`) ;
+  il ne touche que si le joueur est encore à portée ; `stagger` (il chancelle) ; `pollWhiff` (coup dans le vide).
+- `Combat.monsterHit(monster, player, fight)` dit comment le coup est reçu (`PlayerFight.Outcome`) ;
+  `Combat.playerHit(player, monster, factor)` pour le coup chargé. `Combat.PLAYER_COOLDOWN` n'existe plus.
+- L'écran : le coup part au **relâchement** du clic ; la barre d'endurance sous la vie ; « [ Garde ] » et la barre de
+  charge sous la mire ; « Esquivé », « Paré ! », « Bloqué », « Garde brisée » au centre ; le monstre vire à l'orange
+  quand il prépare un coup, au gris bleu quand il chancelle (`CharacterModel.setTint`).
+- `CombatBalanceTest` joue chaque combat planté et en garde ; le compte rendu (`docs/REGLAGE-COMBATS.md`) attend
+  l'avis de Lucas. Banc : section `combatvivant` (et `click1` relâche le clic).
+
+État vérifié (2026-11-25, sur `feature/combat-vivant`) : **352 tests JUnit verts** ; parcours complet
+`FIN: AUCUNE ERREUR`, **280 captures**.
+
 ## En attente de Lucas
 
 1. Ses tests à la main du chantier A (l'escalier de l'auberge), de l'histoire et du chantier C (parler aux
    habitants, Options, plein écran : le banc ne le clique pas, la fenêtre de test est cachée).
-2. Les **chiffres des combats** : réglés par simulation, **à valider** (`docs/REGLAGE-COMBATS.md`, trois questions).
+2. Le **combat vivant** à essayer, et ses chiffres à valider (`docs/REGLAGE-COMBATS.md`, quatre questions).
 3. Les autres points de `RELECTURE.md` §4 (3 et 5 à 11), toujours sans réponse.
-4. Son accord pour les fusions (dans l'ordre des branches ci-dessus).
+4. Son accord pour fusionner `feature/combat-vivant`.
 
 ## Ensuite (ne pas commencer sans l'accord de Lucas)
 
-Les six points du 2026-11-20 sont faits. Selon l'avis de Lucas après avoir joué (`.\compile_check.bat` puis
-`.\run.bat`, Nouvelle partie) : valider les combats (`docs/REGLAGE-COMBATS.md`), puis les fusions et une PR vers
-`main` (brouillon à lui montrer). Idées notées, pas commencées : plus de sites et de voyageurs, des collines plus
+Selon l'avis de Lucas après avoir joué (`.\compile_check.bat` puis `.\run.bat`, Nouvelle partie) : régler le
+combat vivant (`docs/REGLAGE-COMBATS.md`), puis la fusion et une PR vers `main` (brouillon à lui montrer). Idées notées, pas commencées : plus de sites et de voyageurs, des collines plus
 hautes (constantes de `Terrain`), utiliser l'herbe de soin (fabriquer des potions ?).
 
 ## Vérifier l'état

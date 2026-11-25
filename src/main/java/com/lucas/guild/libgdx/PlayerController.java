@@ -38,6 +38,11 @@ public class PlayerController implements Disposable {
 
     private float yaw = 0f;
     private float pitch = 0f;
+    /** Ce qui multiplie la marche en ce moment (la garde ralentit), et le bond d'une esquive en cours. */
+    private float combatSpeedFactor = 1f;
+    private boolean dashing;
+    private float dashSpeed;
+    private final Vector3 dashDirection = new Vector3();
     private float lastViewDistance = Float.MAX_VALUE;
 
     private final static Vector3 rayFrom = new Vector3();
@@ -131,6 +136,36 @@ public class PlayerController implements Disposable {
         handleMovement();
     }
 
+    /** La marche est multipliée par {@code factor} (1 = normale ; la garde la ralentit). */
+    public void setCombatSpeedFactor(float factor) {
+        this.combatSpeedFactor = factor;
+    }
+
+    /**
+     * Lance le bond d'une esquive, dans le sens des touches de marche tenues (aucune : en arrière) ;
+     * il dure tant que {@link #setDashing} le dit.
+     */
+    public void startDash(float speed) {
+        Vector3 forward = tmp.set(0, 0, -1).mul(rotation).nor();
+        Vector3 side = tmp2.set(forward).crs(Vector3.Y).nor();
+        dashDirection.set(0, 0, 0);
+        if (keys.containsKey(Input.Keys.W)) dashDirection.add(forward);
+        if (keys.containsKey(Input.Keys.S)) dashDirection.sub(forward);
+        if (keys.containsKey(Input.Keys.A)) dashDirection.sub(side);
+        if (keys.containsKey(Input.Keys.D)) dashDirection.add(side);
+        dashDirection.y = 0;
+        if (dashDirection.isZero()) {
+            dashDirection.set(forward).scl(-1f);
+        }
+        dashDirection.nor();
+        dashSpeed = speed;
+        dashing = true;
+    }
+
+    public void setDashing(boolean dashing) {
+        this.dashing = dashing;
+    }
+
     private void handleRotation() {
         // la sensibilité du menu Options multiplie la vitesse de base
         float speed = rotationSpeed * Settings.current().mouseSensitivity;
@@ -160,8 +195,12 @@ public class PlayerController implements Disposable {
 
         moveDirection.y = 0;
         float vy = playerBody.getLinearVelocity().y;
+        if (dashing) {
+            playerBody.setLinearVelocity(tmp.set(dashDirection.x * dashSpeed, vy, dashDirection.z * dashSpeed));
+            return;
+        }
         if (!moveDirection.isZero()) {
-            moveDirection.nor().scl(moveSpeed * (float) player.getSpeedFactor() * com.lucas.guild.game.DebugMode.getSpeedMultiplier());
+            moveDirection.nor().scl(moveSpeed * combatSpeedFactor * (float) player.getSpeedFactor() * com.lucas.guild.game.DebugMode.getSpeedMultiplier());
             playerBody.setLinearVelocity(tmp.set(moveDirection.x, vy, moveDirection.z));
         } else {
             playerBody.setLinearVelocity(tmp.set(0, vy, 0));

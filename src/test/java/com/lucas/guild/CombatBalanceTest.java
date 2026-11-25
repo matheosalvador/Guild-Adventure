@@ -19,19 +19,27 @@ import com.lucas.guild.data.MonsterData;
 import com.lucas.guild.game.Combat;
 import com.lucas.guild.game.GameSession;
 import com.lucas.guild.game.Monster;
+import com.lucas.guild.game.PlayerFight;
 import com.lucas.guild.model.Adventurer;
 import com.lucas.guild.model.Item;
 
 /**
  * Le réglage des combats, par simulation, avec les vraies règles du jeu ({@link Monster}, {@link Combat}, un
  * personnage équipé) : à chaque étape de l'histoire, un personnage équipé comme on peut l'être à ce moment-là
- * affronte les combats du lieu. Il reste planté sur place (le pire cas : en jeu, on peut reculer), frappe dès qu'il
- * peut et boit une potion quand sa vie baisse. Le rapport est écrit dans {@code target/test-run/combats.txt} et
- * recopié dans {@code docs/REGLAGE-COMBATS.md} ; les objectifs sont vérifiés ici.
+ * affronte les combats du lieu. Il reste planté sur place, frappe dès que son endurance le permet et boit une potion
+ * quand sa vie baisse. Deux façons de se battre :
+ * <ul>
+ * <li><b>planté</b> : il ne se protège jamais (le pire cas ; les objectifs sont vérifiés sur lui) ;</li>
+ * <li><b>en garde</b> : il lève la garde quand un coup s'annonce (un peu tôt : il bloque, il ne pare pas) et la
+ * baisse après, sans jamais esquiver ni reculer.</li>
+ * </ul>
+ * Le rapport est écrit dans {@code target/test-run/combats.txt} et recopié dans {@code docs/REGLAGE-COMBATS.md}.
  */
 class CombatBalanceTest {
 
-    private static final float DT = 0.05f;
+    private static final float DT = 0.02f;
+    /** En garde : il la lève quand il reste moins de ce temps avant que le coup annoncé parte. */
+    private static final float GUARD_BEFORE_HIT = 0.35f;
 
     /** Ce que le personnage a sur lui à une étape de l'histoire. */
     private static final class Kit {
@@ -62,6 +70,7 @@ class CombatBalanceTest {
         int potionsUsed;
         float seconds;
         int hitsTaken;
+        int blocked;
     }
 
     private static Adventurer equip(Kit kit, Set<String> flags) {
@@ -96,8 +105,11 @@ class CombatBalanceTest {
     }
 
     /** Le personnage affronte des groupes l'un après l'autre (chaque groupe : des monstres qui arrivent ensemble). */
-    private static Result fight(Kit kit, Set<String> flags, String[]... groups) {
+    private static Result fight(Kit kit, Set<String> flags, boolean guard, String[]... groups) {
         Adventurer p = equip(kit, flags);
+        PlayerFight fight = new PlayerFight();
+        fight.refill(p);
+        float kg = PlayerFight.weaponKg(p);
         Result r = new Result();
         r.maxHealth = p.getMaxHealth();
         int potionsBefore = countPotions(p);
@@ -107,24 +119,33 @@ class CombatBalanceTest {
             for (String id : group) {
                 monsters.add(arrive(id, monsters.size(), flags));
             }
-            float playerCooldown = 0f;
+            float busy = 0f;   // boire prend le temps d'un coup
             while (p.estVivant() && !allDown(monsters) && t < 900f) {
                 t += DT;
-                playerCooldown -= DT;
-                if (playerCooldown <= 0f) {
-                    playerCooldown = Combat.PLAYER_COOLDOWN;
+                busy -= DT;
+                fight.update(DT, p);
+                if (guard && blowComing(monsters)) {
+                    fight.raiseGuard();
+                } else {
+                    fight.lowerGuard();
+                }
+                if (busy <= 0f && !fight.isBlocking()) {
                     if (shouldDrink(p, monsters) && countPotions(p) > 0) {
-                        p.drinkHealingPotion();   // boire prend le temps d'un coup
-                    } else {
-                        Monster target = firstStanding(monsters);
-                        Combat.playerHit(p, target);
+                        p.drinkHealingPotion();
+                        busy = PlayerFight.swingTime(kg);
+                    } else if (fight.canSwing(kg, false)) {
+                        fight.startCharge();
+                        Combat.playerHit(p, firstStanding(monsters), fight.release(kg));
                     }
                 }
                 List<Monster> added = new ArrayList<>();
                 for (Monster m : monsters) {
                     if (m.update(DT, 0f, 0f) && p.estVivant()) {
-                        Combat.monsterHit(m, p);
+                        Combat.Received received = Combat.monsterHit(m, p, fight);
                         r.hitsTaken++;
+                        if (received.outcome != PlayerFight.Outcome.HIT && received.outcome != PlayerFight.Outcome.GUARD_BROKEN) {
+                            r.blocked++;
+                        }
                     }
                     MonsterData.Phase phase;
                     while ((phase = m.pollStartedPhase()) != null) {
@@ -144,6 +165,20 @@ class CombatBalanceTest {
         r.potionsUsed = potionsBefore - countPotions(p);
         r.seconds = t;
         return r;
+    }
+
+    /**
+     * Le coup annoncé du plus dangereux des monstres debout va partir bientôt (en garde, on la lève). Il ne se garde
+     * que de celui-là : contre tous à la fois, il ne frapperait plus jamais.
+     */
+    private static boolean blowComing(List<Monster> monsters) {
+        Monster worst = null;
+        for (Monster m : monsters) {
+            if (!m.isDead() && !m.hasYielded() && (worst == null || m.getDamage() > worst.getDamage())) {
+                worst = m;
+            }
+        }
+        return worst != null && worst.isWindingUp() && (1f - worst.windUpShare()) * worst.windUp() <= GUARD_BEFORE_HIT;
     }
 
     /** Un monstre qui arrive au contact, autour du joueur (en (0, 0)). */
@@ -229,12 +264,14 @@ class CombatBalanceTest {
 
     /** Un combat, sa ligne dans le rapport, et l'objectif : gagné, avec au plus {@code maxPotions}, et au moins {@code minHealthPercent} de vie. */
     private void scenario(String name, Kit kit, Set<String> flags, int maxPotions, int minHealthPercent, String[]... groups) {
-        Result r = fight(kit, flags, groups);
+        Result r = fight(kit, flags, false, groups);
+        Result g = fight(kit, flags, true, groups);
         int percent = r.healthLeft * 100 / r.maxHealth;
         boolean ok = r.won && r.potionsUsed <= maxPotions && percent >= minHealthPercent;
-        report.append(String.format(Locale.FRANCE, "| %s | %s | %s | %d %% | %d / %d | %.0f s | %d | %s |%n",
+        report.append(String.format(Locale.FRANCE, "| %s | %s | %s | %d %% | %d / %d | %.0f s | %d | %s | %s, %d %%, %d potion(s), %.0f s |%n",
                 name, kit.label, r.won ? "gagné" : "**perdu**", percent, r.potionsUsed, maxPotions, r.seconds, r.hitsTaken,
-                ok ? "oui" : "**non**"));
+                ok ? "oui" : "**non**",
+                g.won ? "gagné" : "**perdu**", g.healthLeft * 100 / g.maxHealth, g.potionsUsed, g.seconds));
         if (!ok) {
             failures.add(name);
         }
@@ -242,8 +279,8 @@ class CombatBalanceTest {
 
     @Test
     void everyFightOfTheStoryIsWinnableWithTheGearOfItsTime() throws Exception {
-        report.append("| Combat | Équipement | Issue | Vie restante | Potions bues / permises | Durée | Coups reçus | Objectif |\n");
-        report.append("| --- | --- | --- | --- | --- | --- | --- | --- |\n");
+        report.append("| Combat | Équipement | Planté : issue | Vie restante | Potions bues / permises | Durée | Coups reçus | Objectif | En garde : issue, vie, potions, durée |\n");
+        report.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n");
         // prologue
         scenario("Cave : 3 rats ensemble", START, NO_FLAGS, 1, 20, times(3, "giant_rat"));
         scenario("Forêt : 1 loup", START, NO_FLAGS, 1, 20, g("wolf"));

@@ -35,12 +35,16 @@ skills.json
     Ce qui donne de la pratique est dans le code : marcher (1 par metre, Endurance), marcher avec au moins
     la moitie de sa charge max (Portage), 1 par Po echange en boutique (Marchandage), 1 par potion de soin
     utilisee (Soins), manger a l'auberge (1) et y dormir (2) (Vigueur), 1 par coup porte (Melee), 1 par coup
-    recu (Robustesse). Effets supplementaires : meleePercent (% de degats), defenseBonus (points de defense).
+    recu (Robustesse). Effets supplementaires : meleePercent (% de degats), defenseBonus (points de defense),
+    staminaBonus (endurance maximale, en plus des 100 de base ; l'Endurance en donne 5 par niveau).
 
 monsters.json
     Les monstres, par identifiant. health = PV ; damage = degats d'un coup (avant la defense du joueur) ;
     speed = vitesse de course (m/s) ; aggroRange = distance a laquelle il repere le joueur (m) ;
     attackRange = distance de frappe (m, <= aggroRange) ; attackCooldown = secondes entre deux coups ;
+    windUp = secondes pendant lesquelles il prepare un coup avant de frapper (il s'arrete et vire a l'orange ;
+    absent = 0,5 ; toujours plus court que attackCooldown, phases comprises) : le coup ne touche que si le joueur
+    est encore a portee, on peut donc reculer, esquiver (Maj), bloquer ou parer (clic droit).
     goldMin/goldMax = or lache a la mort ; lootItem = objet de quete lache SI une quete active le demande
     comme preuve (proofItem) ; color = nom LibGDX ou "#RRGGBB" ; w/h/d = taille de la boite qui le represente.
     drops = objets (identifiants de items.json) qui tombent AU SOL a la mort, chacun avec sa "chance" (1 a 100 %) ;

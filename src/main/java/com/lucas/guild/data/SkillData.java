@@ -20,6 +20,7 @@ public class SkillData {
         EFFECTS.put("healthBonus", new String[] {"Vie maximale", " PV"});
         EFFECTS.put("meleePercent", new String[] {"Dégâts de mêlée", " %"});
         EFFECTS.put("defenseBonus", new String[] {"Défense", ""});
+        EFFECTS.put("staminaBonus", new String[] {"Endurance maximale", ""});
     }
 
     public String id;

@@ -68,7 +68,10 @@ class CharacterModel implements Disposable {
     private final Matrix4 tmp = new Matrix4();
 
     private boolean visible = false;
-    private boolean flashing = false;
+    /** La teinte posée sur le modèle (rouge : touché ; orange : prépare un coup...) et sa force (0 = ses couleurs). */
+    private final Color tint = new Color();
+    private float tintAmount;
+    private static final Color HURT = new Color(1f, 0.25f, 0.25f, 1f);
     private boolean falling = false;
     private float fallTime;
     private float idleTime;
@@ -151,7 +154,7 @@ class CharacterModel implements Disposable {
         Color color = ColorNames.parse(hex, file, "une forme (" + part.shape + ")");
         Model model = sharedModel(part, color);
         pieces.add(new Piece(new ModelInstance(model), part.joint != null ? joints.get(part.joint) : null, part, color));
-        flashing = false;
+        tintAmount = 0f;
     }
 
     private void clear() {
@@ -202,17 +205,20 @@ class CharacterModel implements Disposable {
 
     /** Fait clignoter le modèle en rouge (il vient d'être touché) ou le remet à ses couleurs. */
     void setFlash(boolean flash) {
-        if (flash == flashing) {
+        setTint(HURT, flash ? 1f : 0f);
+    }
+
+    /** Teinte le modèle vers {@code color}, de 0 (ses couleurs) à 1 (entièrement de cette couleur). */
+    void setTint(Color color, float amount) {
+        amount = Math.max(0f, Math.min(1f, amount));
+        if (amount == tintAmount && (amount == 0f || tint.equals(color))) {
             return;
         }
-        flashing = flash;
+        tint.set(color);
+        tintAmount = amount;
         for (Piece piece : pieces) {
             ColorAttribute diffuse = (ColorAttribute) piece.instance.materials.first().get(ColorAttribute.Diffuse);
-            if (flash) {
-                diffuse.color.set(1f, 0.25f, 0.25f, 1f);
-            } else {
-                diffuse.color.set(piece.baseColor);
-            }
+            diffuse.color.set(piece.baseColor).lerp(color, amount);
         }
     }
 

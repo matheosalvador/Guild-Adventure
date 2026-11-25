@@ -17,6 +17,11 @@ public class MonsterData {
     public float attackRange;
     /** Temps entre deux coups, en secondes. */
     public float attackCooldown;
+    /**
+     * Temps pendant lequel il prépare un coup avant de frapper (on le voit venir), en secondes ; absent = 0,5 s.
+     * Toujours plus court que le temps entre deux coups.
+     */
+    public float windUp;
     /** Or lâché à la mort : tiré entre ces deux valeurs. */
     public int goldMin;
     public int goldMax;

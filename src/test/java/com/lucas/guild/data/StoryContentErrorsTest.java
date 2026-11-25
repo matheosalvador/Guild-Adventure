@@ -339,6 +339,17 @@ class StoryContentErrorsTest {
     }
 
     @Test
+    void monsterWindUpLongerThanItsCooldown() throws IOException {
+        expectError("monsters.json", "\"aggroRange\": 22, \"attackRange\": 2.0, \"attackCooldown\": 1.4,",
+                "\"aggroRange\": 22, \"attackRange\": 2.0, \"attackCooldown\": 1.4, \"windUp\": 1.5,", "monsters.json", "sergeant_holt", "windUp");
+    }
+
+    @Test
+    void monsterPhaseFasterThanItsWindUp() throws IOException {
+        expectError("monsters.json", "\"speed\": 3.0, \"attackCooldown\": 1.6,", "\"speed\": 3.0, \"attackCooldown\": 0.4,", "monsters.json", "lord_aldric", "phase", "attackCooldown");
+    }
+
+    @Test
     void monsterPhasesNotDecreasing() throws IOException {
         expectError("monsters.json", "{ \"below\": 25, \"damage\": 30", "{ \"below\": 80, \"damage\": 30", "monsters.json", "lord_aldric", "phase", "below");
     }

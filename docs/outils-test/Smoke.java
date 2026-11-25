@@ -212,6 +212,9 @@ public class Smoke extends ApplicationAdapter {
 
         // =================================================== LE RELIEF
         reliefSection();
+
+        // =================================================== LE COMBAT VIVANT
+        combatvivantSection();
     }
 
     // ------------------------------------------------------------------ monde ouvert (prototype)
@@ -625,6 +628,134 @@ public class Smoke extends ApplicationAdapter {
             return Math.abs(y - ground) < 0.3f;
         });
         step(() -> com.lucas.guild.game.DebugMode.setEnabled(false));
+    }
+
+    // ------------------------------------------------------------------ le combat vivant
+
+    com.lucas.guild.game.Monster foe() {
+        double[] p = playerPos();
+        return monsterNear((float) p[0], (float) p[2]);
+    }
+
+    com.lucas.guild.game.PlayerFight fight() {
+        return (com.lucas.guild.game.PlayerFight) fieldOf(cur(), "fight");
+    }
+
+    String outcome() {
+        try {
+            java.lang.reflect.Method m = combatOf().getClass().getDeclaredMethod("outcomeShown");
+            m.setAccessible(true);
+            return (String) m.invoke(combatOf());
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    /** Laisse tourner le jeu jusqu'à ce que {@code cond} soit vraie (au plus {@code max} images). */
+    void waitFor(java.util.function.BooleanSupplier cond, int max) {
+        for (int i = 0; i < max; i++) {
+            steps.add(() -> { if (!cond.getAsBoolean()) render1(); });
+        }
+    }
+
+    /** Le bandit prépare un coup qui partira dans moins de {@code left} secondes. */
+    boolean blowWithin(float left) {
+        com.lucas.guild.game.Monster m = foe();
+        return m != null && m.isWindingUp() && (1f - m.windUpShare()) * m.windUp() <= left;
+    }
+
+    void mouse(boolean down, int button) {
+        steps.add(() -> {
+            if (down) ((InputProcessor) cur()).touchDown(400, 300, 0, button);
+            else ((InputProcessor) cur()).touchUp(400, 300, 0, button);
+        });
+    }
+
+    float zBefore;
+    int healthAt;
+
+    /** Coups annoncés, parade, garde, esquive, coup chargé, endurance : contre un bandit, devant Aethelgard. */
+    void combatvivantSection() {
+        step(() -> { game.startNewGame("normale"); com.lucas.guild.game.DebugMode.setEnabled(true); com.lucas.guild.game.DebugMode.setInvincible(false); resetSettings(); setStoryTexts(false); });
+        step(() -> game.setScreen(game.arrivalIn("aethelgard", "normale")));
+        settleWorld();
+        step(() -> invokeDebugSpawn("bandit"));
+        frames(5);
+
+        // ---------- le coup s'annonce : le bandit vire à l'orange
+        waitFor(() -> foe() != null && foe().isWindingUp() && foe().windUpShare() > 0.7f, 400);
+        step(this::faceNearestMonster);
+        shot("v01_coup_annonce");
+        check("le bandit annonce son coup avant de frapper", () -> foe().isWindingUp());
+        frames(40);
+        check("barre d'endurance pleine au repos", () -> fight().getStamina() >= com.lucas.guild.game.PlayerFight.maxStamina(player()) - 0.01f);
+
+        // ---------- parade : la garde levée juste avant le coup
+        waitFor(() -> blowWithin(0.1f), 400);
+        step(() -> healthAt = player().getHealth());
+        mouse(true, Input.Buttons.RIGHT);
+        waitFor(() -> outcome() != null, 60);
+        step(this::faceNearestMonster);
+        shot("v02_pare");
+        check("lever la garde au dernier moment : Paré !, sans perdre de vie", () -> "Paré !".equals(outcome()) && player().getHealth() == healthAt);
+        check("paré, le bandit chancelle", () -> foe().isStaggered());
+        mouse(false, Input.Buttons.RIGHT);
+        frames(60);
+
+        // ---------- garde levée tôt : le coup est bloqué
+        waitFor(() -> blowWithin(0.45f) && !blowWithin(0.3f), 400);
+        mouse(true, Input.Buttons.RIGHT);
+        step(() -> healthAt = player().getHealth());
+        frames(10);
+        shot("v03_en_garde");
+        check("en garde, la mire le dit", () -> fight().isBlocking());
+        waitFor(() -> "Bloqué".equals(outcome()), 60);
+        check("garde levée trop tôt pour parer : Bloqué, un peu de vie perdue, de l'endurance aussi", () ->
+                "Bloqué".equals(outcome()) && player().getHealth() < healthAt && player().getHealth() > healthAt - 5
+                        && fight().getStamina() < com.lucas.guild.game.PlayerFight.maxStamina(player()));
+        mouse(false, Input.Buttons.RIGHT);
+        frames(60);
+
+        // ---------- esquive : un bond en arrière, le coup frappe dans le vide
+        waitFor(() -> blowWithin(0.12f), 400);
+        step(() -> { healthAt = player().getHealth(); zBefore = (float) foe().distanceTo((float) playerPos()[0], (float) playerPos()[2]); });
+        key(Input.Keys.SHIFT_LEFT);
+        frames(8);
+        shot("v04_esquive");
+        waitFor(() -> outcome() != null, 30);
+        check("Maj : on bondit (en arrière sans touche de marche) et le coup est esquivé", () ->
+                "Esquivé".equals(outcome()) && player().getHealth() == healthAt
+                        && foe().distanceTo((float) playerPos()[0], (float) playerPos()[2]) > zBefore + 2f);
+        frames(30);
+
+        // ---------- le coup chargé : on garde le clic, la barre de charge se remplit
+        step(this::faceNearestMonster);
+        waitFor(() -> foe().distanceTo((float) playerPos()[0], (float) playerPos()[2]) < 2.2f && !foe().isWindingUp(), 300);
+        step(this::faceNearestMonster);
+        step(() -> healthAt = foe().getHealth());
+        mouse(true, Input.Buttons.LEFT);
+        for (int i = 0; i < 42; i++) {
+            step(this::faceNearestMonster);
+            frames(1);
+        }
+        shot("v05_coup_charge");
+        check("le clic gardé charge le coup", () -> fight().isCharged());
+        mouse(false, Input.Buttons.LEFT);
+        frames(2);
+        check("le coup chargé fait mal (x1,5 et plus) et fait chanceler le bandit", () ->
+                healthAt - foe().getHealth() >= Math.round(player().getAttackDamage() * 1.5f) && foe().isStaggered());
+        frames(10);
+        shot("v06_bandit_chancelle");
+
+        // ---------- l'endurance s'épuise à frapper sans arrêt
+        step(() -> com.lucas.guild.game.DebugMode.setInvincible(true));
+        for (int i = 0; i < 12; i++) {
+            step(this::faceNearestMonster);
+            click1();
+            frames(26);
+        }
+        shot("v07_endurance_basse");
+        step(() -> log("endurance apres 12 coups : " + fight().getStamina() + " ; vivant " + player().estVivant() + " ; ecran " + cur().getClass().getSimpleName()));
+        check("frapper sans s'arrêter entame l'endurance", () -> fight().getStamina() < com.lucas.guild.game.PlayerFight.maxStamina(player()) - 15f);   // a mains nues, un coup ne coute que 8
+        step(() -> com.lucas.guild.game.DebugMode.setInvincible(false));
     }
 
     void invokeDebugSpawn(String id) {
@@ -2057,8 +2188,13 @@ public class Smoke extends ApplicationAdapter {
         } catch (Exception e) { throw new RuntimeException(e); }
     }
 
+    /** Un clic gauche : le coup part au relâchement (un coup normal, pas chargé). */
     void click1() {
-        steps.add(() -> { ((InputProcessor) cur()).touchDown(400, 300, 0, Input.Buttons.LEFT); render1(); });
+        steps.add(() -> {
+            ((InputProcessor) cur()).touchDown(400, 300, 0, Input.Buttons.LEFT);
+            ((InputProcessor) cur()).touchUp(400, 300, 0, Input.Buttons.LEFT);
+            render1();
+        });
     }
 
     double meleeBefore, robustBefore;
